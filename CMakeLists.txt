@@ -3,4 +3,4 @@ project(DeepPoint_V2_FPGA)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(DeepPoint_V2_FPGA main.cpp)
+add_executable(DeepPoint_V2_FPGA src/main.cpp)
