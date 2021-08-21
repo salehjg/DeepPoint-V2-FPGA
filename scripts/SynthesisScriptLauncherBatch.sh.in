@@ -1,0 +1,7 @@
+echo "Executing each kernel's TCL synthesis script"
+for fileItem in ./*.tcl
+do
+	echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+	echo "Executing: $fileItem"
+	${SDAccel_VIVADO_HLS} -f "$fileItem"
+done

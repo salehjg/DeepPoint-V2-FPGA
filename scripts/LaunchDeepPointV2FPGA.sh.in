@@ -1,0 +1,129 @@
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' = 
+echo "DeepPointV2 Emulation Launcher Script"
+echo "Version 1"
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
+read -p "Choose launch mode(1.sw-emu / 2.hw-emu / 3.system):" mode
+#read -p "Enter Data Directory [../data/]: " datadir
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
+echo "Data Directory is set to ${datadir}"
+echo "Mode ${mode} is selected."
+echo "Preparing to launch..."
+printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
+
+xclbin_swemu=@xcl_path_swemu@
+xclbin_hwemu=@xcl_path_hwemu@
+xclbin_hw=@xcl_path_hw@
+platform=@DSA_NAME@
+hostsideexe=@HostExecutablePath@
+datadir=@DataDirectory@
+
+if [ -e $hostsideexe ]
+then
+    echo -e "${GREEN}Found The Host Executable: ${hostsideexe}${NC}"
+else
+    echo -e "${RED}ERROR${NC}: The required host program(${hostsideexe}) was not found. Please run $ make DeepPointV2FPGA ."
+    exit 1
+fi
+
+case $mode in
+1)      
+	#------------------------------------------Checking if xclbin exists:
+	if [ -e $xclbin_swemu ]
+	then
+	    echo -e "${GREEN}Found FPGA Image: ${xclbin_swemu}${NC}"
+	else
+	    echo -e "${RED}ERROR${NC}: The required (${xclbin_swemu}) file was not found."
+	    exit 1
+	fi
+	#------------------------------------------Setting Emulation Config & Launch
+	echo "XILINX_SDX PATH = ${XILINX_SDX}"
+	echo "Setting Emulation Config..."
+	emconfigutil --platform $platform --nd 1
+	export XCL_EMULATION_MODE=sw_emu
+	printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
+	echo -e "${GREEN}Launching DeepPointV2FPGA...${NC}"
+	echo ""
+	#$hostsideexe -i $xclbin_swemu -d $datadir "$@" 2>&1 | tee -a DeepPointV2FPGA_Host.log
+	$hostsideexe -i $xclbin_swemu -d $datadir "$@"
+	sh gather_results.sh
+	
+	;;
+
+
+
+
+
+
+
+2)      
+	#------------------------------------------Checking if xclbin exists:
+	if [ -e $xclbin_hwemu ]
+	then
+	    echo -e "${GREEN}Found FPGA Image: ${xclbin_hwemu}${NC}"
+	else
+	    echo -e "${RED}ERROR${NC}: The required (${xclbin_hwemu}) file was not found."
+	    exit 1
+	fi
+	#------------------------------------------Setting Emulation Config & Launch
+	echo "XILINX_SDX PATH = ${XILINX_SDX}"
+	echo "Setting Emulation Config..."
+	emconfigutil --platform $platform --nd 1
+	export XCL_EMULATION_MODE=hw_emu
+	printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
+	echo -e "${GREEN}Launching DeepPointV2FPGA...${NC}"
+	echo ""
+	#$hostsideexe -i $xclbin_hwemu -d $datadir "$@" 2>&1 | tee -a DeepPointV2FPGA_Host.log
+	$hostsideexe -i $xclbin_hwemu -d $datadir "$@"
+	sh gather_results.sh
+
+	;;
+
+
+
+
+
+
+
+
+3)
+	#------------------------------------------Checking if xclbin exists:
+	if [ -e $xclbin_hw ]
+	then
+	    echo -e "${GREEN}Found FPGA Image: ${xclbin_hw}${NC}"
+	else
+	    echo -e "${RED}ERROR${NC}: The required (${xclbin_hw}) file was not found."
+	    exit 1
+	fi
+	#------------------------------------------ Launch
+	printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
+	echo -e "${GREEN}Launching DeepPointV2FPGA...${NC}"
+	echo ""
+	#$hostsideexe -i $xclbin_hw -d $datadir "$@" 2>&1 | tee -a DeepPointV2FPGA_Host.log
+	$hostsideexe -i $xclbin_hw -d $datadir "$@"
+	sh gather_results.sh
+
+	;; 
+
+
+
+
+
+
+
+*)
+	echo -e "${RED}ERROR${NC}: Unkown launch mode. Terminating..."
+	exit 1
+;;
+esac
+
+
+
+
+#echo "Emulation Mode: ${LAUNCHER_EMU_MODE}"
+#export XCL_EMULATION_MODE=${LAUNCHER_EMU_MODE}
+#./${HostExecutableName} kernel.xclbin
