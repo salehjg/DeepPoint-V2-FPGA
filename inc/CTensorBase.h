@@ -8,7 +8,7 @@
 
 class CTensorBase {
  public:
-  const std::vector<unsigned>& GetShape() const;
+  const std::vector<unsigned> GetShape() const;
   unsigned GetRank() const;
   void SqueezeDims();
   void ExpandDims(const unsigned axis);

@@ -22,4 +22,4 @@ add_executable(tests_main
         )
 
 add_test(NAME tests_main COMMAND tests_main)
-target_link_libraries(tests_main gtest)
+target_link_libraries(tests_main gtest ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)

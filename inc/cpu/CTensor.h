@@ -14,16 +14,17 @@ class CTensor: public CTensorBase {
   CTensor(const CTensor<T>& other);
   CTensor(const std::vector<unsigned> &shape);
   CTensor(const std::vector<unsigned> &shape, T* srcBuffToBeCopied);
-  CTensor& operator=(const CTensor<T>& other);
+  virtual CTensor& operator=(const CTensor<T>& other);
   unsigned long GetSizeBytes() const override;
   virtual const std::type_info& GetType() const;
   virtual T& operator[](std::size_t flattenedRowMajorIndex);
+  virtual T* Get();
 
  protected:
-
+  unsigned long CheckShape(const std::vector<unsigned> &shape);
  private:
   void CloneFrom(const CTensor<T> &other);
-  unsigned long CheckShape(const std::vector<unsigned> &shape);
+
   //using BuffType = std::unique_ptr<T[], decltype(&free)>;
   using BuffType = std::unique_ptr<T[]>;
 
@@ -37,6 +38,7 @@ CTensor<T>::CTensor(const CTensor<T> &other) {
 
 template<typename T>
 CTensor<T> &CTensor<T>::operator=(const CTensor<T> &other) {
+  // this = other !
   CloneFrom(other);
   return *this;
 }
@@ -104,4 +106,8 @@ unsigned long CTensor<T>::CheckShape(const std::vector<unsigned> &shape) {
   if(newLen<1)
     throw std::runtime_error(CStringFormatter()<< __func__ << ": Bad tensor shape to create a tensor with.");
   return newLen;
+}
+template<typename T>
+T *CTensor<T>::Get() {
+  return m_pHostBuffAligned.get();
 }

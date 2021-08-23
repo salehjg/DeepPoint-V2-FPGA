@@ -2,6 +2,7 @@
 #include <vector>
 #include <typeinfo>
 #include "cpu/CTensor.h"
+#include "fpga/xilinx/CTensorXil.h"
 
 using namespace std;
 /*

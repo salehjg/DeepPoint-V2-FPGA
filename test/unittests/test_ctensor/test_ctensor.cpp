@@ -2,7 +2,7 @@
 #include "cpu/CTensor.h"
 
 TEST(test_ctensor, subtest1) {
-  unsigned N=1024;
+  const unsigned N=1024;
   CTensor<int> tn({N});
   EXPECT_FALSE (tn.IsEmpty());
   EXPECT_EQ (tn.GetLen(),  N);
@@ -16,7 +16,7 @@ TEST(test_ctensor, subtest1) {
 }
 
 TEST(test_ctensor, subtest2) {
-  unsigned N=1024;
+  const unsigned N=1024;
   CTensor<int> tn1({N,N});
 
   for(int i=0; i<tn1.GetLen(); i++){
@@ -37,7 +37,7 @@ TEST(test_ctensor, subtest2) {
 }
 
 TEST(test_ctensor, subtest3) {
-  unsigned N=1024;
+  const unsigned N=1024;
   CTensor<float> tn1({N,N});
 
   for(int i=0; i<tn1.GetLen(); i++){

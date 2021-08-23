@@ -3,7 +3,7 @@
 
 using namespace std;
 
-const vector<unsigned> &CTensorBase::GetShape() const {
+const vector<unsigned> CTensorBase::GetShape() const {
   if (m_vShape.empty()) {
     throw runtime_error(CStringFormatter() << "m_vShape is empty, is the tensor initialized?");
   }
