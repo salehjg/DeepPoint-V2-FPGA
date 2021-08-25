@@ -3,18 +3,20 @@
 CKernelWrapper::CKernelWrapper(std::string &taskName,
                                std::string &fileName,
                                unsigned ddrBankIndex,
-                               cl::Program *program,
+                               CXilinxInfo *xilInfo,
                                std::string &path,
                                bool isDisabled) {
+  m_iArgCounter = 0;
   m_strTaskName = taskName;
   m_strKernelName = fileName;
   m_strKernelPath = path;
   m_bIsDisabled = isDisabled;
   m_uBankIndex = ddrBankIndex;
+  m_oXilInfo = xilInfo;
 
   if(!m_bIsDisabled){
     OclCheck(m_iStatus,
-        m_oKernel = new cl::Kernel(*program, m_strTaskName.c_str(), &m_iStatus));
+        m_oKernel = new cl::Kernel(*m_oXilInfo->GetProgram(), m_strTaskName.c_str(), &m_iStatus));
   }
 }
 
@@ -55,34 +57,12 @@ void CKernelWrapper::EventCallback(cl_event event, cl_int execStatus, void *user
     */
   }
 }
-
-CKernelWrapper& CKernelWrapper::AddArg(CKernelArgBase *arg) {
-  m_vKernelArgs.push_back(arg);
-  return this;
+CXilinxInfo *CKernelWrapper::GetXilInfo() const {
+  return m_oXilInfo;
 }
-void CKernelWrapper::WipeKernelArgs() {
-  for(auto a:m_vKernelArgs){
-    delete a;
-  }
-  m_vKernelArgs.clear();
-  m_vKernelArgsPrepared.clear();
+void CKernelWrapper::ResetArgCounter() {
+  m_iArgCounter = 0;
 }
-void CKernelWrapper::PrepareInputTensors() {
-  CKernelArg<CTensorXil<float>> *t1 = nullptr;
-  CKernelArg<CTensorXil<unsigned>> *t2 = nullptr;
-
-  // Look for CTensorXil arguments and clone them to the required mem bank (if needed) for the kernel launch.
-  for(auto &arg : m_vKernelArgs){
-    if(t1=dynamic_cast<CKernelArg<CTensorXil<float>>*>(arg)){
-      auto argPrepared = t1->Get()->CloneIfNeededToBank(m_uBankIndex);
-      m_vKernelArgsPrepared.push_back(argPrepared);
-      m_vArgsToBeReleased.push_back(argPrepared);
-    }else if(t2=dynamic_cast<CKernelArg<CTensorXil<unsigned>>*>(arg)){
-      auto argPrepared = t2->Get()->CloneIfNeededToBank(m_uBankIndex);
-      m_vKernelArgsPrepared.push_back(argPrepared);
-      m_vArgsToBeReleased.push_back(argPrepared);
-    }else{
-      m_vKernelArgsPrepared.push_back(arg);
-    }
-  }
+int CKernelWrapper::ArgCounter() {
+  return m_iArgCounter++;
 }

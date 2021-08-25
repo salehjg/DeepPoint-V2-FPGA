@@ -6,7 +6,8 @@
 #include "fpga/xilinx/CTensorXil.h"
 #include "CTensorBase.h"
 #include "GlobalHelpers.h"
-#include "fpga/xilinx/CKernelArg.h"
+#include "fpga/xilinx/CXilinxInfo.h"
+#include <cassert>
 
 
 struct CallbackData{
@@ -20,16 +21,15 @@ class CKernelWrapper {
       std::string &taskName,
       std::string &fileName,
       unsigned ddrBankIndex,
-      cl::Program *program,
+      CXilinxInfo *xilInfo,
       std::string &path,
       bool isDisabled);
 
   cl::Kernel* GetKernel() const;
   unsigned GetBankIndex() const;
-  void WipeKernelArgs();
-  CKernelWrapper& AddArg(CKernelArgBase *arg);
-  void PrepareInputTensors();
-
+  CXilinxInfo* GetXilInfo() const;
+  void ResetArgCounter();
+  int ArgCounter();
  protected:
   void EventCallback(cl_event event, cl_int execStatus, void* userData);
  private:
@@ -38,10 +38,7 @@ class CKernelWrapper {
   cl::Kernel *m_oKernel;
   bool m_bIsDisabled;
   cl_int m_iStatus;
-  std::vector<CKernelArgBase*> m_vKernelArgs;
-  std::vector<CKernelArgBase*> m_vKernelArgsPrepared;
-
-  // these should be destroyed after all of the async kernels have been executed.
-  std::vector<CKernelArgBase*> m_vArgsToBeReleased;
+  CXilinxInfo *m_oXilInfo;
+  int m_iArgCounter;
 };
 

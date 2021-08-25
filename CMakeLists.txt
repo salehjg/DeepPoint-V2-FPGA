@@ -493,11 +493,13 @@ configure_file(${CMAKE_SOURCE_DIR}/config/CMakeLists.txt ${CMAKE_BINARY_DIR}/CMa
 
 
 
+include_directories(${CMAKE_SOURCE_DIR}/submodules/rapidjson/include)
 add_executable(${HostExecutableName}
         src/main.cpp
         src/CTensorBase.cpp
         src/fpga/xilinx/CKernelWrapper.cpp
         src/fpga/xilinx/CKernelArg.cpp
+        src/CProfiler.cpp
         )
 
 target_link_libraries(${HostExecutableName} ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)
