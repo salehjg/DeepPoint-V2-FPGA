@@ -23,13 +23,18 @@ class CKernelWrapper {
       unsigned ddrBankIndex,
       CXilinxInfo *xilInfo,
       std::string &path,
-      bool isDisabled);
+      bool isDisabled,
+      bool profileOcl);
 
   cl::Kernel* GetKernel() const;
   unsigned GetBankIndex() const;
   CXilinxInfo* GetXilInfo() const;
   void ResetArgCounter();
   int ArgCounter();
+  bool GetProfileOclEnabled() const;
+  bool GetKernelEnabled() const;
+
+
  protected:
   void EventCallback(cl_event event, cl_int execStatus, void* userData);
  private:
@@ -37,6 +42,7 @@ class CKernelWrapper {
   unsigned m_uBankIndex;
   cl::Kernel *m_oKernel;
   bool m_bIsDisabled;
+  bool m_bProfileOcl;
   cl_int m_iStatus;
   CXilinxInfo *m_oXilInfo;
   int m_iArgCounter;

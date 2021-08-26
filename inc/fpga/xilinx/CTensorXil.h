@@ -32,6 +32,7 @@ class CTensorXil: public CTensorBase {
   int GetAxiWidth() const;
   cl::Buffer& GetDeviceBuffer() const;
   unsigned GetLenPadded() const;
+  unsigned long GetSizeBytes() const override ;
   unsigned GetSizeBytesPadded() const;
   unsigned GetVectorCountPadded() const;
   std::vector<unsigned> GetShapePadded() const;
@@ -536,6 +537,11 @@ template<typename T>
 CXilinxInfo *CTensorXil<T>::GetXilInfo() const {
   return m_oXilInfo;
 }
+template<typename T>
+unsigned long CTensorXil<T>::GetSizeBytes() const {
+  return GetLen()*sizeof(T);
+}
+
 
 
 

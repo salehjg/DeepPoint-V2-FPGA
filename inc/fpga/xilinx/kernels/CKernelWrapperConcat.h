@@ -33,7 +33,7 @@ class CKernelWrapperConcat: public CKernelWrapper{
     const unsigned dimB3 = shape2[3];
     const unsigned dimR3 = dimA3+dimB3;
     const std::vector<unsigned> shapeOut = {dim0, dim1, dim2, dimR3};
-    CTensorXil *outputTn = new CTensorXil(GetXilInfo(), shapeOut, GetBankIndex());
+    auto *outputTn = new CTensorXil<float>(GetXilInfo(), shapeOut, GetBankIndex());
 
     ResetArgCounter();
     GetKernel()->setArg(ArgCounter(), inputTn1->GetDeviceBuffer());
@@ -52,6 +52,9 @@ class CKernelWrapperConcat: public CKernelWrapper{
         outputTn->GetEventPtr()
     );
 
+    CallbackData userData;
+    userData.profileKernel = GetProfileOclEnabled();
+    userData.execId =
 
     outputTn->GetEventPtr()->setCallback(CL_COMPLETE, EventCallback, ) ???????????????????
   }

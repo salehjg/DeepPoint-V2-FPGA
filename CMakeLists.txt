@@ -500,6 +500,11 @@ add_executable(${HostExecutableName}
         src/fpga/xilinx/CKernelWrapper.cpp
         src/fpga/xilinx/CKernelArg.cpp
         src/CProfiler.cpp
+        src/fpga/xilinx/CImplementationXilinx.cpp
+        src/CClassifierMultiPlatform.cpp
+        src/models/CModel1.cpp
+        src/CWeightLoader.cpp
+        src/CPlatformSelection.cpp
         )
 
 target_link_libraries(${HostExecutableName} ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)

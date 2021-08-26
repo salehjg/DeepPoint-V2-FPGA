@@ -5,12 +5,14 @@ CKernelWrapper::CKernelWrapper(std::string &taskName,
                                unsigned ddrBankIndex,
                                CXilinxInfo *xilInfo,
                                std::string &path,
-                               bool isDisabled) {
+                               bool isDisabled,
+                               bool profileOcl) {
   m_iArgCounter = 0;
   m_strTaskName = taskName;
   m_strKernelName = fileName;
   m_strKernelPath = path;
   m_bIsDisabled = isDisabled;
+  m_bProfileOcl = profileOcl;
   m_uBankIndex = ddrBankIndex;
   m_oXilInfo = xilInfo;
 
@@ -65,4 +67,10 @@ void CKernelWrapper::ResetArgCounter() {
 }
 int CKernelWrapper::ArgCounter() {
   return m_iArgCounter++;
+}
+bool CKernelWrapper::GetProfileOclEnabled() const {
+  return m_bProfileOcl;
+}
+bool CKernelWrapper::GetKernelEnabled() const {
+  return m_bIsDisabled;
 }
