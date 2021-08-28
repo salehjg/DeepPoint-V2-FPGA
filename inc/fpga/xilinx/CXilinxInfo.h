@@ -35,7 +35,18 @@ class CXilinxInfo{
   }
 
   ~CXilinxInfo(){
-    ///TODO RELEASE THE DATAMOVER KERNEL AND THE DUMMY TENSORS
+#ifdef USEMEMORYBANK0
+    delete m_oDummyDataMoverBank0
+#endif
+#ifdef USEMEMORYBANK1
+    delete m_oDummyDataMoverBank1;
+#endif
+#ifdef USEMEMORYBANK2
+    delete m_oDummyDataMoverBank2;
+#endif
+#ifdef USEMEMORYBANK3
+    delete m_oDummyDataMoverBank3;
+#endif
   }
 
   cl::Program* GetProgram(){

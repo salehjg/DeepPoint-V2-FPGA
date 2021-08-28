@@ -4,6 +4,7 @@
 #include "CTensorBase.h"
 #include "xilinx/config.h"
 #include "fpga/xilinx/xcl2.h"
+#include "fpga/xilinx/CXilinxInfo.h"
 #include <memory>
 #include "CStringFormatter.h"
 #include <typeinfo>
@@ -12,7 +13,7 @@
 #include "GlobalHelpers.h"
 #include "fpga/xilinx/AxiHelper.h"
 #include <algorithm>
-#include "fpga/xilinx/CXilinxInfo.h"
+
 
 template <typename T>
 class CTensorXil: public CTensorBase {

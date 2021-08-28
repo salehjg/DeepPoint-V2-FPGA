@@ -5,6 +5,7 @@
 #include "fpga/xilinx/xcl2.h"
 #include "CProfiler.h"
 #include "CXilinxInfo.h"
+#include "fpga/xilinx/kernels/CKernelWrapperConcat.h"
 
 enum class RUN_MODE{
   SwEmu,
@@ -13,15 +14,23 @@ enum class RUN_MODE{
   Unknown
 };
 
+#define KERNEL_ENABLED true
+#define KERNEL_DISABLED true
+
 class CImplementationXilinx: public CImplementationBase {
  public:
-  CImplementationXilinx();
 
+  CImplementationXilinx(bool profileOcl, CProfiler *profiler);
+  ~CImplementationXilinx();
+  CXilinxInfo* GetXilInfo();
   int SetModeEnvVar(RUN_MODE &mode);
   RUN_MODE GetModeEnvVar() const;
-  const std::string& GetOclErrorMessage(cl_int error) const;
+  const std::string GetOclErrorMessage(cl_int error) const;
+
+  CTensorBase* Concat2(CTensorBase* inputTn1, CTensorBase* inputTn2, int concatAxis) override;
 
  private:
+  bool m_bOclProfileEnabled;
   CXilinxInfo *m_ptrXilInfo;
   cl_int m_iStatus;
   const std::string KERNEL_DIR = REPO_DIR "src/fpga/xilinx/kernels";
@@ -30,6 +39,8 @@ class CImplementationXilinx: public CImplementationBase {
   cl::Context *m_ptrContext;
   cl::Program *m_ptrProgram;
   cl::CommandQueue *m_ptrQueue;
+
+  CKernelWrapperConcat *m_oKernelConcat;
 };
 
 

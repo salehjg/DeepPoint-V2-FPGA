@@ -1,13 +1,9 @@
 #pragma once
 #include "CTensorBase.h"
+#include "GlobalHelpers.h"
+#include "CStringFormatter.h"
+#include "CProfiler.h"
 #include <string>
-
-enum class MAT_OPS{
-  ADD,
-  SUB,
-  MUL_ELEMENTWISE,
-  DIV_ELEMENTWISE
-};
 
 class CImplementationBase {
  public:
@@ -35,6 +31,11 @@ class CImplementationBase {
   virtual CTensorBase* PadLastDim(CTensorBase* inputTn, unsigned lastDimPadded)=0;
   virtual CTensorBase* UnpadLastDim(CTensorBase* inputTn, unsigned lastDimUnpadded)=0;
 
- private:
-  
+ protected:
+  unsigned GenerateLayerId();
+  PLATFORMS GetPlatform() const;
+  void ResetLayerIdCounter(unsigned offset);
+  std::atomic_uint m_uAtomicCounter;
+  PLATFORMS m_ePlatform;
+  CProfiler *m_ptrProfiler;
 };

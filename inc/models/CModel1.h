@@ -20,11 +20,13 @@ class CModel1 {
   CTensor<float>* Execute();
   CTensor<int>*   GetLabels();
   unsigned        GetBatchSize();
+  unsigned        GetClassCount();
 
  private:
   unsigned m_uBatchSize=-1;
   unsigned m_uPointsPerCloud=-1;
   unsigned m_uKnnK=-1;
+  unsigned m_uClassCount=-1;
   CTensorBase* m_ptrDatasetDataTn;
   CTensorBase* m_ptrDatasetLabelsTn;
   unsigned m_uDatasetOffset=0;

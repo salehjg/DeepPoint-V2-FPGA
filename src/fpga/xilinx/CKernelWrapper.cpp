@@ -1,10 +1,10 @@
 #include "fpga/xilinx/CKernelWrapper.h"
 
-CKernelWrapper::CKernelWrapper(std::string &taskName,
-                               std::string &fileName,
+CKernelWrapper::CKernelWrapper(std::string taskName,
+                               std::string fileName,
                                unsigned ddrBankIndex,
                                CXilinxInfo *xilInfo,
-                               std::string &path,
+                               std::string path,
                                bool isDisabled,
                                bool profileOcl) {
   m_iArgCounter = 0;
@@ -48,15 +48,8 @@ void CKernelWrapper::EventCallback(cl_event event, cl_int execStatus, void *user
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
 
     std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
-    ///TODO REPORT DURATION WITH SPDLOGGER
-    /*SPDLOG_LOGGER_INFO(reporter,
-                       "** {}{}(us): {}, (ms): {}, (s): {}",
-                       m_strTaskName,
-                       (false?"(ndrange):: ":"(task):: "),
-                       durationNanoSeconds/1000.0f,
-                       durationNanoSeconds/1000000.0f,
-                       durationNanoSeconds/1000000000.0f);
-    */
+
+    AddProfiledKernelLaunchDetails(m_strTaskName, (CallbackData *) userData)->parentLayerId,durationNanoSeconds);
   }
 }
 CXilinxInfo *CKernelWrapper::GetXilInfo() const {
@@ -73,4 +66,16 @@ bool CKernelWrapper::GetProfileOclEnabled() const {
 }
 bool CKernelWrapper::GetKernelEnabled() const {
   return m_bIsDisabled;
+}
+std::vector<ProfiledLaunchData> &CKernelWrapper::GetAccumulatedProfiledKernelLaunchData() {
+  return m_vProfiledKernelLaunches;
+}
+void CKernelWrapper::AddProfiledKernelLaunchDetails(std::string taskName,
+                                                    unsigned parentLayerId,
+                                                    cl_ulong durationNanoSecOcl) {
+  ProfiledLaunchData data;
+  data.taskName = taskName;
+  data.parentLayerId = parentLayerId;
+  data.durationOcl = durationNanoSecOcl;
+  m_vProfiledKernelLaunches.push_back(data);
 }

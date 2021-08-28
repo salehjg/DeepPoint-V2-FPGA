@@ -1,14 +1,14 @@
-//
-// Created by saleh on 8/26/21.
-//
-
 #include "fpga/xilinx/CImplementationXilinx.h"
 #include <iostream>
 #include "GlobalHelpers.h"
 
 using namespace std;
 
-CImplementationXilinx::CImplementationXilinx() {
+CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profiler) {
+  m_bOclProfileEnabled = profileOcl;
+  m_ePlatform = PLATFORMS::XIL;
+  m_ptrProfiler = profiler;
+  ResetLayerIdCounter(0);
 //======================================================================================================================
   {
     const RUN_MODE mode = GetModeEnvVar();
@@ -41,12 +41,12 @@ CImplementationXilinx::CImplementationXilinx() {
         m_ptrQueue = new cl::CommandQueue(
             *m_ptrContext,
             m_oDevice,
-            (globalProfileOcl?(CL_QUEUE_PROFILING_ENABLE|CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE):
+            (m_bOclProfileEnabled?(CL_QUEUE_PROFILING_ENABLE|CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE):
                                       CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE),
             &m_iStatus)
     );
     m_strDeviceName = m_oDevice.getInfo<CL_DEVICE_NAME>();
-    SPDLOG_LOGGER_TRACE(logger,"Found Device: {}", deviceName.c_str());
+    SPDLOG_LOGGER_TRACE(logger,"Found Device: {}", m_strDeviceName.c_str());
 
     auto fileBuf = xcl::read_binary_file(globalArgXclBin);
     cl::Program::Binaries bins{{fileBuf.data(), fileBuf.size()}};
@@ -64,14 +64,14 @@ CImplementationXilinx::CImplementationXilinx() {
   }
 
   //======================================================================================================================
-  for(OclKernelObject *kernelObject : oclKernels){
-    if(kernelObject->disabled) continue;
-    if(kernelObject->use_ndrange_kernel){
-      //NYI
-    }else{
-      OCL_CHECK(err,kernelObject->kernel_task = new cl::Kernel(*program, kernelObject->kernelName_task, &err));
-    }
-  }
+  m_oKernelConcat = new CKernelWrapperConcat(
+      "taskConcat","concat.cpp",
+      ConfigTaskConcat::BankIndex_inputTn1,
+      GetXilInfo(),
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
+
+
 }
 
 int CImplementationXilinx::SetModeEnvVar(RUN_MODE &mode) {
@@ -101,7 +101,7 @@ RUN_MODE CImplementationXilinx::GetModeEnvVar() const {
   }
 }
 
-const string& CImplementationXilinx::GetOclErrorMessage(cl_int error) const
+const string CImplementationXilinx::GetOclErrorMessage(cl_int error) const
 {
   switch(error){
     // run-time and JIT compiler errors
@@ -176,4 +176,17 @@ const string& CImplementationXilinx::GetOclErrorMessage(cl_int error) const
     case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
     default: return "Unknown OpenCL error";
   }
+}
+CXilinxInfo *CImplementationXilinx::GetXilInfo() {
+  return m_ptrXilInfo;
+}
+CImplementationXilinx::~CImplementationXilinx() {
+  delete m_ptrProgram;
+  delete m_ptrContext;
+  delete m_ptrQueue;
+  delete m_ptrXilInfo;
+}
+CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
+
+  return nullptr;
 }

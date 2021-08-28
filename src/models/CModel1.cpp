@@ -1,7 +1,11 @@
 #include "models/CModel1.h"
 
 CModel1::CModel1(unsigned datasetOffset, unsigned batchSize, unsigned pointsPerPointCloud, unsigned knnK) {
-
+  m_uClassCount = 40;
+  m_uDatasetOffset = datasetOffset;
+  m_uBatchSize = batchSize;
+  m_uPointsPerCloud = pointsPerPointCloud;
+  m_uKnnK = knnK;
 }
 void CModel1::SetDatasetData(std::string &pathNumpyData) {
 
@@ -36,4 +40,7 @@ CTensor<int> *CModel1::GetLabels() {
 }
 unsigned CModel1::GetBatchSize() {
   return 0;
+}
+unsigned CModel1::GetClassCount() {
+  return m_uClassCount;
 }

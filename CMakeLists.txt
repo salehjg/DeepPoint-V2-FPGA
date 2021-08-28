@@ -505,6 +505,8 @@ add_executable(${HostExecutableName}
         src/models/CModel1.cpp
         src/CWeightLoader.cpp
         src/CPlatformSelection.cpp
+        src/cpu/CImplementationCpu.cpp
+        src/CImplementationBase.cpp
         )
 
 target_link_libraries(${HostExecutableName} ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)

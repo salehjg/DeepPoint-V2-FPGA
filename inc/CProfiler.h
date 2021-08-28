@@ -8,6 +8,8 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include "xilinx/config.h"
+#include "GlobalHelpers.h"
 
 class CProfiler{
  public:
@@ -15,29 +17,31 @@ class CProfiler{
   using DictIntPtr = std::unordered_map<std::string, int>;
   using DictFloatPtr = std::unordered_map<std::string, float>;
 
-  CProfiler(const std::string &fnameJson="output.json");
+  CProfiler(const std::string &fnameJson);
 
   ~CProfiler();
 
-  void StartLayer(
-      unsigned time,
-      const std::string &name,
-      DictShapePtr *dictShapes,
-      DictIntPtr *dictScalarInt,
-      DictFloatPtr *dictScalarFloat);
+  void StartLayer(PLATFORMS platform,
+                  const unsigned layerId,
+                  const std::string &name,
+                  DictShapePtr *dictShapes,
+                  DictIntPtr *dictScalarInt,
+                  DictFloatPtr *dictScalarFloat);
 
-  void FinishLayer(unsigned time);
+  void FinishLayer();
 
-  void StartKernel(unsigned time,
+  void StartKernel(PLATFORMS platform,
+                   const unsigned parentLayerId,
                    const std::string &name,
                    DictShapePtr *dictShapes,
                    DictIntPtr *dictScalarInt,
                    DictFloatPtr *dictScalarFloat);
 
-  void FinishKernel(unsigned time);
-  long GetTimestampMicroseconds();
+  void FinishKernel();
+
 
  private:
+  long GetTimestampMicroseconds();
   rapidjson::StringBuffer m_oStrBuffer;
   rapidjson::Writer<rapidjson::StringBuffer> *m_ptrWriter;
   std::ofstream *m_ptrFileStream;

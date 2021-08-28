@@ -13,9 +13,10 @@ spdlog::logger *logger;
 string globalArgXclBin;
 string globalArgDataPath;
 unsigned globalBatchsize;
-bool globalRunClassifier=true;
 bool globalDumpTensors=false;
 bool globalProfileOcl=true;
+bool globalModelnet=true;
+bool globalShapenet=false;
 
 void handler(int sig) {
   void *array[40];
@@ -59,23 +60,33 @@ int main(int argc, const char* argv[]){
       .required(true);
 
   parser.add_argument()
+      .names({"-x", "--modelnet40"})
+      .description("Use ModelNet40 dataset (no value is needed for this argument)")
+      .required(true);
+
+  parser.add_argument()
+      .names({"-y", "--shapenet2"})
+      .description("Use ShapeNetV2 dataset (no value is needed for this argument)")
+      .required(true);
+
+  parser.add_argument()
       .names({"-b", "--batchsize"})
       .description("Batch-size")
       .required(false);
 
   parser.add_argument()
       .names({"-e", "--emumode"})
-      .description("Forced emulation mode(sw_emu or hw_emu)")
+      .description("Forced emulation mode (sw_emu or hw_emu)")
       .required(false);
 
   parser.add_argument()
       .names({"-k", "--dumptensors"})
-      .description("Dump tensors into *.npy files in the data directory(no value is needed for this argument)")
+      .description("Dump tensors into *.npy files in the data directory (no value is needed for this argument)")
       .required(false);
 
   parser.add_argument()
       .names({"-n", "--nolog"})
-      .description("Disable logging.(no value is needed for this argument)")
+      .description("Disable logging (no value is needed for this argument)")
       .required(false);
 
   parser.add_argument()
@@ -156,6 +167,24 @@ int main(int argc, const char* argv[]){
       std::cerr <<""<<std::endl;
       SPDLOG_LOGGER_ERROR(logger,"Can not set env var XCL_MODE.");
     }
+  }
+
+  if(parser.exists("x") && parser.exists("y")) {
+    std::cerr <<"Both datasets cannot be used at the same time!"<<std::endl;
+    SPDLOG_LOGGER_ERROR(logger,"Both datasets cannot be used at the same time!");
+    return -1;
+  }
+
+  if(parser.exists("x")) {
+    SPDLOG_LOGGER_INFO(logger,"The selected dataset is ModelNet40.");
+    globalModelnet=true;
+    globalShapenet=false;
+  }
+
+  if(parser.exists("y")) {
+    SPDLOG_LOGGER_INFO(logger,"The selected dataset is ShapeNetV2.");
+    globalModelnet=false;
+    globalShapenet=true;
   }
 
   if(parser.exists("dumptensors")) {

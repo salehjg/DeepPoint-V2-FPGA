@@ -9,7 +9,8 @@
 
 class CKernelWrapperConcat: public CKernelWrapper{
  public:
-  CTensorXil<float>* EnqueueKernelLaunch(CTensorXil<float> *inputTn1, CTensorXil<float> *inputTn2, unsigned concatDim){
+  using CKernelWrapper::CKernelWrapper;
+  CTensorXil<float>* EnqueueKernelLaunch(unsigned parentLayerId, CTensorXil<float> *inputTn1, CTensorXil<float> *inputTn2, unsigned concatDim){
     if(inputTn1->GetRank()!=4){
       throw std::runtime_error(CStringFormatter()<<__func__<<": Bad input tensor rank.");
     }
@@ -54,8 +55,9 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
     CallbackData userData;
     userData.profileKernel = GetProfileOclEnabled();
-    userData.execId =
+    userData.parentLayerId = parentLayerId;
 
-    outputTn->GetEventPtr()->setCallback(CL_COMPLETE, EventCallback, ) ???????????????????
+
+    outputTn->GetEventPtr()->setCallback(CL_COMPLETE, EventCallback, userData);
   }
 };

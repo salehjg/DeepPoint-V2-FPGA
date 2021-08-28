@@ -16,13 +16,21 @@ enum class PLATFORMS{
   XIL
 };
 
+enum class MAT_OPS{
+  ADD,
+  SUB,
+  MUL_ELEMENTWISE,
+  DIV_ELEMENTWISE
+};
+
 extern spdlog::logger *logger;
 extern std::string globalArgXclBin;
 extern std::string globalArgDataPath;
 extern unsigned globalBatchsize;
-extern bool globalRunClassifier;
 extern bool globalDumpTensors;
 extern bool globalProfileOcl;
+extern bool globalModelnet;
+extern bool globalShapenet;
 
 template <typename T>
 inline void OclCheck(cl_int status, T command){

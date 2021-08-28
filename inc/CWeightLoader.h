@@ -1,5 +1,8 @@
 #pragma once
-
+#include <fstream>
+#include <algorithm>
+#include <string>
+#include <cassert>
 #include <vector>
 #include "GlobalHelpers.h"
 #include "CTensorBase.h"
@@ -10,21 +13,23 @@
 
 class CWeightLoader {
  public:
-  CWeightLoader();
+  CWeightLoader(CXilinxInfo *xilInfo);
+  ~CWeightLoader();
   void LoadWeightsFromDisk(
       std::string &weightsBaseDir,
-      std::string &pathToTxtFnameList,
-      CXilinxInfo *xilInfo);
-  CTensorBase* AccessWeights(PLATFORMS &platform, std::string &name);
+      std::string &pathToTxtFnameList);
+  CTensorBase* AccessWeights(PLATFORMS platform, std::string &name);
 
  private:
-  int ResolveMemoryBank(PLATFORMS &platform, std::string &name);
+  int ResolveMemoryBank(PLATFORMS platform, std::string &name);
   int _ResolveMemoryBankOclXilinx(std::string &name);
   std::string _ResolveTensorTagOclXilinx(std::string &name);
 
-  std::map<std::string,int> strToIndexMap;
-  std::vector<cnpy::NpyArray> _cnpyBuff;
-  CTensor<float>** weightsCPU;
-  CTensorXil<float>** weightsXil;
+  CXilinxInfo *m_ptrXilInfo;
+  unsigned m_uWeightCount;
+  CTensor<float>** m_ptrWeightsCpu;
+  CTensorXil<float>** m_ptrWeightsXil;
+  std::map<std::string,int> m_mWeightNameToIndex;
+  std::vector<cnpy::NpyArray> m_vNumpyBuff;
 };
 

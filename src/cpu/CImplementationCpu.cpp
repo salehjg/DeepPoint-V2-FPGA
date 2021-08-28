@@ -3,3 +3,8 @@
 //
 
 #include "cpu/CImplementationCpu.h"
+CImplementationCpu::CImplementationCpu(CProfiler *profiler) {
+  m_ePlatform = PLATFORMS::CPU;
+  m_ptrProfiler = profiler;
+  ResetLayerIdCounter(100000);
+}

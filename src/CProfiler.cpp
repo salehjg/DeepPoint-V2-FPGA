@@ -1,6 +1,7 @@
-#include <chrono>
 #include "CProfiler.h"
-#include "xilinx/config.h"
+#include <chrono>
+
+
 
 CProfiler::CProfiler(const std::string &fnameJson) {
   m_ptrWriter = new rapidjson::Writer<rapidjson::StringBuffer>(m_oStrBuffer);
@@ -31,7 +32,8 @@ CProfiler::~CProfiler() {
   delete m_ptrWriter;
 }
 
-void CProfiler::StartLayer(unsigned time,
+void CProfiler::StartLayer(PLATFORMS platform,
+                           const unsigned layerId,
                            const std::string &name,
                            CProfiler::DictShapePtr *dictShapes,
                            CProfiler::DictIntPtr *dictScalarInt,
@@ -39,6 +41,10 @@ void CProfiler::StartLayer(unsigned time,
   m_ptrWriter->StartObject();
   m_ptrWriter->Key("type");
   m_ptrWriter->String("layer");
+  m_ptrWriter->Key("platform");
+  m_ptrWriter->String(platform==PLATFORMS::CPU? "cpu": (platform==PLATFORMS::XIL? "xil": "undef"));
+  m_ptrWriter->Key("id");
+  m_ptrWriter->Uint(layerId);
   m_ptrWriter->Key("args");
   m_ptrWriter->StartObject();
   {
@@ -62,20 +68,21 @@ void CProfiler::StartLayer(unsigned time,
     }
   }
   m_ptrWriter->EndObject();
-  m_ptrWriter->Key("timestart");
+  m_ptrWriter->Key("time.start");
   m_ptrWriter->Uint64(GetTimestampMicroseconds());
   m_ptrWriter->Key("nested");
   m_ptrWriter->StartArray();
 }
 
-void CProfiler::FinishLayer(unsigned time) {
+void CProfiler::FinishLayer() {
   m_ptrWriter->EndArray();
-  m_ptrWriter->Key("stoptime");
+  m_ptrWriter->Key("time.stop");
   m_ptrWriter->Uint64(GetTimestampMicroseconds());
   m_ptrWriter->EndObject();
 }
 
-void CProfiler::StartKernel(unsigned time,
+void CProfiler::StartKernel(PLATFORMS platform,
+                            const unsigned parentLayerId,
                             const std::string &name,
                             CProfiler::DictShapePtr *dictShapes,
                             CProfiler::DictIntPtr *dictScalarInt,
@@ -83,6 +90,10 @@ void CProfiler::StartKernel(unsigned time,
   m_ptrWriter->StartObject();
   m_ptrWriter->Key("type");
   m_ptrWriter->String("kernel");
+  m_ptrWriter->Key("platform");
+  m_ptrWriter->String(platform==PLATFORMS::CPU? "cpu": (platform==PLATFORMS::XIL? "xil": "undef"));
+  m_ptrWriter->Key("id");
+  m_ptrWriter->Uint(parentLayerId);
   m_ptrWriter->Key("args");
   m_ptrWriter->StartObject();
   {
@@ -106,13 +117,13 @@ void CProfiler::StartKernel(unsigned time,
     }
   }
   m_ptrWriter->EndObject();
-  m_ptrWriter->Key("timestart");
-  m_ptrWriter->Uint(time); ///TODO START TIMESTAMP
+  m_ptrWriter->Key("time.start");
+  m_ptrWriter->Uint64(GetTimestampMicroseconds());
 }
 
-void CProfiler::FinishKernel(unsigned time) {
-  m_ptrWriter->Key("stoptime"); //n. sec.
-  m_ptrWriter->Uint(time); ///TODO DURATION
+void CProfiler::FinishKernel() {
+  m_ptrWriter->Key("time.stop"); //n. sec.
+  m_ptrWriter->Uint64(GetTimestampMicroseconds());
   m_ptrWriter->EndObject();
 }
 
