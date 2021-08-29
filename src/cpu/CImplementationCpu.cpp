@@ -8,3 +8,6 @@ CImplementationCpu::CImplementationCpu(CProfiler *profiler) {
   m_ptrProfiler = profiler;
   ResetLayerIdCounter(100000);
 }
+CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
+  return nullptr;
+}

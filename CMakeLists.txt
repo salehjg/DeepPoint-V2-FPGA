@@ -507,11 +507,13 @@ add_executable(${HostExecutableName}
         src/CPlatformSelection.cpp
         src/cpu/CImplementationCpu.cpp
         src/CImplementationBase.cpp
+        src/cnpy.cpp
+        src/fpga/xilinx/xcl2.cpp
         )
 
 target_link_libraries(${HostExecutableName} ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/googletest)
 add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/spdlog)
-add_subdirectory(${CMAKE_SOURCE_DIR}/test)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/test)
 

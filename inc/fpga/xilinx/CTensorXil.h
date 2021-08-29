@@ -1,10 +1,9 @@
 #pragma once
-
+#include "fpga/xilinx/CXilinxInfo.h"
 #include "cpu/CTensor.h"
 #include "CTensorBase.h"
 #include "xilinx/config.h"
 #include "fpga/xilinx/xcl2.h"
-#include "fpga/xilinx/CXilinxInfo.h"
 #include <memory>
 #include "CStringFormatter.h"
 #include <typeinfo>
@@ -22,8 +21,8 @@ class CTensorXil: public CTensorBase {
 
   CTensorXil(const CTensorXil<T>& other);
   CTensorXil& operator=(const CTensorXil<T>& other);
-  CTensorXil(CXilinxInfo *xilInfo, std::vector<unsigned> &shape, bool fillZeros, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
-  CTensorXil(CXilinxInfo *xilInfo, std::vector<unsigned> &shape, const T* hostBuff, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
+  CTensorXil(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, bool fillZeros, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
+  CTensorXil(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, const T* hostBuff, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
   CTensorXil(CXilinxInfo *xilInfo, const CTensor<T> &hostTn, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
   CTensorXil<T>* CloneIfNeededToBank(const unsigned destBank);
   std::string GetTensorTag() const;
@@ -31,13 +30,13 @@ class CTensorXil: public CTensorBase {
   void SetTensorTag(std::string &tag);
   int GetDramBank() const;
   int GetAxiWidth() const;
-  cl::Buffer& GetDeviceBuffer() const;
+  cl::Buffer& GetDeviceBuffer();
   unsigned GetLenPadded() const;
   unsigned long GetSizeBytes() const override ;
   unsigned GetSizeBytesPadded() const;
   unsigned GetVectorCountPadded() const;
   std::vector<unsigned> GetShapePadded() const;
-  cl::Event* GetEventPtr() const;
+  cl::Event* GetEventPtr();
   CTensor<T>* TransferToHost();
 
  private:
@@ -49,7 +48,7 @@ class CTensorXil: public CTensorBase {
   cl_mem_ext_ptr_t CreateExtendedPointer(void *hostPtr, cl_mem_flags memoryBank);
   T* PadHostBuffer(const std::vector<unsigned> &actualShape, const T *hostSrcBuff, int axiWidth);
   T* UnPadHostBuffer(const std::vector<unsigned> &actualShape, const T *hostSrcBuff, int axiWidth);
-  std::vector<unsigned> PadShape(const std::vector<unsigned> &shape, int axiWidth);
+  std::vector<unsigned> PadShape(const std::vector<unsigned> &shape, int axiWidth) const;
 
 #ifdef USEMEMORYBANK0
   int m_iDramBank = 0;
@@ -149,7 +148,7 @@ int CTensorXil<T>::GetAxiWidth() const {
 }
 
 template<typename T>
-cl::Buffer& CTensorXil<T>::GetDeviceBuffer() const {
+cl::Buffer& CTensorXil<T>::GetDeviceBuffer() {
   return m_oDeviceBuffer;
 }
 
@@ -189,16 +188,16 @@ CTensorXil<T>& CTensorXil<T>::operator=(const CTensorXil<T> &other) {
  */
 template<typename T>
 CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
-                          std::vector<unsigned> &shape,
+                          const std::vector<unsigned> &shape,
                           bool fillZeros,
                           int bank,
                           int axiWidth) {
   if(fillZeros){
     m_ptrHostBuffForFillZero.reset(new T[GetLenPadded()]);
     for(unsigned i=0; i<GetLenPadded(); i++){ m_ptrHostBuffForFillZero[i]=0;}
-    CloneFrom(xilInfo->GetContext(),xilInfo->GetQueue(),shape,m_ptrHostBuffForFillZero.get(),bank,axiWidth,CL_NON_BLOCKING);
+    CloneFrom(xilInfo,shape,m_ptrHostBuffForFillZero.get(),bank,axiWidth,CL_NON_BLOCKING);
   }else{
-    CloneFrom(xilInfo->GetContext(),xilInfo->GetQueue(),shape,bank,axiWidth);
+    CloneFrom(xilInfo,shape,bank,axiWidth);
   }
 }
 
@@ -216,12 +215,12 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
  */
 template<typename T>
 CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
-                          std::vector<unsigned> &shape,
+                          const std::vector<unsigned> &shape,
                           const T *hostBuff,
                           int bank,
                           int axiWidth) {
   T *paddedHostBuff = PadHostBuffer(shape,hostBuff,axiWidth);
-  CloneFrom(xilInfo->GetContext(),xilInfo->GetQueue(),shape,paddedHostBuff,bank,axiWidth,CL_BLOCKING);
+  CloneFrom(xilInfo,GetShape(),paddedHostBuff,bank,axiWidth,CL_BLOCKING);
   delete[](paddedHostBuff);
 }
 
@@ -255,7 +254,7 @@ unsigned CTensorXil<T>::GetVectorCountPadded() const {
   return GetLenPadded()/m_iAxiWidth;
 }
 template<typename T>
-cl::Event* CTensorXil<T>::GetEventPtr() const {
+cl::Event* CTensorXil<T>::GetEventPtr() {
   return &m_oEvent;
 }
 
@@ -408,7 +407,7 @@ T *CTensorXil<T>::PadHostBuffer(const std::vector<unsigned> &actualShape, const 
 }
 
 template<typename T>
-std::vector<unsigned> CTensorXil<T>::PadShape(const std::vector<unsigned> &shape, int axiWidth) {
+std::vector<unsigned> CTensorXil<T>::PadShape(const std::vector<unsigned> &shape, int axiWidth) const {
   auto paddedShape = shape;
   // always pad the last dimension.
   unsigned lastDim = paddedShape[paddedShape.size()-1];
@@ -470,7 +469,7 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
     if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(0)->GetLen()){
       throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
     }
-    OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oXilInfo->GetDatamoverDummyTensor(0)->GetDeviceBuffer()));
+    OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(0))->GetDeviceBuffer()));
   }
 #endif
 
@@ -480,13 +479,13 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
     if(m_iDramBank==1){
       OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
     }else{
-      OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newDeviceBuffer));
+      OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
     }
   }else{
     if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(1)->GetLen()){
       throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
     }
-    OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oXilInfo->GetDatamoverDummyTensor(1)->GetDeviceBuffer()));
+    OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(1))->GetDeviceBuffer()));
   }
 #endif
 
@@ -496,13 +495,13 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
         if(m_iDramBank==2){
             OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
         }else{
-            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newDeviceBuffer));
+            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
         }
     }else{
         if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(2)->GetLen()){
           throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
         }
-        OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oXilInfo->GetDatamoverDummyTensor(2)->GetDeviceBuffer()));
+        OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(2))->GetDeviceBuffer()));
     }
 #endif
 
@@ -512,13 +511,13 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
         if(m_iDramBank==3){
             OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
         }else{
-            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newDeviceBuffer));
+            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
         }
     }else{
         if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(3)->GetLen()){
           throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
         }
-        OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oXilInfo->GetDatamoverDummyTensor(3)->GetDeviceBuffer()));
+        OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(3))->GetDeviceBuffer()));
     }
 #endif
 
@@ -526,9 +525,11 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
   OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, destBank));
   OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, GetVectorCountPadded()));
 
+  std::vector<cl::Event> dependencies;
+  dependencies.push_back(m_oEvent);
 
-  OCL_CHECK(m_iOclStatus,
-      m_iOclStatus = m_oXilInfo->GetQueue()->enqueueTask(m_oXilInfo->GetDatamoverKernel(), {m_oEvent}, newTensor->GetEventPtr())
+  OclCheck(m_iOclStatus,
+      m_iOclStatus = m_oXilInfo->GetQueue()->enqueueTask(*m_oXilInfo->GetDatamoverKernel(), &dependencies, newTensor->GetEventPtr())
   );
 
   ///TODO IMPLEMENT DATA MOVER PERFORMANCE PROFILING AND SPDLOG'ING.

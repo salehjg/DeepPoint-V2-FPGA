@@ -4,8 +4,8 @@ CPlatformSelection::CPlatformSelection(bool loadWeights, std::string profilerOut
   m_strProfilerOutputPath = profilerOutputPath;
   m_ptrProfiler = new CProfiler(m_strProfilerOutputPath);
 
-  m_ptrImplCpu = new CImplementationCpu();
-  m_ptrImplXil = new CImplementationXilinx(globalProfileOcl);
+  m_ptrImplCpu = new CImplementationCpu(m_ptrProfiler);
+  m_ptrImplXil = new CImplementationXilinx(globalProfileOcl, m_ptrProfiler);
   m_ptrWeightsLoader = new CWeightLoader(m_ptrImplXil->GetXilInfo());
 
 

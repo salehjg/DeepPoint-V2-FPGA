@@ -49,8 +49,8 @@ void CClassifierMultiPlatform::CalculateAccuracy(CTensor<float> *scoresTn,
 
       max = max_cte;
       for(int c=0;c<classCount;c++){
-        if(max   <   scoresTn[b*classCount+c]  ){
-          max = scoresTn[b*classCount+c];
+        if(max   <   (*scoresTn)[b*classCount+c]  ){
+          max = (*scoresTn)[b*classCount+c];
           max_indx = c;
         }
       }
@@ -60,7 +60,7 @@ void CClassifierMultiPlatform::CalculateAccuracy(CTensor<float> *scoresTn,
     }
 
     for(int b=0;b<batchSize;b++){
-      if(a1[b]==(int)labelsTn[b]){
+      if(a1[b]==(int)(*labelsTn)[b]){
         correct[b]=true;
       }
       else{

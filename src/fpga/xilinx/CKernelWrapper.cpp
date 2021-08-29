@@ -1,8 +1,8 @@
+#include <fpga/xilinx/kernels/CKernelWrapperConcat.h>
 #include "fpga/xilinx/CKernelWrapper.h"
 
 CKernelWrapper::CKernelWrapper(std::string taskName,
                                std::string fileName,
-                               unsigned ddrBankIndex,
                                CXilinxInfo *xilInfo,
                                std::string path,
                                bool isDisabled,
@@ -13,8 +13,8 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
   m_strKernelPath = path;
   m_bIsDisabled = isDisabled;
   m_bProfileOcl = profileOcl;
-  m_uBankIndex = ddrBankIndex;
   m_oXilInfo = xilInfo;
+  m_ptrCallBackData.reset(new CallbackData());
 
   if(!m_bIsDisabled){
     OclCheck(m_iStatus,
@@ -24,10 +24,6 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
 
 cl::Kernel *CKernelWrapper::GetKernel() const {
   return m_oKernel;
-}
-
-unsigned CKernelWrapper::GetBankIndex() const {
-  return m_uBankIndex;
 }
 
 void CKernelWrapper::EventCallback(cl_event event, cl_int execStatus, void *userData) {
@@ -40,16 +36,18 @@ void CKernelWrapper::EventCallback(cl_event event, cl_int execStatus, void *user
   cl_ulong deviceTimeStart=0, deviceTimeEnd=0; //nano-seconds
 
   if(((CallbackData *) userData)->profileKernel){
-    cl_int apiStatus;
+    cl_int stat;
 
-    OclCheck(apiStatus,apiStatus = event.getProfilingInfo<cl_ulong>(CL_PROFILING_COMMAND_START,&deviceTimeStart));
-    OclCheck(apiStatus,apiStatus = event.getProfilingInfo<cl_ulong>(CL_PROFILING_COMMAND_END,&deviceTimeEnd));
+    OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(deviceTimeStart), &deviceTimeStart, nullptr));
+    OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(deviceTimeEnd), &deviceTimeEnd, nullptr));
 
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
 
     std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
 
-    AddProfiledKernelLaunchDetails(m_strTaskName, (CallbackData *) userData)->parentLayerId,durationNanoSeconds);
+
+    auto *classPtr = static_cast<CKernelWrapper*>(((CallbackData *)userData)->classPtr);
+    classPtr->AddProfiledKernelLaunchDetails(classPtr->m_strTaskName, ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
   }
 }
 CXilinxInfo *CKernelWrapper::GetXilInfo() const {

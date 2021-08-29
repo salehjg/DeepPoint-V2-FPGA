@@ -60,14 +60,17 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
             &m_iStatus)
     );
 
-    m_ptrXilInfo = new CXilinxInfo(m_ptrProgram, m_ptrContext, m_ptrQueue);
+    m_ptrXilInfo = new CXilinxInfo(m_ptrProgram,m_ptrContext,m_ptrQueue);
+    m_ptrDataMoverDummyTensorBank0 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 0);
+
   }
 
   //======================================================================================================================
   m_oKernelConcat = new CKernelWrapperConcat(
-      "taskConcat","concat.cpp",
+      "taskConcat","concat.cpp",m_ptrXilInfo,
       ConfigTaskConcat::BankIndex_inputTn1,
-      GetXilInfo(),
+      ConfigTaskConcat::BankIndex_inputTn2,
+      ConfigTaskConcat::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
 
@@ -187,6 +190,22 @@ CImplementationXilinx::~CImplementationXilinx() {
   delete m_ptrXilInfo;
 }
 CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape1",inputTn1->GetShape()},{"shape2",inputTn2->GetShape()}}),
+      new CProfiler::DictIntPtr({{"concatAxis",concatAxis}}),
+      nullptr);
 
-  return nullptr;
+  CTensorBase *outputTn =
+  m_oKernelConcat->EnqueueKernelLaunch(
+      GetTheLastLayerId(),
+      (CTensorXil<float>*)inputTn1,
+      (CTensorXil<float>*)inputTn2,
+      concatAxis);
+
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
 }

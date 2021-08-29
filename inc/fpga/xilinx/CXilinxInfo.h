@@ -2,7 +2,7 @@
 
 #include "fpga/xilinx/xcl2.h"
 #include "GlobalHelpers.h"
-#include "fpga/xilinx/CTensorXil.h"
+#include "CTensorBase.h"
 
 class CXilinxInfo{
  public:
@@ -16,36 +16,31 @@ class CXilinxInfo{
     OclCheck(m_iStatus,
              m_oDatamoverKernel = new cl::Kernel(*program, "task_datamover", &m_iStatus)
     );
+    m_oDummyDataMoverBank0 = nullptr;
+    m_oDummyDataMoverBank1 = nullptr;
+    m_oDummyDataMoverBank2 = nullptr;
+    m_oDummyDataMoverBank3 = nullptr;
+  }
 
+  void SetDataMoverDummyTensors(
+      CTensorBase *dummyTensorBank0,
+      CTensorBase *dummyTensorBank1,
+      CTensorBase *dummyTensorBank2,
+      CTensorBase *dummyTensorBank3
+      ){
 #ifdef USEMEMORYBANK0
     ///TODO: MAXI_WIDTH SHOULD BE A PARAMETER. USING A GLOBAL DEF IS NOT A GOOD IDEA!
     ///      PUT SOME ASSERTS IN THE CLASSES THAT ARE GOING TO USE THESE TENSORS.
-    m_oDummyDataMoverBank0 = new CTensorXil<float>(context,queue,{50*1024*1024},true,0,CONFIG_M_AXI_WIDTH);
+    m_oDummyDataMoverBank0 = dummyTensorBank0;
 #endif
 #ifdef USEMEMORYBANK1
-    m_oDummyDataMoverBank1 = new CTensorXil<float>(context,queue,{50*1024*1024},true,1,CONFIG_M_AXI_WIDTH);
+    m_oDummyDataMoverBank1 = dummyTensorBank1;
 #endif
 #ifdef USEMEMORYBANK2
-    m_oDummyDataMoverBank2 = new CTensorXil<float>(context,queue,{50*1024*1024},true,2,CONFIG_M_AXI_WIDTH);
+    m_oDummyDataMoverBank2 = dummyTensorBank2;
 #endif
 #ifdef USEMEMORYBANK3
-    m_oDummyDataMoverBank3 = new CTensorXil<float>(context,queue,{50*1024*1024},true,3,CONFIG_M_AXI_WIDTH);
-#endif
-
-  }
-
-  ~CXilinxInfo(){
-#ifdef USEMEMORYBANK0
-    delete m_oDummyDataMoverBank0
-#endif
-#ifdef USEMEMORYBANK1
-    delete m_oDummyDataMoverBank1;
-#endif
-#ifdef USEMEMORYBANK2
-    delete m_oDummyDataMoverBank2;
-#endif
-#ifdef USEMEMORYBANK3
-    delete m_oDummyDataMoverBank3;
+    m_oDummyDataMoverBank3 = dummyTensorBank3;
 #endif
   }
 
@@ -65,7 +60,7 @@ class CXilinxInfo{
     return m_oDatamoverKernel;
   }
 
-  CTensorXil<float>* GetDatamoverDummyTensor(unsigned bankIndex){
+  CTensorBase* GetDatamoverDummyTensor(unsigned bankIndex){
     return (bankIndex==0)? m_oDummyDataMoverBank0 :
            (bankIndex==1)? m_oDummyDataMoverBank1 :
            (bankIndex==2)? m_oDummyDataMoverBank2 :
@@ -81,8 +76,8 @@ class CXilinxInfo{
   cl::Context *m_oContext;
   cl::CommandQueue *m_oQueue;
   cl::Kernel *m_oDatamoverKernel;
-  CTensorXil<float> *m_oDummyDataMoverBank0;
-  CTensorXil<float> *m_oDummyDataMoverBank1;
-  CTensorXil<float> *m_oDummyDataMoverBank2;
-  CTensorXil<float> *m_oDummyDataMoverBank3;
+  CTensorBase *m_oDummyDataMoverBank0;
+  CTensorBase *m_oDummyDataMoverBank1;
+  CTensorBase *m_oDummyDataMoverBank2;
+  CTensorBase *m_oDummyDataMoverBank3;
 };

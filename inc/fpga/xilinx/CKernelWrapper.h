@@ -10,7 +10,9 @@
 #include <cassert>
 
 
+
 struct CallbackData{
+  void *classPtr;
   unsigned parentLayerId;
   bool profileKernel;
 };
@@ -24,14 +26,12 @@ class CKernelWrapper {
   CKernelWrapper(
       std::string taskName,
       std::string fileName,
-      unsigned ddrBankIndex,
       CXilinxInfo *xilInfo,
       std::string path,
       bool isDisabled,
       bool profileOcl);
 
   cl::Kernel* GetKernel() const;
-  unsigned GetBankIndex() const;
   CXilinxInfo* GetXilInfo() const;
   void ResetArgCounter();
   int ArgCounter();
@@ -40,12 +40,11 @@ class CKernelWrapper {
   std::vector<ProfiledLaunchData>& GetAccumulatedProfiledKernelLaunchData();
 
  protected:
-  void EventCallback(cl_event event, cl_int execStatus, void* userData);
+  static void EventCallback(cl_event event, cl_int execStatus, void* userData);
   void AddProfiledKernelLaunchDetails(std::string taskName, unsigned parentLayerId, cl_ulong durationNanoSecOcl);
-
+  std::unique_ptr<CallbackData[]> m_ptrCallBackData;
  private:
   std::string m_strTaskName, m_strKernelName, m_strKernelPath;
-  unsigned m_uBankIndex;
   cl::Kernel *m_oKernel;
   bool m_bIsDisabled;
   bool m_bProfileOcl;

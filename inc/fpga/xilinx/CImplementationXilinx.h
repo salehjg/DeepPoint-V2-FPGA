@@ -39,6 +39,10 @@ class CImplementationXilinx: public CImplementationBase {
   cl::Context *m_ptrContext;
   cl::Program *m_ptrProgram;
   cl::CommandQueue *m_ptrQueue;
+  CTensorXil<float> *m_ptrDataMoverDummyTensorBank0;
+  CTensorXil<float> *m_ptrDataMoverDummyTensorBank1;
+  CTensorXil<float> *m_ptrDataMoverDummyTensorBank2;
+  CTensorXil<float> *m_ptrDataMoverDummyTensorBank3;
 
   CKernelWrapperConcat *m_oKernelConcat;
 };

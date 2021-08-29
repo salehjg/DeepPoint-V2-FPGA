@@ -8,3 +8,6 @@ PLATFORMS CImplementationBase::GetPlatform() const{
 void CImplementationBase::ResetLayerIdCounter(unsigned offset) {
   m_uAtomicCounter.store(offset);
 }
+unsigned CImplementationBase::GetTheLastLayerId() {
+  return m_uAtomicCounter;
+}
