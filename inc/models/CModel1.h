@@ -5,6 +5,7 @@
 #include "cpu/CTensor.h"
 #include "CStringFormatter.h"
 #include "cnpy.h"
+#include "CPlatformSelection.h"
 #include <string>
 
 class CModel1 {
@@ -32,7 +33,7 @@ class CModel1 {
   unsigned m_uDatasetOffset=0;
   cnpy::NpyArray m_oNumpyObjectData;
   cnpy::NpyArray m_oNumpyObjectLabels;
-  //PlatformSelector* platformSelector;
+  CPlatformSelection* m_ptrPlatSelection;
 };
 
  

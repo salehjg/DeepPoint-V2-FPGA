@@ -28,7 +28,7 @@ extern std::string globalArgXclBin;
 extern std::string globalArgDataPath;
 extern unsigned globalBatchsize;
 extern bool globalDumpTensors;
-extern bool globalProfileOcl;
+extern bool globalProfileOclEnabled;
 extern bool globalModelnet;
 extern bool globalShapenet;
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 if(NOT DEFINED ENV{AWS_PLATFORM})
     message(FATAL_ERROR "You must set env variable AWS_PLATFORM to the path of the SDAccel platform file(*.xpfm)")
 endif()
@@ -47,6 +47,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/submodules/hlslib/include
         ${CMAKE_SOURCE_DIR}/submodules/argparse
         ${CMAKE_SOURCE_DIR}/submodules/spdlog/include
+        ${CMAKE_SOURCE_DIR}/submodules/rapidjson/include
         ${CMAKE_BINARY_DIR}
         ${SDAccel_INCLUDE_DIRS})
 
@@ -478,7 +479,9 @@ set(xcl_path_hwemu "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}_hw_emu.xclbin")
 set(xcl_path_hw "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}_hw.awsxclbin")
 set(HostExecutablePath "${CMAKE_BINARY_DIR}/${HostExecutableName}")
 set(DataDirectory "${CMAKE_SOURCE_DIR}/data")
+set(OclTestsExecutablePath "${CMAKE_BINARY_DIR}/test/ocltests/OclTestsMain")
 configure_file(${CMAKE_SOURCE_DIR}/scripts/LaunchDeepPointV2FPGA.sh.in LaunchDeepPointV2FPGA.sh @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/scripts/LaunchOclTests.sh.in LaunchOclTests.sh @ONLY)
 
 configure_file(${CMAKE_SOURCE_DIR}/scripts/autobuild_swemu.sh ${CMAKE_BINARY_DIR}/autobuild_swemu.sh @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/scripts/autobuild_hwemu.sh ${CMAKE_BINARY_DIR}/autobuild_hwemu.sh @ONLY)
@@ -492,8 +495,6 @@ configure_file(${CMAKE_SOURCE_DIR}/CMakeLists.txt ${CMAKE_BINARY_DIR}/CMakeLists
 configure_file(${CMAKE_SOURCE_DIR}/config/CMakeLists.txt ${CMAKE_BINARY_DIR}/CMakeLists_config.log COPYONLY)
 
 
-
-include_directories(${CMAKE_SOURCE_DIR}/submodules/rapidjson/include)
 add_executable(${HostExecutableName}
         ${CMAKE_SOURCE_DIR}/src/main.cpp
         ${CMAKE_SOURCE_DIR}/src/CTensorBase.cpp

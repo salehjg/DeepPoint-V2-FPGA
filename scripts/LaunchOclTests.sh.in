@@ -4,7 +4,7 @@ NC='\033[0m'
 
 
 printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' = 
-echo "DeepPointV2 Launcher Script"
+echo "OclTests Launcher Script"
 printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
 read -p "Choose launch mode(1.sw-emu / 2.hw-emu / 3.system):" mode
 #read -p "Enter Data Directory [../data/]: " datadir
@@ -18,7 +18,7 @@ xclbin_swemu=@xcl_path_swemu@
 xclbin_hwemu=@xcl_path_hwemu@
 xclbin_hw=@xcl_path_hw@
 platform=@DSA_NAME@
-hostsideexe=@HostExecutablePath@
+hostsideexe=@OclTestsExecutablePath@
 datadir=@DataDirectory@
 
 if [ -e $hostsideexe ]
@@ -51,7 +51,7 @@ case $mode in
 	echo ""
 	#$hostsideexe -i $xclbin_swemu -d $datadir "$@" 2>&1 | tee -a DeepPointV2FPGA_Host.log
 	$hostsideexe -i $xclbin_swemu -d $datadir "$@"
-	sh gather_results.sh
+	#sh gather_results.sh
 	
 	;;
 
@@ -80,7 +80,7 @@ case $mode in
 	echo ""
 	#$hostsideexe -i $xclbin_hwemu -d $datadir "$@" 2>&1 | tee -a DeepPointV2FPGA_Host.log
 	$hostsideexe -i $xclbin_hwemu -d $datadir "$@"
-	sh gather_results.sh
+	#sh gather_results.sh
 
 	;;
 
@@ -106,7 +106,7 @@ case $mode in
 	echo ""
 	#$hostsideexe -i $xclbin_hw -d $datadir "$@" 2>&1 | tee -a DeepPointV2FPGA_Host.log
 	$hostsideexe -i $xclbin_hw -d $datadir "$@"
-	sh gather_results.sh
+	#sh gather_results.sh
 
 	;; 
 

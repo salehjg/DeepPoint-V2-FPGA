@@ -84,9 +84,7 @@ void CProfiler::FinishLayer() {
 void CProfiler::StartKernel(PLATFORMS platform,
                             const unsigned parentLayerId,
                             const std::string &name,
-                            CProfiler::DictShapePtr *dictShapes,
-                            CProfiler::DictIntPtr *dictScalarInt,
-                            CProfiler::DictFloatPtr *dictScalarFloat) {
+                            const unsigned long durationNanoSeconds) {
   m_ptrWriter->StartObject();
   m_ptrWriter->Key("type");
   m_ptrWriter->String("kernel");
@@ -94,36 +92,11 @@ void CProfiler::StartKernel(PLATFORMS platform,
   m_ptrWriter->String(platform==PLATFORMS::CPU? "cpu": (platform==PLATFORMS::XIL? "xil": "undef"));
   m_ptrWriter->Key("id");
   m_ptrWriter->Uint(parentLayerId);
-  m_ptrWriter->Key("args");
-  m_ptrWriter->StartObject();
-  {
-    for(auto &item: *dictShapes){
-      m_ptrWriter->Key(item.first.c_str());
-      m_ptrWriter->StartArray();
-      for(auto &dim: item.second){
-        m_ptrWriter->Uint(dim);
-      }
-      m_ptrWriter->EndArray();
-    }
-
-    for(auto &item: *dictScalarInt){
-      m_ptrWriter->Key(item.first.c_str());
-      m_ptrWriter->Int(item.second);
-    }
-
-    for(auto &item: *dictScalarFloat){
-      m_ptrWriter->Key(item.first.c_str());
-      m_ptrWriter->Double((double)item.second);
-    }
-  }
-  m_ptrWriter->EndObject();
-  m_ptrWriter->Key("time.start");
-  m_ptrWriter->Uint64(GetTimestampMicroseconds());
+  m_ptrWriter->Key("duration");
+  m_ptrWriter->Uint64(durationNanoSeconds);
 }
 
 void CProfiler::FinishKernel() {
-  m_ptrWriter->Key("time.stop"); //n. sec.
-  m_ptrWriter->Uint64(GetTimestampMicroseconds());
   m_ptrWriter->EndObject();
 }
 

@@ -14,7 +14,7 @@ string globalArgXclBin;
 string globalArgDataPath;
 unsigned globalBatchsize;
 bool globalDumpTensors=false;
-bool globalProfileOcl=true;
+bool globalProfileOclEnabled=true;
 bool globalModelnet=true;
 bool globalShapenet=false;
 
@@ -60,14 +60,9 @@ int main(int argc, const char* argv[]){
       .required(true);
 
   parser.add_argument()
-      .names({"-x", "--modelnet40"})
-      .description("Use ModelNet40 dataset (no value is needed for this argument)")
-      .required(true);
-
-  parser.add_argument()
       .names({"-y", "--shapenet2"})
-      .description("Use ShapeNetV2 dataset (no value is needed for this argument)")
-      .required(true);
+      .description("Use ShapeNetV2 dataset instead of ModelNet40 (no value is needed for this argument)")
+      .required(false);
 
   parser.add_argument()
       .names({"-b", "--batchsize"})
@@ -175,16 +170,14 @@ int main(int argc, const char* argv[]){
     return -1;
   }
 
-  if(parser.exists("x")) {
-    SPDLOG_LOGGER_INFO(logger,"The selected dataset is ModelNet40.");
-    globalModelnet=true;
-    globalShapenet=false;
-  }
-
   if(parser.exists("y")) {
     SPDLOG_LOGGER_INFO(logger,"The selected dataset is ShapeNetV2.");
     globalModelnet=false;
     globalShapenet=true;
+  }else{
+    SPDLOG_LOGGER_INFO(logger,"The selected dataset is ModelNet40.");
+    globalModelnet=true;
+    globalShapenet=false;
   }
 
   if(parser.exists("dumptensors")) {
@@ -193,7 +186,7 @@ int main(int argc, const char* argv[]){
   }
 
   if(parser.exists("noprofileocl")) {
-    globalProfileOcl = false;
+    globalProfileOclEnabled = false;
     SPDLOG_LOGGER_INFO(logger,"The OpenCL profiling is forcibly disabled to increase performance.");
   } else{
     SPDLOG_LOGGER_WARN(logger,"The OpenCL profiling is enabled and is going to impose some serious host-side overhead.");

@@ -5,14 +5,14 @@ include_directories(
         inc
         ${PROJECT_SOURCE_DIR}/test/kerneltests/common/inc)
 
-add_executable(CpuTestReduceSum
+add_executable(KernelTestReduceSum
         src/CpuTestReduceSum.cpp
         ${PROJECT_SOURCE_DIR}/src/fpga/xilinx/kernels/reduce.cpp)
 
-target_link_libraries(CpuTestReduceSum
+target_link_libraries(KernelTestReduceSum
         ${SDAccel_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${SDAccel_FLOATING_POINT_LIBRARY}
         ${SDAccel_LIBRARIES})
 
-add_test(NAME CpuTestReduceSum COMMAND CpuTestReduceSum)
+add_test(NAME KernelTestReduceSum COMMAND KernelTestReduceSum)

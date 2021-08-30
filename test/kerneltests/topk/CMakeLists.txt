@@ -29,14 +29,14 @@ include_directories(
 #
 #add_test(NAME CpuTestTopkInsertionSort COMMAND CpuTestTopkInsertionSort)
 
-add_executable(CpuTestTopkMergeSort
+add_executable(KernelTestTopkMergeSort
         src/CpuTestTopk.cpp
         ${PROJECT_SOURCE_DIR}/src/fpga/xilinx/kernels/topk_mergesortdf_pe.cpp)
 
-target_link_libraries(CpuTestTopkMergeSort
+target_link_libraries(KernelTestTopkMergeSort
         ${SDAccel_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${SDAccel_FLOATING_POINT_LIBRARY}
         ${SDAccel_LIBRARIES})
 
-add_test(NAME CpuTestTopkMergeSort COMMAND CpuTestTopkMergeSort)
+add_test(NAME KernelTestTopkMergeSort COMMAND KernelTestTopkMergeSort)

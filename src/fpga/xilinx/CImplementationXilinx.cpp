@@ -184,6 +184,19 @@ CXilinxInfo *CImplementationXilinx::GetXilInfo() {
   return m_ptrXilInfo;
 }
 CImplementationXilinx::~CImplementationXilinx() {
+
+  std::vector<std::vector<ProfiledLaunchData>> accumulatedProfiledKernelsData = {
+      m_oKernelConcat->GetAccumulatedProfiledKernelLaunchData()
+  };
+
+  for(auto &vecData:accumulatedProfiledKernelsData){
+    for(auto &data:vecData){
+      m_ptrProfiler->StartKernel(PLATFORMS::XIL, data.parentLayerId, data.taskName, data.durationOcl);
+      m_ptrProfiler->FinishKernel();
+    }
+  }
+
+
   delete m_ptrProgram;
   delete m_ptrContext;
   delete m_ptrQueue;

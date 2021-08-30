@@ -5,14 +5,14 @@ include_directories(
         inc
         ${PROJECT_SOURCE_DIR}/test/kerneltests/common/inc)
 
-add_executable(CpuTestGather
+add_executable(KernelTestGather
         src/CpuTestGather.cpp
         ${PROJECT_SOURCE_DIR}/src/fpga/xilinx/kernels/gather.cpp)
 
-target_link_libraries(CpuTestGather
+target_link_libraries(KernelTestGather
         ${SDAccel_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${SDAccel_FLOATING_POINT_LIBRARY}
         ${SDAccel_LIBRARIES})
 
-add_test(NAME CpuTestGather COMMAND CpuTestGather)
+add_test(NAME KernelTestGather COMMAND KernelTestGather)

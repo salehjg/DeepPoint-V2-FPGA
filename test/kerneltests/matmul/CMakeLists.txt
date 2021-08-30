@@ -5,14 +5,14 @@ include_directories(
         inc
         ${PROJECT_SOURCE_DIR}/test/kerneltests/common/inc)
 
-add_executable(CpuTestMatmul
+add_executable(KernelTestMatmul
         src/CpuTestMatmul.cpp
         ${PROJECT_SOURCE_DIR}/src/fpga/xilinx/kernels/matmul.cpp)
 
-target_link_libraries(CpuTestMatmul
+target_link_libraries(KernelTestMatmul
         ${SDAccel_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
         ${SDAccel_FLOATING_POINT_LIBRARY}
         ${SDAccel_LIBRARIES})
 
-add_test(NAME CpuTestMatmul COMMAND CpuTestMatmul)
+add_test(NAME KernelTestMatmul COMMAND KernelTestMatmul)

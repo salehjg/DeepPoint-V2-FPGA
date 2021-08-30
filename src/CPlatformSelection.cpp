@@ -1,16 +1,18 @@
 #include "CPlatformSelection.h"
 
-CPlatformSelection::CPlatformSelection(bool loadWeights, std::string profilerOutputPath) {
+CPlatformSelection::CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath) {
+  m_bLoadWeights = loadWeights;
+  m_bOclProfiling = oclProfiling;
   m_strProfilerOutputPath = profilerOutputPath;
   m_ptrProfiler = new CProfiler(m_strProfilerOutputPath);
 
   m_ptrImplCpu = new CImplementationCpu(m_ptrProfiler);
-  m_ptrImplXil = new CImplementationXilinx(globalProfileOcl, m_ptrProfiler);
+  m_ptrImplXil = new CImplementationXilinx(m_bOclProfiling, m_ptrProfiler);
   m_ptrWeightsLoader = new CWeightLoader(m_ptrImplXil->GetXilInfo());
 
 
-  if(!loadWeights) SPDLOG_LOGGER_WARN(logger,"The weights are not going to be loaded into the device memory.");
-  if(loadWeights){
+  if(!m_bLoadWeights) SPDLOG_LOGGER_WARN(logger,"The weights are not going to be loaded into the device memory.");
+  if(m_bLoadWeights){
     std::string wDir = globalArgDataPath; wDir.append("/weights/");
     std::string wFileList = globalArgDataPath; wFileList.append("/weights/filelist.txt");
     SPDLOG_LOGGER_TRACE(logger,"Weights Dir: {}", wDir);
@@ -24,18 +26,6 @@ CPlatformSelection::~CPlatformSelection() {
   delete(m_ptrImplXil);
   delete(m_ptrWeightsLoader);
   delete(m_ptrProfiler);
-}
-template<typename T>
-CTensorXil<T> *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensor<T> *srcTn) {
-  assert(destPlatform==PLATFORMS::XIL);
-  CTensorXil<T> *dstTn = new CTensorXil<T>(m_ptrImplXil->GetXilInfo(), *srcTn); // The default bank and AXI width.
-  return dstTn;
-}
-template<typename T>
-CTensor<T> *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensorXil<T> *srcTn) {
-  assert(destPlatform==PLATFORMS::CPU);
-  CTensor<T> *dstTn = srcTn->TransferToHost();
-  return dstTn;
 }
 CTensorBase *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensorBase *srcTn) {
   using CpuFloat = CTensor<float>;
@@ -78,4 +68,10 @@ CTensorBase *CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBase *in
   }else{
     throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform.");
   }
+}
+CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
+  return m_ptrImplXil;
+}
+CProfiler *CPlatformSelection::GetClassPtrProfiler() {
+  return m_ptrProfiler;
 }

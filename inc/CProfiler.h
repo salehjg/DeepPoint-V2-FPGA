@@ -33,9 +33,7 @@ class CProfiler{
   void StartKernel(PLATFORMS platform,
                    const unsigned parentLayerId,
                    const std::string &name,
-                   DictShapePtr *dictShapes,
-                   DictIntPtr *dictScalarInt,
-                   DictFloatPtr *dictScalarFloat);
+                   const unsigned long durationNanoSeconds);
 
   void FinishKernel();
 

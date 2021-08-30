@@ -6,6 +6,7 @@ CModel1::CModel1(unsigned datasetOffset, unsigned batchSize, unsigned pointsPerP
   m_uBatchSize = batchSize;
   m_uPointsPerCloud = pointsPerPointCloud;
   m_uKnnK = knnK;
+  m_ptrPlatSelection = new CPlatformSelection(true, globalProfileOclEnabled);
 }
 void CModel1::SetDatasetData(std::string &pathNumpyData) {
 
