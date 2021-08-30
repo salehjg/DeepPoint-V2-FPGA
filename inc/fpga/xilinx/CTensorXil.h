@@ -172,6 +172,7 @@ template<typename T>
 CTensorXil<T>& CTensorXil<T>::operator=(const CTensorXil<T> &other) {
   // this = other !
   CloneFrom(other);
+  return *this;
 }
 
 /*!
@@ -192,6 +193,7 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
                           bool fillZeros,
                           int bank,
                           int axiWidth) {
+  SetPlatform(PLATFORMS::XIL);
   if(fillZeros){
     m_ptrHostBuffForFillZero.reset(new T[GetLenPadded()]);
     for(unsigned i=0; i<GetLenPadded(); i++){ m_ptrHostBuffForFillZero[i]=0;}
@@ -219,6 +221,7 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
                           const T *hostBuff,
                           int bank,
                           int axiWidth) {
+  SetPlatform(PLATFORMS::XIL);
   T *paddedHostBuff = PadHostBuffer(shape,hostBuff,axiWidth);
   CloneFrom(xilInfo,GetShape(),paddedHostBuff,bank,axiWidth,CL_BLOCKING);
   delete[](paddedHostBuff);
@@ -260,32 +263,36 @@ cl::Event* CTensorXil<T>::GetEventPtr() {
 
 template<typename T>
 void CTensorXil<T>::CloneFrom(const CTensorXil<T> &other) {
-  m_oXilInfo = other.GetXilInfo(); // shallow-copy, there should be only one copy of CXilInfo and
-                                   // it should be managed by Xilinx implementation class.
-  m_iAxiWidth = other.GetAxiWidth();
-  m_iDramBank = other.GetDramBank();
-  m_strTensorTag = other.GetTensorTag();
-  SetShape(other.GetShape());
+  if (this != &other) { // not a self-assignment
+    m_oXilInfo = other.GetXilInfo(); // shallow-copy, there should be only one copy of CXilInfo and
+    // it should be managed by Xilinx implementation class.
+    m_iAxiWidth = other.GetAxiWidth();
+    m_iDramBank = other.GetDramBank();
+    m_strTensorTag = other.GetTensorTag();
+    SetPlatform(PLATFORMS::XIL);
+    SetShape(other.GetShape());
 
-  cl_mem_ext_ptr_t extPtr = CreateExtendedPointer(nullptr, TranslateBankIndex(m_iDramBank));
-  cl_mem_flags  flags = CL_MEM_READ_WRITE;
-  //flags |= CL_MEM_USE_HOST_PTR;
-  flags |= CL_MEM_EXT_PTR_XILINX;
+    cl_mem_ext_ptr_t extPtr = CreateExtendedPointer(nullptr, TranslateBankIndex(m_iDramBank));
+    cl_mem_flags flags = CL_MEM_READ_WRITE;
+    //flags |= CL_MEM_USE_HOST_PTR;
+    flags |= CL_MEM_EXT_PTR_XILINX;
 
-  OclCheck(m_iOclStatus,
-           m_oDeviceBuffer = cl::Buffer(*m_oXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
-  );
-  OclCheck(m_iOclStatus,
-           m_iOclStatus = cl::enqueueCopyBuffer(
-               other.GetDeviceBuffer(),
-               GetDeviceBuffer(),
-               0,
-               0,
-               GetSizeBytesPadded(),
-               {other.GetEventPtr()},
-               GetEventPtr()
-           )
-  );
+    OclCheck(m_iOclStatus,
+             m_oDeviceBuffer =
+                 cl::Buffer(*m_oXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
+    );
+    OclCheck(m_iOclStatus,
+             m_iOclStatus = cl::enqueueCopyBuffer(
+                 other.GetDeviceBuffer(),
+                 GetDeviceBuffer(),
+                 0,
+                 0,
+                 GetSizeBytesPadded(),
+                 {other.GetEventPtr()},
+                 GetEventPtr()
+             )
+    );
+  }
 }
 template<typename T>
 void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
@@ -361,13 +368,16 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
                           const CTensor<T> &hostTn,
                           int bank,
                           int axiWidth) {
-  T *paddedHostBuff = PadHostBuffer(hostTn.GetShape(),hostTn.Get(),axiWidth);
+  SetPlatform(PLATFORMS::XIL);
+  T *paddedHostBuff = PadHostBuffer(hostTn.GetShape(),hostTn.GetConst(),axiWidth);
   CloneFrom(xilInfo,hostTn.GetShape(),paddedHostBuff,bank,axiWidth,CL_BLOCKING);
   delete[](paddedHostBuff);
 }
 template<typename T>
 CTensor<T> *CTensorXil<T>::TransferToHost() {
   T *paddedHostBuff = new T[GetLenPadded()];
+  std::vector<cl::Event> dependencies;
+  dependencies.push_back(m_oEvent);
   OclCheck(m_iOclStatus,
            m_iOclStatus = cl::enqueueReadBuffer(
                m_oDeviceBuffer,
@@ -375,7 +385,7 @@ CTensor<T> *CTensorXil<T>::TransferToHost() {
                0,
                GetSizeBytesPadded(),
                paddedHostBuff,
-               {m_oEvent},
+               &dependencies,
                NULL)
   );
   ///TODO enforce queue to be flushed and wait for it to happen?

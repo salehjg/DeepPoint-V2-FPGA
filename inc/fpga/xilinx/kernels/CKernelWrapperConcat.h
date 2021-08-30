@@ -1,7 +1,6 @@
 #pragma once
 
 #include "fpga/xilinx/CKernelWrapper.h"
-#include "fpga/xilinx/CKernelArg.h"
 #include "CStringFormatter.h"
 #include <iostream>
 #include <vector>

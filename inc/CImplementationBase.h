@@ -36,6 +36,8 @@ class CImplementationBase {
   unsigned GetTheLastLayerId();
   PLATFORMS GetPlatform() const;
   void ResetLayerIdCounter(unsigned offset);
+  void ValidateTensorPlatforms(const std::vector<CTensorBase*> &tensors, PLATFORMS requiredPlatform);
+
   std::atomic_uint m_uAtomicCounter;
   PLATFORMS m_ePlatform;
   CProfiler *m_ptrProfiler;

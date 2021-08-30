@@ -495,25 +495,24 @@ configure_file(${CMAKE_SOURCE_DIR}/config/CMakeLists.txt ${CMAKE_BINARY_DIR}/CMa
 
 include_directories(${CMAKE_SOURCE_DIR}/submodules/rapidjson/include)
 add_executable(${HostExecutableName}
-        src/main.cpp
-        src/CTensorBase.cpp
-        src/fpga/xilinx/CKernelWrapper.cpp
-        src/fpga/xilinx/CKernelArg.cpp
-        src/CProfiler.cpp
-        src/fpga/xilinx/CImplementationXilinx.cpp
-        src/CClassifierMultiPlatform.cpp
-        src/models/CModel1.cpp
-        src/CWeightLoader.cpp
-        src/CPlatformSelection.cpp
-        src/cpu/CImplementationCpu.cpp
-        src/CImplementationBase.cpp
-        src/cnpy.cpp
-        src/fpga/xilinx/xcl2.cpp
+        ${CMAKE_SOURCE_DIR}/src/main.cpp
+        ${CMAKE_SOURCE_DIR}/src/CTensorBase.cpp
+        ${CMAKE_SOURCE_DIR}/src/CImplementationBase.cpp
+        ${CMAKE_SOURCE_DIR}/src/cpu/CImplementationCpu.cpp
+        ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/CImplementationXilinx.cpp
+        ${CMAKE_SOURCE_DIR}/src/CPlatformSelection.cpp
+        ${CMAKE_SOURCE_DIR}/src/CProfiler.cpp
+        ${CMAKE_SOURCE_DIR}/src/CWeightLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/CClassifierMultiPlatform.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/CModel1.cpp
+        ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/CKernelWrapper.cpp
+        ${CMAKE_SOURCE_DIR}/src/cnpy.cpp
+        ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/xcl2.cpp
         )
 
 target_link_libraries(${HostExecutableName} ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/googletest)
 add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/spdlog)
-#add_subdirectory(${CMAKE_SOURCE_DIR}/test)
+add_subdirectory(${CMAKE_SOURCE_DIR}/test)
 

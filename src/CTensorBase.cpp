@@ -75,3 +75,9 @@ void CTensorBase::SetShape(const std::vector<unsigned> &newShape) {
 bool CTensorBase::IsEmpty() const{
   return m_vShape.empty();
 }
+PLATFORMS CTensorBase::GetPlatform() {
+  return m_ePlatform;
+}
+void CTensorBase::SetPlatform(PLATFORMS platform) {
+  m_ePlatform = platform;
+}

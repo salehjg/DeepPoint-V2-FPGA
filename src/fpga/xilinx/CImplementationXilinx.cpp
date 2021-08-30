@@ -198,6 +198,8 @@ CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *
       new CProfiler::DictIntPtr({{"concatAxis",concatAxis}}),
       nullptr);
 
+  ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::XIL);
+
   CTensorBase *outputTn =
   m_oKernelConcat->EnqueueKernelLaunch(
       GetTheLastLayerId(),
