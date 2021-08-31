@@ -44,7 +44,7 @@ case $mode in
 	#------------------------------------------Setting Emulation Config & Launch
 	echo "XILINX_SDX PATH = ${XILINX_SDX}"
 	echo "Setting Emulation Config..."
-	emconfigutil --platform $platform --nd 1
+	(cd test/ocltests/ && emconfigutil --platform $platform --nd 1)
 	export XCL_EMULATION_MODE=sw_emu
 	printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
 	echo -e "${GREEN}Launching DeepPointV2FPGA...${NC}"
@@ -73,7 +73,7 @@ case $mode in
 	#------------------------------------------Setting Emulation Config & Launch
 	echo "XILINX_SDX PATH = ${XILINX_SDX}"
 	echo "Setting Emulation Config..."
-	emconfigutil --platform $platform --nd 1
+	(cd test/ocltests/ && emconfigutil --platform $platform --nd 1)
 	export XCL_EMULATION_MODE=hw_emu
 	printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - 
 	echo -e "${GREEN}Launching DeepPointV2FPGA...${NC}"

@@ -1,4 +1,5 @@
-#include <fpga/xilinx/kernels/CKernelWrapperConcat.h>
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "fpga/xilinx/CKernelWrapper.h"
 
 CKernelWrapper::CKernelWrapper(std::string taskName,

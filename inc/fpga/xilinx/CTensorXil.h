@@ -1,4 +1,8 @@
 #pragma once
+
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
+
 #include "fpga/xilinx/CXilinxInfo.h"
 #include "cpu/CTensor.h"
 #include "CTensorBase.h"
@@ -67,7 +71,7 @@ class CTensorXil: public CTensorBase {
         #endif
     #endif
 #endif
-  CXilinxInfo *m_oXilInfo;
+  CXilinxInfo *m_ptrXilInfo;
   unsigned m_iAxiWidth;
   std::string m_strTensorTag = CStringFormatter()<<"Bank"<<m_iDramBank; // the default tn tag
   cl::Buffer m_oDeviceBuffer;
@@ -194,6 +198,11 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
                           int bank,
                           int axiWidth) {
   SetPlatform(PLATFORMS::XIL);
+  ValidateBankIndex(bank);
+  m_iDramBank = bank==-1? m_iDramBank : bank;
+  m_iAxiWidth = axiWidth;
+  m_ptrXilInfo = xilInfo;
+  SetShape(shape);
   if(fillZeros){
     m_ptrHostBuffForFillZero.reset(new T[GetLenPadded()]);
     for(unsigned i=0; i<GetLenPadded(); i++){ m_ptrHostBuffForFillZero[i]=0;}
@@ -264,7 +273,7 @@ cl::Event* CTensorXil<T>::GetEventPtr() {
 template<typename T>
 void CTensorXil<T>::CloneFrom(const CTensorXil<T> &other) {
   if (this != &other) { // not a self-assignment
-    m_oXilInfo = other.GetXilInfo(); // shallow-copy, there should be only one copy of CXilInfo and
+    m_ptrXilInfo = other.GetXilInfo(); // shallow-copy, there should be only one copy of CXilInfo and
     // it should be managed by Xilinx implementation class.
     m_iAxiWidth = other.GetAxiWidth();
     m_iDramBank = other.GetDramBank();
@@ -279,10 +288,10 @@ void CTensorXil<T>::CloneFrom(const CTensorXil<T> &other) {
 
     OclCheck(m_iOclStatus,
              m_oDeviceBuffer =
-                 cl::Buffer(*m_oXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
+                 cl::Buffer(*m_ptrXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
     );
     OclCheck(m_iOclStatus,
-             m_iOclStatus = cl::enqueueCopyBuffer(
+             m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueCopyBuffer(
                  other.GetDeviceBuffer(),
                  GetDeviceBuffer(),
                  0,
@@ -308,7 +317,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
   ValidateBankIndex(bank);
   m_iDramBank = bank==-1? m_iDramBank : bank;
   m_iAxiWidth = axiWidth;
-  m_oXilInfo = xilInfo;
+  m_ptrXilInfo = xilInfo;
   SetShape(shape);
 
   cl_mem_ext_ptr_t extPtr = CreateExtendedPointer(nullptr, TranslateBankIndex(m_iDramBank));
@@ -317,11 +326,11 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
   flags |= CL_MEM_EXT_PTR_XILINX;
 
   OclCheck(m_iOclStatus,
-           m_oDeviceBuffer = cl::Buffer(*m_oXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
+           m_oDeviceBuffer = cl::Buffer(*m_ptrXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
   );
 
   OclCheck(m_iOclStatus,
-           m_iOclStatus = m_oXilInfo->GetQueue()->enqueueWriteBuffer(
+           m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueWriteBuffer(
                m_oDeviceBuffer,
                isBlocking,
                0,
@@ -339,7 +348,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
   ValidateBankIndex(bank);
   m_iDramBank = bank==-1? m_iDramBank : bank;
   m_iAxiWidth = axiWidth;
-  m_oXilInfo = xilInfo;
+  m_ptrXilInfo = xilInfo;
   SetShape(shape);
 
   cl_mem_ext_ptr_t extPtr = CreateExtendedPointer(nullptr, TranslateBankIndex(m_iDramBank));
@@ -348,7 +357,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
   flags |= CL_MEM_EXT_PTR_XILINX;
 
   OclCheck(m_iOclStatus,
-           m_oDeviceBuffer = cl::Buffer(*m_oXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
+           m_oDeviceBuffer = cl::Buffer(*m_ptrXilInfo->GetContext(), flags, GetSizeBytesPadded(), &extPtr, &m_iOclStatus)
   );
 }
 
@@ -375,11 +384,12 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
 }
 template<typename T>
 CTensor<T> *CTensorXil<T>::TransferToHost() {
+
   T *paddedHostBuff = new T[GetLenPadded()];
   std::vector<cl::Event> dependencies;
   dependencies.push_back(m_oEvent);
   OclCheck(m_iOclStatus,
-           m_iOclStatus = cl::enqueueReadBuffer(
+           m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueReadBuffer(
                m_oDeviceBuffer,
                CL_BLOCKING,
                0,
@@ -462,24 +472,26 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
     //std::exit(1);
   }
 
-  auto *newTensor = new CTensorXil(m_oXilInfo, GetShape(),false,destBank,GetAxiWidth());
+  auto *newTensor = new CTensorXil(m_ptrXilInfo, GetShape(),false,destBank,GetAxiWidth());
 
   int argcnt=0;
   // arguments should be like: bank0 only, bank1 only, bank2 only, and bank3 only.
+
+  unsigned vecCountPadded = GetVectorCountPadded();
 
   //Bank0
 #ifdef USEMEMORYBANK0
   if(m_iDramBank==0 || destBank==0){
     if(m_iDramBank==0){
-      OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
+      OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
     }else{
-      OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
+      OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
     }
   }else{
-    if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(0)->GetLen()){
+    if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(0)->GetLen()){
       throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
     }
-    OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(0))->GetDeviceBuffer()));
+    OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(0))->GetDeviceBuffer()));
   }
 #endif
 
@@ -487,15 +499,15 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
 #ifdef USEMEMORYBANK1
   if(m_iDramBank==1 || destBank==1){
     if(m_iDramBank==1){
-      OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
+      OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
     }else{
-      OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
+      OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
     }
   }else{
-    if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(1)->GetLen()){
+    if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(1)->GetLen()){
       throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
     }
-    OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(1))->GetDeviceBuffer()));
+    OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(1))->GetDeviceBuffer()));
   }
 #endif
 
@@ -503,15 +515,15 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
 #ifdef USEMEMORYBANK2
   if(m_iDramBank==2 || destBank==2){
         if(m_iDramBank==2){
-            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
+            OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
         }else{
-            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
+            OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
         }
     }else{
-        if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(2)->GetLen()){
+        if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(2)->GetLen()){
           throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
         }
-        OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(2))->GetDeviceBuffer()));
+        OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(2))->GetDeviceBuffer()));
     }
 #endif
 
@@ -519,35 +531,36 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
 #ifdef USEMEMORYBANK3
   if(m_iDramBank==3 || destBank==3){
         if(m_iDramBank==3){
-            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
+            OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_oDeviceBuffer));
         }else{
-            OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
+            OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, newTensor->GetDeviceBuffer()));
         }
     }else{
-        if(GetLen() > m_oXilInfo->GetDatamoverDummyTensor(3)->GetLen()){
+        if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(3)->GetLen()){
           throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
         }
-        OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_oXilInfo->GetDatamoverDummyTensor(3))->GetDeviceBuffer()));
+        OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(3))->GetDeviceBuffer()));
     }
 #endif
 
-  OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_iDramBank));
-  OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, destBank));
-  OclCheck(m_iOclStatus, m_iOclStatus = m_oXilInfo->GetDatamoverKernel()->setArg(argcnt++, GetVectorCountPadded()));
+  OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, m_iDramBank));
+  OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, destBank));
+  OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, vecCountPadded));
 
   std::vector<cl::Event> dependencies;
   dependencies.push_back(m_oEvent);
 
   OclCheck(m_iOclStatus,
-      m_iOclStatus = m_oXilInfo->GetQueue()->enqueueTask(*m_oXilInfo->GetDatamoverKernel(), &dependencies, newTensor->GetEventPtr())
+      m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueTask(*(m_ptrXilInfo->GetDatamoverKernel()), &dependencies, newTensor->GetEventPtr())
   );
 
   ///TODO IMPLEMENT DATA MOVER PERFORMANCE PROFILING AND SPDLOG'ING.
+  return newTensor;
 }
 
 template<typename T>
 CXilinxInfo *CTensorXil<T>::GetXilInfo() const {
-  return m_oXilInfo;
+  return m_ptrXilInfo;
 }
 template<typename T>
 unsigned long CTensorXil<T>::GetSizeBytes() const {

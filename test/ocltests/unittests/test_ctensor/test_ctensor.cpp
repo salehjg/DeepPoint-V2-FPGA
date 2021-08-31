@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "cpu/CTensor.h"
+#include "test_helpers.h"
 
 TEST(test_ctensor, subtest1) {
   const unsigned N=1024;

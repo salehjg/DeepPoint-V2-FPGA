@@ -1,6 +1,5 @@
-//
-// Created by saleh on 8/26/21.
-//
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 
 #include "cpu/CImplementationCpu.h"
 CImplementationCpu::CImplementationCpu(CProfiler *profiler) {

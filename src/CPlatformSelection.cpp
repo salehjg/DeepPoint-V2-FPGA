@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "CPlatformSelection.h"
 
 CPlatformSelection::CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath) {

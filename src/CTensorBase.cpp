@@ -1,4 +1,6 @@
 #include <CStringFormatter.h>
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "CTensorBase.h"
 
 using namespace std;

@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "CWeightLoader.h"
 CWeightLoader::CWeightLoader(CXilinxInfo *xilInfo) {
   m_ptrXilInfo = xilInfo;

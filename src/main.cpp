@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include <iostream>
 #include <execinfo.h>
 #include <unistd.h>
@@ -112,19 +114,12 @@ int main(int argc, const char* argv[]){
     file_sink1->set_level(spdlog::level::trace);
     file_sink1->set_pattern("[%H:%M:%S.%f][%^%l%$][source %s][function %!][line %#] %v");
 
-    auto file_sink0 = std::make_shared<spdlog::sinks::basic_file_sink_mt>("hostlog_1debug.log", true);
-    file_sink0->set_level(spdlog::level::debug);
-    file_sink0->set_pattern("[%H:%M:%S.%f][%^%l%$][source %s][function %!][line %#] %v");
-
-    auto file_sink2 = std::make_shared<spdlog::sinks::basic_file_sink_mt>("hostlog_2info.log", true);
-    file_sink2->set_level(spdlog::level::info);
-    file_sink2->set_pattern("[%H:%M:%S.%f][%^%l%$][source %s][function %!][line %#] %v");
 
     auto file_sink3 = std::make_shared<spdlog::sinks::basic_file_sink_mt>("hostlog_3wraning.log", true);
     file_sink3->set_level(spdlog::level::warn);
     file_sink3->set_pattern("[%H:%M:%S.%f][%^%l%$][source %s][function %!][line %#] %v");
 
-    logger = new spdlog::logger("DP2FPGA Host-logger", {console_sink, file_sink0, file_sink1, file_sink2, file_sink3});
+    logger = new spdlog::logger("DP2FPGA Host-logger", {console_sink, file_sink1, file_sink3});
     logger->set_level(spdlog::level::trace);
 
     if(parser.exists("n")) {

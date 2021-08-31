@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "models/CModel1.h"
 
 CModel1::CModel1(unsigned datasetOffset, unsigned batchSize, unsigned pointsPerPointCloud, unsigned knnK) {

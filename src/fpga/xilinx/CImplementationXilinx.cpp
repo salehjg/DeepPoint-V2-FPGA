@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "fpga/xilinx/CImplementationXilinx.h"
 #include <iostream>
 #include "GlobalHelpers.h"
@@ -61,8 +63,31 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
     );
 
     m_ptrXilInfo = new CXilinxInfo(m_ptrProgram,m_ptrContext,m_ptrQueue);
+#ifdef USEMEMORYBANK0
     m_ptrDataMoverDummyTensorBank0 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 0);
-
+#else
+    m_ptrDataMoverDummyTensorBank0 = nullptr;
+#endif
+#ifdef USEMEMORYBANK1
+    m_ptrDataMoverDummyTensorBank1 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 1);
+#else
+    m_ptrDataMoverDummyTensorBank1 = nullptr;
+#endif
+#ifdef USEMEMORYBANK2
+    m_ptrDataMoverDummyTensorBank2 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 2);
+#else
+    m_ptrDataMoverDummyTensorBank2 = nullptr;
+#endif
+#ifdef USEMEMORYBANK3
+    m_ptrDataMoverDummyTensorBank3 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 3);
+#else
+    m_ptrDataMoverDummyTensorBank3 = nullptr;
+#endif
+    m_ptrXilInfo->SetDataMoverDummyTensors(
+        m_ptrDataMoverDummyTensorBank0,
+        m_ptrDataMoverDummyTensorBank1,
+        m_ptrDataMoverDummyTensorBank2,
+        m_ptrDataMoverDummyTensorBank3);
   }
 
   //======================================================================================================================

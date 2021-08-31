@@ -1,7 +1,7 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include "CProfiler.h"
 #include <chrono>
-
-
 
 CProfiler::CProfiler(const std::string &fnameJson) {
   m_ptrWriter = new rapidjson::Writer<rapidjson::StringBuffer>(m_oStrBuffer);
