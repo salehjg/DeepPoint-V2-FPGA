@@ -16,9 +16,9 @@ include_directories(
 #message("TEST_SOURCES: ")
 #message("${TEST_SOURCES}")
 set(TEST_SOURCES
-        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensor/test_ctensor.cpp
-        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensorxil/test_ctensorxil.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconcat/test_ckwconcat.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensor/test_ctensor.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensorxil/test_ctensorxil.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconcat/test_ckwconcat.cpp
         )
 
 

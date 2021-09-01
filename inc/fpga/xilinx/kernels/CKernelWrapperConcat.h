@@ -58,27 +58,31 @@ class CKernelWrapperConcat: public CKernelWrapper{
     const unsigned dimA3 = shape1[3];
     const unsigned dimB3 = shape2[3];
     const unsigned dimR3 = dimA3+dimB3;
+
+    if(dimR3 >= CONFIG_M_AXI_WIDTH){
+      if(dimA3 % CONFIG_M_AXI_WIDTH !=0 || dimB3 % CONFIG_M_AXI_WIDTH !=0){
+        throw std::runtime_error(CStringFormatter()<<__func__<<": for dimR3>=CONFIG_M_AXI_WIDTH, only tensors with dim3%CONFIG_M_AXI_WIDTH=0 are supported.");
+      }
+    }
+
     const std::vector<unsigned> shapeOut = {dim0, dim1, dim2, dimR3};
     auto *outputTn = new CTensorXil<float>(GetXilInfo(), shapeOut, false, m_uBankOutputTn);
 
     cl_int stat;
     ResetArgCounter();
-    cl::Buffer * tn1 = xinputTn1->GetDeviceBufferPtr();
-    cl::Buffer * tn2 = xinputTn2->GetDeviceBufferPtr();
-    cl::Buffer * tn3 = outputTn->GetDeviceBufferPtr();
-    OclCheck(stat, stat = GetKernel()->setArg(0, *tn1));
-    OclCheck(stat, stat = GetKernel()->setArg(1, *tn2));
-    OclCheck(stat, stat = GetKernel()->setArg(2, *tn3));
-    OclCheck(stat, stat = GetKernel()->setArg(3, dim0));
-    OclCheck(stat, stat = GetKernel()->setArg(4, dim1));
-    OclCheck(stat, stat = GetKernel()->setArg(5, dim2));
-    OclCheck(stat, stat = GetKernel()->setArg(6, dimA3));
-    OclCheck(stat, stat = GetKernel()->setArg(7, dimB3));
-    OclCheck(stat, stat = GetKernel()->setArg(8, concatDim));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), xinputTn1->GetDeviceBuffer()));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), xinputTn2->GetDeviceBuffer()));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), outputTn->GetDeviceBuffer()));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dim0));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dim1));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dim2));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dimA3));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dimB3));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), concatDim));
 
     std::vector<cl::Event> dependencies;
-    dependencies.push_back(*inputTn1->GetEventPtr());
-    dependencies.push_back(*inputTn2->GetEventPtr());
+    dependencies.push_back(*xinputTn1->GetEventPtr()); // xinputTn1 not xinputTn1
+    dependencies.push_back(*xinputTn1->GetEventPtr());
 
     GetXilInfo()->GetQueue()->enqueueTask(
         *GetKernel(),
@@ -93,6 +97,7 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
 
     outputTn->GetEventPtr()->setCallback(CL_COMPLETE, &EventCallback, m_ptrCallBackData.get());
+    return outputTn;
   }
 
  private:

@@ -35,7 +35,7 @@ class CKernelWrapper {
  private:
   std::string m_strTaskName, m_strKernelName, m_strKernelPath;
   cl::Kernel *m_oKernel;
-  bool m_bIsDisabled;
+  bool m_bIsEnabled;
   bool m_bProfileOcl;
   cl_int m_iStatus;
   CXilinxInfo *m_oXilInfo;

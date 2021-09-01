@@ -6,18 +6,18 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
                                std::string fileName,
                                CXilinxInfo *xilInfo,
                                std::string path,
-                               bool isDisabled,
+                               bool isEnabled,
                                bool profileOcl) {
   m_iArgCounter = 0;
   m_strTaskName = taskName;
   m_strKernelName = fileName;
   m_strKernelPath = path;
-  m_bIsDisabled = isDisabled;
+  m_bIsEnabled = isEnabled;
   m_bProfileOcl = profileOcl;
   m_oXilInfo = xilInfo;
   m_ptrCallBackData.reset(new CallbackData());
 
-  if(!m_bIsDisabled){
+  if(m_bIsEnabled){
     OclCheck(m_iStatus,
         m_oKernel = new cl::Kernel(*m_oXilInfo->GetProgram(), m_strTaskName.c_str(), &m_iStatus));
   }
@@ -64,7 +64,7 @@ bool CKernelWrapper::GetProfileOclEnabled() const {
   return m_bProfileOcl;
 }
 bool CKernelWrapper::GetKernelEnabled() const {
-  return m_bIsDisabled;
+  return m_bIsEnabled;
 }
 std::vector<ProfiledLaunchData> &CKernelWrapper::GetAccumulatedProfiledKernelLaunchData() {
   return m_vProfiledKernelLaunches;

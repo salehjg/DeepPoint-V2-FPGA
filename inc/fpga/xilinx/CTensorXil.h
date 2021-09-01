@@ -111,7 +111,7 @@ void CTensorXil<T>::EventCallback(cl_event event, cl_int execStatus, void *userD
 
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
 
-    std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
+    std::cout<<"DATAMOVER: ns:"<<durationNanoSeconds<<std::endl;
 
     auto *classPtr = static_cast<CXilinxInfo*>(((CallbackData *)userData)->classPtr);
     classPtr->AddProfiledDataMoverLaunchDetails("task_datamover", ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
@@ -411,7 +411,7 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
 }
 template<typename T>
 CTensor<T> *CTensorXil<T>::TransferToHost() {
-
+  SPDLOG_LOGGER_TRACE(logger, "CTensorXil::TransferToHost().");
   T *paddedHostBuff = new T[GetLenPadded()];
   std::vector<cl::Event> dependencies;
   dependencies.push_back(m_oEvent);
