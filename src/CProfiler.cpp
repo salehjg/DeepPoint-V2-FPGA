@@ -4,8 +4,9 @@
 #include <chrono>
 
 CProfiler::CProfiler(const std::string &fnameJson) {
+  m_strFileName = fnameJson;
   m_ptrWriter = new rapidjson::Writer<rapidjson::StringBuffer>(m_oStrBuffer);
-  m_ptrFileStream = new std::ofstream(fnameJson);
+  m_ptrFileStream = new std::ofstream(m_strFileName);
   m_ptrWriter->StartObject();
 
   m_ptrWriter->Key("info");
@@ -24,6 +25,7 @@ CProfiler::CProfiler(const std::string &fnameJson) {
 }
 
 CProfiler::~CProfiler() {
+  SPDLOG_LOGGER_TRACE(logger, "Writing profiling data to {}", m_strFileName);
   m_ptrWriter->EndArray(); // main trace array end.
   m_ptrWriter->EndObject(); // main json end.
   *m_ptrFileStream<<m_oStrBuffer.GetString();

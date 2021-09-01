@@ -580,7 +580,6 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
       m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueTask(*(m_ptrXilInfo->GetDatamoverKernel()), &dependencies, newTensor->GetEventPtr())
   );
 
-
   m_ptrCallBackData.get()->profileKernel = m_ptrXilInfo->GetProfileOclEnabled();
   m_ptrCallBackData.get()->parentLayerId = 4294967295;
   m_ptrCallBackData.get()->classPtr = m_ptrXilInfo;

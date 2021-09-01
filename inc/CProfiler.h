@@ -43,5 +43,6 @@ class CProfiler{
   rapidjson::StringBuffer m_oStrBuffer;
   rapidjson::Writer<rapidjson::StringBuffer> *m_ptrWriter;
   std::ofstream *m_ptrFileStream;
+  std::string m_strFileName;
 
 };
