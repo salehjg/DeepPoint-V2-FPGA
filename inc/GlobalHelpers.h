@@ -23,6 +23,18 @@ enum class MAT_OPS{
   DIV_ELEMENTWISE
 };
 
+struct CallbackData{
+  void *classPtr;
+  unsigned parentLayerId;
+  bool profileKernel;
+};
+
+struct ProfiledLaunchData{
+  unsigned parentLayerId;
+  std::string taskName;
+  cl_ulong durationOcl;
+};
+
 extern spdlog::logger *logger;
 extern std::string globalArgXclBin;
 extern std::string globalArgDataPath;

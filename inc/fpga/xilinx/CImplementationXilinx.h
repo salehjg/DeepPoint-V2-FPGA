@@ -43,6 +43,7 @@ class CImplementationXilinx: public CImplementationBase {
   CTensorXil<float> *m_ptrDataMoverDummyTensorBank1;
   CTensorXil<float> *m_ptrDataMoverDummyTensorBank2;
   CTensorXil<float> *m_ptrDataMoverDummyTensorBank3;
+  std::vector<ProfiledLaunchData> *m_ptrDataMoverProfiledDataVec;
 
   CKernelWrapperConcat *m_oKernelConcat;
 };

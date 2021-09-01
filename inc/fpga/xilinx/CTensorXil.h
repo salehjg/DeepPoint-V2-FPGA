@@ -44,6 +44,7 @@ class CTensorXil: public CTensorBase {
   CTensor<T>* TransferToHost();
 
  private:
+  static void EventCallback(cl_event event, cl_int execStatus, void *userData);
   void CloneFrom(const CTensorXil<T> &other);
   void CloneFrom(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, const T* unsafeHostBuff, int bank, int axiWidth, cl_bool isBlocking=CL_BLOCKING);
   void CloneFrom(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, int bank, int axiWidth);
@@ -78,6 +79,7 @@ class CTensorXil: public CTensorBase {
   cl_int m_iOclStatus;
   cl::Event m_oEvent;
   std::unique_ptr<T[]> m_ptrHostBuffForFillZero; // for async fill zero operation in the constructor
+  std::unique_ptr<CallbackData[]> m_ptrCallBackData;
 };
 
 
@@ -90,8 +92,30 @@ class CTensorXil: public CTensorBase {
 
 
 
+template <typename T>
+void CTensorXil<T>::EventCallback(cl_event event, cl_int execStatus, void *userData) {
+  if( execStatus != CL_COMPLETE ) {
+    std::cout<<"ERROR IN KERNEL EXECUTION\n";
+    ///TODO REPORT ERROR WITH SPDLOGGER
+    return;
+  }
 
+  cl_ulong deviceTimeStart=0, deviceTimeEnd=0; //nano-seconds
 
+  if(((CallbackData *) userData)->profileKernel){
+    cl_int stat;
+
+    OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(deviceTimeStart), &deviceTimeStart, nullptr));
+    OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(deviceTimeEnd), &deviceTimeEnd, nullptr));
+
+    cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
+
+    std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
+
+    auto *classPtr = static_cast<CXilinxInfo*>(((CallbackData *)userData)->classPtr);
+    classPtr->AddProfiledDataMoverLaunchDetails("task_datamover", ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
+  }
+}
 
 template <typename T>
 void CTensorXil<T>::ValidateBankIndex(int bankIndex){
@@ -273,6 +297,7 @@ cl::Event* CTensorXil<T>::GetEventPtr() {
 template<typename T>
 void CTensorXil<T>::CloneFrom(const CTensorXil<T> &other) {
   if (this != &other) { // not a self-assignment
+    m_ptrCallBackData.reset(new CallbackData());
     m_ptrXilInfo = other.GetXilInfo(); // shallow-copy, there should be only one copy of CXilInfo and
     // it should be managed by Xilinx implementation class.
     m_iAxiWidth = other.GetAxiWidth();
@@ -313,7 +338,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
   // WARNING:
   //   THIS METHOD IS NOT RESPONSIBLE FOR MAKING SURE THAT `hostBuff` IS NOT
   //   GOING TO GET RELEASED BEFORE NON BLOCKING OPERATION EXECUTES.
-
+  m_ptrCallBackData.reset(new CallbackData());
   ValidateBankIndex(bank);
   m_iDramBank = bank==-1? m_iDramBank : bank;
   m_iAxiWidth = axiWidth;
@@ -345,6 +370,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
                               const std::vector<unsigned> &shape,
                               int bank,
                               int axiWidth) {
+  m_ptrCallBackData.reset(new CallbackData());
   ValidateBankIndex(bank);
   m_iDramBank = bank==-1? m_iDramBank : bank;
   m_iAxiWidth = axiWidth;
@@ -554,7 +580,12 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
       m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueTask(*(m_ptrXilInfo->GetDatamoverKernel()), &dependencies, newTensor->GetEventPtr())
   );
 
-  ///TODO IMPLEMENT DATA MOVER PERFORMANCE PROFILING AND SPDLOG'ING.
+
+  m_ptrCallBackData.get()->profileKernel = m_ptrXilInfo->GetProfileOclEnabled();
+  m_ptrCallBackData.get()->parentLayerId = 4294967295;
+  m_ptrCallBackData.get()->classPtr = m_ptrXilInfo;
+  newTensor->GetEventPtr()->setCallback(CL_COMPLETE, &EventCallback, m_ptrCallBackData.get());
+
   return newTensor;
 }
 

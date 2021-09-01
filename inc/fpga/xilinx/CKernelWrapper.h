@@ -8,19 +8,8 @@
 #include "GlobalHelpers.h"
 #include "fpga/xilinx/CXilinxInfo.h"
 #include <cassert>
+#include "GlobalHelpers.h"
 
-
-
-struct CallbackData{
-  void *classPtr;
-  unsigned parentLayerId;
-  bool profileKernel;
-};
-struct ProfiledLaunchData{
-  unsigned parentLayerId;
-  std::string taskName;
-  cl_ulong durationOcl;
-};
 class CKernelWrapper {
  public:
   CKernelWrapper(

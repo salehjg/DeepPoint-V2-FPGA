@@ -9,7 +9,8 @@ class CXilinxInfo{
   CXilinxInfo(
       cl::Program *program,
       cl::Context *context,
-      cl::CommandQueue *queue){
+      cl::CommandQueue *queue,
+      bool profileOclEnabled){
     m_oProgram = program;
     m_oContext = context;
     m_oQueue = queue;
@@ -20,6 +21,11 @@ class CXilinxInfo{
     m_oDummyDataMoverBank1 = nullptr;
     m_oDummyDataMoverBank2 = nullptr;
     m_oDummyDataMoverBank3 = nullptr;
+    m_bProfileOclEnabled = profileOclEnabled;
+  }
+
+  bool GetProfileOclEnabled(){
+    return m_bProfileOclEnabled;
   }
 
   void SetDataMoverDummyTensors(
@@ -42,6 +48,18 @@ class CXilinxInfo{
 #ifdef USEMEMORYBANK3
     m_oDummyDataMoverBank3 = dummyTensorBank3;
 #endif
+  }
+
+  void SetAccumulatedProfiledKernelLaunchDataVecPtr(std::vector<ProfiledLaunchData> *vec){
+    m_ptrDataMoverProfiledDataVec = vec;
+  }
+
+  void AddProfiledDataMoverLaunchDetails(std::string taskName, unsigned parentLayerId, cl_ulong durationNanoSecOcl){
+    ProfiledLaunchData data;
+    data.taskName = taskName;
+    data.parentLayerId = parentLayerId;
+    data.durationOcl = durationNanoSecOcl;
+    m_ptrDataMoverProfiledDataVec->push_back(data);
   }
 
   cl::Program* GetProgram(){
@@ -80,4 +98,7 @@ class CXilinxInfo{
   CTensorBase *m_oDummyDataMoverBank1;
   CTensorBase *m_oDummyDataMoverBank2;
   CTensorBase *m_oDummyDataMoverBank3;
+  std::vector<ProfiledLaunchData> *m_ptrDataMoverProfiledDataVec;
+  std::unique_ptr<CallbackData[]> m_ptrCallBackData;
+  bool m_bProfileOclEnabled;
 };

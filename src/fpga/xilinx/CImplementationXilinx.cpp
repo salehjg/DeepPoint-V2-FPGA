@@ -62,7 +62,9 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
             &m_iStatus)
     );
 
-    m_ptrXilInfo = new CXilinxInfo(m_ptrProgram,m_ptrContext,m_ptrQueue);
+    m_ptrXilInfo = new CXilinxInfo(m_ptrProgram,m_ptrContext,m_ptrQueue, m_bOclProfileEnabled);
+    m_ptrDataMoverProfiledDataVec = new vector<ProfiledLaunchData>();
+    m_ptrXilInfo->SetAccumulatedProfiledKernelLaunchDataVecPtr(m_ptrDataMoverProfiledDataVec);
 #ifdef USEMEMORYBANK0
     m_ptrDataMoverDummyTensorBank0 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 0);
 #else
@@ -209,8 +211,10 @@ CXilinxInfo *CImplementationXilinx::GetXilInfo() {
   return m_ptrXilInfo;
 }
 CImplementationXilinx::~CImplementationXilinx() {
+  SPDLOG_LOGGER_TRACE(logger, "Processing accumulated profiled kernel launches in ~CImplementationXilinx().");
 
   std::vector<std::vector<ProfiledLaunchData>> accumulatedProfiledKernelsData = {
+      *m_ptrDataMoverProfiledDataVec,
       m_oKernelConcat->GetAccumulatedProfiledKernelLaunchData()
   };
 
@@ -226,6 +230,7 @@ CImplementationXilinx::~CImplementationXilinx() {
   delete m_ptrContext;
   delete m_ptrQueue;
   delete m_ptrXilInfo;
+  delete m_ptrDataMoverProfiledDataVec;
 }
 CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
   m_ptrProfiler->StartLayer(
