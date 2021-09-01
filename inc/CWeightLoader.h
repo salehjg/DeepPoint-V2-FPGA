@@ -25,6 +25,7 @@ class CWeightLoader {
   int _ResolveMemoryBankOclXilinx(std::string &name);
   std::string _ResolveTensorTagOclXilinx(std::string &name);
 
+  bool m_bIsLoaded;
   CXilinxInfo *m_ptrXilInfo;
   unsigned m_uWeightCount;
   CTensor<float>** m_ptrWeightsCpu;

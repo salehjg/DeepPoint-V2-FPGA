@@ -13,7 +13,7 @@ bool TensorXilTestType1(){
   auto *deviceTn = new CTensorXil<T>(xilInfo,*srcTn,BANK);
   auto *dstTn = deviceTn->TransferToHost();
 
-  return CompareCTensors(*srcTn, *dstTn);
+  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
 }
 
 template <int N, int BANK, typename T>
@@ -21,16 +21,51 @@ bool TensorXilTestType2(){
   CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
   auto *deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, srcTn);
   auto *dstTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::CPU, deviceTn);
-  return CompareCTensors(*srcTn, *dstTn);
+  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
 }
 
 template <int N, int BANK, typename T>
 bool TensorXilTestType3(){
   CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
   auto *deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, srcTn);
-  auto *dstTn = deviceTn->TransferToHost();
+  auto *dstTn = ((CTensorXil<T>*)deviceTn)->TransferToHost();
 
-  return CompareCTensors(*srcTn, *dstTn);
+  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
+}
+
+template <int N, int BANK, typename T>
+bool TensorXilTestType4(){
+  CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
+  auto *deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, srcTn);
+  auto *dstTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::CPU, deviceTn);
+
+  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
+}
+
+template <int N, typename T>
+bool TensorXilTestType5(){
+  // Redundant platform crossing tests
+  // CPU->CPU
+  // XIL->XIL (on the default bank)
+  CTensor<T> *srcHostTn = GenerateTensor<T>(0,{N});
+  auto *srcDeviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcHostTn);
+
+  auto *dstTn1 = platSelection->CrossThePlatformIfNeeded(PLATFORMS::CPU, srcHostTn);
+  bool cmp1 = platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcHostTn), (CTensorBase*)(dstTn1));
+
+  auto *dstTn2 = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcDeviceTn);
+  bool cmp2 = platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcDeviceTn), (CTensorBase*)(dstTn2));
+
+  return cmp1 && cmp2;
+}
+
+template <int N, typename T>
+bool TensorXilTestType6(){
+  // Mixed platform tensor comparisons
+  CTensor<T> *srcHostTn = GenerateTensor<T>(0,{N});
+  auto *srcDeviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcHostTn);
+  bool cmp1 = platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcHostTn), (CTensorBase*)(srcDeviceTn));
+  return cmp1;
 }
 
 template <int N, typename T>
@@ -63,7 +98,7 @@ bool TensorXilTestCloneBanksType1(int pattern){
       if (err > 0) {
         SPDLOG_LOGGER_ERROR(logger, "Tensor data mismatch");
       }
-      err += (int) !CompareCTensors(*hostSrcTn,*hostDstTn);
+      err += (int) !platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(hostSrcTn), (CTensorBase*)(hostDstTn));
     }
   }
 
@@ -138,6 +173,55 @@ TEST(test_ctensorxil, type3) {
       TensorXilTestType3<1024,3,float>(),
       TensorXilTestType3<1024,3,unsigned>()
 #endif
+  };
+
+  for(auto r:results){
+    EXPECT_TRUE(r);
+  }
+}
+
+TEST(test_ctensorxil, type4) {
+  std::vector<bool> results = {
+#ifdef USEMEMORYBANK0
+      TensorXilTestType4<1024,0,float>(),
+      TensorXilTestType4<1024,0,unsigned>(),
+#endif
+#ifdef USEMEMORYBANK1
+      TensorXilTestType4<1024,1,float>(),
+      TensorXilTestType4<1024,1,unsigned>(),
+#endif
+#ifdef USEMEMORYBANK2
+      TensorXilTestType4<1024,2,float>(),
+      TensorXilTestType4<1024,2,unsigned>(),
+#endif
+#ifdef USEMEMORYBANK3
+      TensorXilTestType4<1024,3,float>(),
+      TensorXilTestType4<1024,3,unsigned>()
+#endif
+  };
+
+  for(auto r:results){
+    EXPECT_TRUE(r);
+  }
+}
+
+TEST(test_ctensorxil, reduntantplatformcrossing1) {
+
+  std::vector<bool> results = {
+      TensorXilTestType5<31, float>(),
+      TensorXilTestType5<31, unsigned>()
+  };
+
+  for(auto r:results){
+    EXPECT_TRUE(r);
+  }
+}
+
+TEST(test_ctensorxil, mixedplatformtensorcomparison) {
+
+  std::vector<bool> results = {
+      TensorXilTestType6<31, float>(),
+      TensorXilTestType6<31, unsigned>()
   };
 
   for(auto r:results){

@@ -66,12 +66,12 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
     m_ptrDataMoverProfiledDataVec = new vector<ProfiledLaunchData>();
     m_ptrXilInfo->SetAccumulatedProfiledKernelLaunchDataVecPtr(m_ptrDataMoverProfiledDataVec);
 #ifdef USEMEMORYBANK0
-    m_ptrDataMoverDummyTensorBank0 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 0);
+    m_ptrDataMoverDummyTensorBank0 = new CTensorXil<float>(m_ptrXilInfo, {5,1,1024}, true, 0);
 #else
     m_ptrDataMoverDummyTensorBank0 = nullptr;
 #endif
 #ifdef USEMEMORYBANK1
-    m_ptrDataMoverDummyTensorBank1 = new CTensorXil<float>(m_ptrXilInfo, {50,1024,1024}, true, 1);
+    m_ptrDataMoverDummyTensorBank1 = new CTensorXil<float>(m_ptrXilInfo, {5,1,1024}, true, 1);
 #else
     m_ptrDataMoverDummyTensorBank1 = nullptr;
 #endif
@@ -93,8 +93,8 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
   }
 
   //======================================================================================================================
-  m_oKernelConcat = new CKernelWrapperConcat(
-      "taskConcat","concat.cpp",m_ptrXilInfo,
+  m_ptrKernelConcat = new CKernelWrapperConcat(
+      "task_concat","concat.cpp",m_ptrXilInfo,
       ConfigTaskConcat::BankIndex_inputTn1,
       ConfigTaskConcat::BankIndex_inputTn2,
       ConfigTaskConcat::BankIndex_outputTn,
@@ -211,26 +211,35 @@ CXilinxInfo *CImplementationXilinx::GetXilInfo() {
   return m_ptrXilInfo;
 }
 CImplementationXilinx::~CImplementationXilinx() {
+  SPDLOG_LOGGER_TRACE(logger, "Waiting for async-queue to finish up in ~CImplementationXilinx().");
+  OclCheck(m_iStatus, m_iStatus = m_ptrQueue->finish());
+
   SPDLOG_LOGGER_TRACE(logger, "Processing accumulated profiled kernel launches in ~CImplementationXilinx().");
 
   std::vector<std::vector<ProfiledLaunchData>> accumulatedProfiledKernelsData = {
       *m_ptrDataMoverProfiledDataVec,
-      m_oKernelConcat->GetAccumulatedProfiledKernelLaunchData()
+      m_ptrKernelConcat->GetAccumulatedProfiledKernelLaunchData()
   };
 
   for(auto &vecData:accumulatedProfiledKernelsData){
-    for(auto &data:vecData){
-      m_ptrProfiler->StartKernel(PLATFORMS::XIL, data.parentLayerId, data.taskName, data.durationOcl);
-      m_ptrProfiler->FinishKernel();
+    if(vecData.size()!=0) {
+      for (auto &data:vecData) {
+        m_ptrProfiler->StartKernel(PLATFORMS::XIL, data.parentLayerId, data.taskName, data.durationOcl);
+        m_ptrProfiler->FinishKernel();
+      }
     }
   }
 
+  SPDLOG_LOGGER_TRACE(logger, "Destroying CImplementationXilinx().");
 
+  delete m_ptrKernelConcat;
+  delete m_ptrXilInfo;
+  delete m_ptrDataMoverProfiledDataVec;
   delete m_ptrProgram;
   delete m_ptrContext;
   delete m_ptrQueue;
-  delete m_ptrXilInfo;
-  delete m_ptrDataMoverProfiledDataVec;
+
+  SPDLOG_LOGGER_TRACE(logger, "Destroyed CImplementationXilinx().");
 }
 CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
   m_ptrProfiler->StartLayer(
@@ -244,7 +253,7 @@ CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *
   ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::XIL);
 
   CTensorBase *outputTn =
-  m_oKernelConcat->EnqueueKernelLaunch(
+  m_ptrKernelConcat->EnqueueKernelLaunch(
       GetTheLastLayerId(),
       (CTensorXil<float>*)inputTn1,
       (CTensorXil<float>*)inputTn2,

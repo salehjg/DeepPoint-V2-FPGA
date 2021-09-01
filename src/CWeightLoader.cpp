@@ -4,6 +4,7 @@
 CWeightLoader::CWeightLoader(CXilinxInfo *xilInfo) {
   m_ptrXilInfo = xilInfo;
   m_uWeightCount = 0;
+  m_bIsLoaded = false;
 }
 void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
                                         std::string &pathToTxtFnameList) {
@@ -20,7 +21,6 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
     SPDLOG_LOGGER_ERROR(logger,"Failed to open text file (WeightsLoader::LoadFromDisk)");
     return;
   }
-
 
   while (std::getline(txtFile, line)) {
     idx++;
@@ -40,6 +40,7 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
     auto tag = _ResolveTensorTagOclXilinx(line);
     m_ptrWeightsXil[idx]->SetTensorTag(tag);
   }
+  m_bIsLoaded = true;
   txtFile.close();
 }
 CTensorBase *CWeightLoader::AccessWeights(PLATFORMS platform, std::string &name) {
@@ -345,10 +346,12 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
   return "undefined_tag";
 }
 CWeightLoader::~CWeightLoader() {
-  for(unsigned i=0;i<m_uWeightCount;i++){
-    delete m_ptrWeightsCpu[i];
-    delete m_ptrWeightsXil[i];
+  if(m_bIsLoaded){
+    for(unsigned i=0;i<m_uWeightCount;i++){
+      delete m_ptrWeightsCpu[i];
+      delete m_ptrWeightsXil[i];
+    }
+    delete[](m_ptrWeightsCpu);
+    delete[](m_ptrWeightsXil);
   }
-  delete[](m_ptrWeightsCpu);
-  delete[](m_ptrWeightsXil);
 }

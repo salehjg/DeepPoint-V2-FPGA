@@ -50,23 +50,29 @@ void CProfiler::StartLayer(PLATFORMS platform,
   m_ptrWriter->Key("args");
   m_ptrWriter->StartObject();
   {
-    for(auto &item: *dictShapes){
-      m_ptrWriter->Key(item.first.c_str());
-      m_ptrWriter->StartArray();
-      for(auto &dim: item.second){
-        m_ptrWriter->Uint(dim);
+    if(dictShapes!= nullptr){
+      for(auto &item: *dictShapes){
+        m_ptrWriter->Key(item.first.c_str());
+        m_ptrWriter->StartArray();
+        for(auto &dim: item.second){
+          m_ptrWriter->Uint(dim);
+        }
+        m_ptrWriter->EndArray();
       }
-      m_ptrWriter->EndArray();
     }
 
-    for(auto &item: *dictScalarInt){
-      m_ptrWriter->Key(item.first.c_str());
-      m_ptrWriter->Int(item.second);
+    if(dictScalarInt!= nullptr) {
+      for (auto &item: *dictScalarInt) {
+        m_ptrWriter->Key(item.first.c_str());
+        m_ptrWriter->Int(item.second);
+      }
     }
 
-    for(auto &item: *dictScalarFloat){
-      m_ptrWriter->Key(item.first.c_str());
-      m_ptrWriter->Double((double)item.second);
+    if(dictScalarFloat!= nullptr) {
+      for (auto &item: *dictScalarFloat) {
+        m_ptrWriter->Key(item.first.c_str());
+        m_ptrWriter->Double((double) item.second);
+      }
     }
   }
   m_ptrWriter->EndObject();

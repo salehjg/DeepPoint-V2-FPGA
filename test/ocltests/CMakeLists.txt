@@ -10,11 +10,17 @@ include_directories(
         ${SDAccel_INCLUDE_DIRS}
         )
 
-file(GLOB_RECURSE TEST_SOURCES
-        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/*.cpp
+#file(GLOB_RECURSE TEST_SOURCES
+#        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/*.cpp
+#        )
+#message("TEST_SOURCES: ")
+#message("${TEST_SOURCES}")
+set(TEST_SOURCES
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensor/test_ctensor.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensorxil/test_ctensorxil.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconcat/test_ckwconcat.cpp
         )
-message("TEST_SOURCES: ")
-message("${TEST_SOURCES}")
+
 
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/CTensorBase.cpp

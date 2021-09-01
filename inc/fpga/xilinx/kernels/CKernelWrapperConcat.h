@@ -44,7 +44,7 @@ class CKernelWrapperConcat: public CKernelWrapper{
     }
 
     auto *xinputTn1 = inputTn1->CloneIfNeededToBank(m_uBankInputTn1);
-    auto *xinputTn2 = inputTn1->CloneIfNeededToBank(m_uBankInputTn2);
+    auto *xinputTn2 = inputTn2->CloneIfNeededToBank(m_uBankInputTn2);
 
     const auto shape1 = xinputTn1->GetShape();
     const auto shape2 = xinputTn2->GetShape();
@@ -61,16 +61,20 @@ class CKernelWrapperConcat: public CKernelWrapper{
     const std::vector<unsigned> shapeOut = {dim0, dim1, dim2, dimR3};
     auto *outputTn = new CTensorXil<float>(GetXilInfo(), shapeOut, false, m_uBankOutputTn);
 
+    cl_int stat;
     ResetArgCounter();
-    GetKernel()->setArg(ArgCounter(), xinputTn1->GetDeviceBuffer());
-    GetKernel()->setArg(ArgCounter(), xinputTn2->GetDeviceBuffer());
-    GetKernel()->setArg(ArgCounter(), outputTn->GetDeviceBuffer());
-    GetKernel()->setArg(ArgCounter(), dim0);
-    GetKernel()->setArg(ArgCounter(), dim1);
-    GetKernel()->setArg(ArgCounter(), dim2);
-    GetKernel()->setArg(ArgCounter(), dimA3);
-    GetKernel()->setArg(ArgCounter(), dimB3);
-    GetKernel()->setArg(ArgCounter(), concatDim);
+    cl::Buffer * tn1 = xinputTn1->GetDeviceBufferPtr();
+    cl::Buffer * tn2 = xinputTn2->GetDeviceBufferPtr();
+    cl::Buffer * tn3 = outputTn->GetDeviceBufferPtr();
+    OclCheck(stat, stat = GetKernel()->setArg(0, *tn1));
+    OclCheck(stat, stat = GetKernel()->setArg(1, *tn2));
+    OclCheck(stat, stat = GetKernel()->setArg(2, *tn3));
+    OclCheck(stat, stat = GetKernel()->setArg(3, dim0));
+    OclCheck(stat, stat = GetKernel()->setArg(4, dim1));
+    OclCheck(stat, stat = GetKernel()->setArg(5, dim2));
+    OclCheck(stat, stat = GetKernel()->setArg(6, dimA3));
+    OclCheck(stat, stat = GetKernel()->setArg(7, dimB3));
+    OclCheck(stat, stat = GetKernel()->setArg(8, concatDim));
 
     std::vector<cl::Event> dependencies;
     dependencies.push_back(*inputTn1->GetEventPtr());

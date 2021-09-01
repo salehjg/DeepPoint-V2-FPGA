@@ -1,6 +1,5 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
-
 #include "cpu/CImplementationCpu.h"
 CImplementationCpu::CImplementationCpu(CProfiler *profiler) {
   m_ePlatform = PLATFORMS::CPU;
@@ -115,4 +114,36 @@ CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inp
 
   m_ptrProfiler->FinishLayer();
   return rsltTn;
+}
+
+void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBase *inputTn, std::string npyDumpDir) {
+  // The template member functions of a non-template class should be declared and defined in the header file ONLY.
+  if(globalDumpTensors){
+    ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+    auto* inputFloatTn = dynamic_cast<CTensor<float>*>(inputTn);
+    auto* inputUintTn = dynamic_cast<CTensor<unsigned>*>(inputTn);
+    if(inputFloatTn!= nullptr){
+      DumpToNumpyFile<float>(npyFileName, inputFloatTn, npyDumpDir);
+    }else if(!inputUintTn){
+      DumpToNumpyFile<unsigned>(npyFileName, inputUintTn, npyDumpDir);
+    }else{
+      throw std::runtime_error(CStringFormatter() << __func__ << ": Unsupported tensor type.");
+    }
+  }
+}
+
+bool CImplementationCpu::CompareTensors(CTensorBase *inputTn1, CTensorBase *inputTn2) {
+  // The template member functions of a non-template class should be declared and defined in the header file ONLY.
+  ValidateTensorPlatforms({inputTn1, inputTn2}, PLATFORMS::CPU);
+  auto* inputFloatTn1 = dynamic_cast<CTensor<float>*>(inputTn1);
+  auto* inputFloatTn2 = dynamic_cast<CTensor<float>*>(inputTn2);
+  auto* inputUintTn1 = dynamic_cast<CTensor<unsigned>*>(inputTn1);
+  auto* inputUintTn2 = dynamic_cast<CTensor<unsigned>*>(inputTn2);
+  if(inputFloatTn1!= nullptr && inputFloatTn2!= nullptr){
+    return CompareTensors<float>(inputFloatTn1, inputFloatTn2);
+  }else if(inputUintTn1!= nullptr && inputUintTn2!= nullptr){
+    return CompareTensors<unsigned>(inputUintTn1, inputUintTn2);
+  }else{
+    throw std::runtime_error(CStringFormatter() << __func__ << ": Unsupported tensor types.");
+  }
 }

@@ -9,6 +9,7 @@ using namespace std;
 
 extern CPlatformSelection *platSelection;
 
+/*
 template <typename T>
 bool CompareCTensors(CTensor<T> &tn1, CTensor<T> &tn2){
   if(tn1.GetShape()!=tn2.GetShape()) return false;
@@ -21,6 +22,7 @@ bool CompareCTensors(CTensor<T> &tn1, CTensor<T> &tn2){
   }
   return matches;
 }
+*/
 
 inline float float_rand( float min, float max )
 {
