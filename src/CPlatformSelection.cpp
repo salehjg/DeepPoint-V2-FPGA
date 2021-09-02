@@ -34,6 +34,7 @@ CPlatformSelection::~CPlatformSelection() {
   delete(m_ptrProfiler);
   SPDLOG_LOGGER_TRACE(logger, "CODE 4.");
 }
+
 CTensorBase *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensorBase *srcTn) {
   using CpuFloat = CTensor<float>;
   using CpuUnsigned = CTensor<unsigned>;
@@ -74,6 +75,7 @@ CTensorBase *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform
   }
 
 }
+
 CTensorBase *CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
   if(!inputTn1->IsTypeFloat32() || !inputTn2->IsTypeFloat32()){
     ThrowException("The layer only accepts types: float32.");
@@ -88,12 +90,16 @@ CTensorBase *CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBase *in
     ThrowException("Undefined Platform.");
   }
 }
+
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }
+
 CProfiler *CPlatformSelection::GetClassPtrProfiler() {
   return m_ptrProfiler;
 }
+
 void CPlatformSelection::DumpToNumpyFile(PLATFORMS destPlatform,
                                          std::string npyFileName,
                                          CTensorBase *inputTn,

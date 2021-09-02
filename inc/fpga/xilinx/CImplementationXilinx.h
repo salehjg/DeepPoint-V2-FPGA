@@ -6,6 +6,7 @@
 #include "CProfiler.h"
 #include "CXilinxInfo.h"
 #include "fpga/xilinx/kernels/CKernelWrapperConcat.h"
+#include "fpga/xilinx/kernels/CKernelWrapperMatmul.h"
 
 enum class RUN_MODE{
   SwEmu,

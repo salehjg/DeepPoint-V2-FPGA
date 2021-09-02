@@ -51,3 +51,17 @@ TEST(test_ctensor, subtest3) {
   bool cmp = platSelection->CompareTensors(PLATFORMS::CPU, (CTensorBase*)(&tn1), (CTensorBase*)(&tn2));
   EXPECT_TRUE(cmp);
 }
+
+TEST(test_ctensor, expandsqueeze1) {
+  CTensor<float> tn1({1,2,3,4,1});
+  EXPECT_EQ(5, tn1.GetRank());
+  EXPECT_EQ(1,  tn1.SqueezeDimZeroToRankTry(2));
+  EXPECT_EQ(0,  tn1.SqueezeDimZeroToRankTry(1));
+  EXPECT_EQ(0,  tn1.SqueezeDimZeroToRankTry(0));
+  tn1.SqueezeDims();
+  EXPECT_EQ(3,  tn1.GetRank());
+  EXPECT_EQ(2,  tn1.ExpandDimZeroToRank(5));
+  EXPECT_EQ(1,  tn1.GetShape()[0]);
+  EXPECT_EQ(1,  tn1.GetShape()[1]);
+  EXPECT_EQ(5,  tn1.GetRank());
+}
