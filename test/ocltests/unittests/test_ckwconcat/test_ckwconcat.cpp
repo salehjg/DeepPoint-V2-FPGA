@@ -27,3 +27,17 @@ TEST(test_ckwconcat, type1) {
     EXPECT_TRUE(r);
   }
 }
+
+TEST(test_ckwconcat, dependencytest1) {
+  CTensor<float> *srcTn1 = GenerateTensor<float>(0,{2,1,1,16});
+  CTensor<float> *srcTn2 = GenerateTensor<float>(0,{2,1,1,32});
+  auto *tempTn = platSelection->Concat2(PLATFORMS::CPU, srcTn1, srcTn2, 3);
+  auto *goldTn = platSelection->Concat2(PLATFORMS::CPU, tempTn, srcTn2, 3);
+
+  auto *tempTn2 = platSelection->Concat2(PLATFORMS::XIL, srcTn1, srcTn2, 3);
+  // The layer below should be run when tempTn2 is ready.
+  auto *dstTn = platSelection->Concat2(PLATFORMS::XIL, tempTn2, srcTn2, 3);
+
+  bool cmp = platSelection->CompareTensors(PLATFORMS::CPU, (CTensorBase*)(goldTn), (CTensorBase*)(dstTn));
+  EXPECT_TRUE(cmp);
+}
