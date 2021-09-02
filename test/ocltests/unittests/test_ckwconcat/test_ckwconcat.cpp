@@ -19,8 +19,8 @@ bool ConcatTestType1(const std::vector<unsigned> &shape1, const std::vector<unsi
 
 TEST(test_ckwconcat, type1) {
   std::vector<bool> results = {
-      ConcatTestType1<float>({1,1,2,2},{1,1,2,6}), //sub-vec
-      ConcatTestType1<float>({2,1,1,64},{2,1,1,16}) //super-vec
+      ConcatTestType1<float>({1,1,2,2},{1,1,2,6}),    //sub-vec
+      ConcatTestType1<float>({2,1,1,64},{2,1,1,16})   //super-vec
   };
 
   for(auto r:results){

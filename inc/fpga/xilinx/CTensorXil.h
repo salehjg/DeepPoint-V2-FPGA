@@ -51,6 +51,7 @@ class CTensorXil: public CTensorBase {
   void CloneFrom(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, int bank, int axiWidth);
   int TranslateBankIndex(int bankIndex);
   void ValidateBankIndex(int bankIndex);
+  void SetTypeInfo();
   cl_mem_ext_ptr_t CreateExtendedPointer(void *hostPtr, cl_mem_flags memoryBank);
   T* PadHostBuffer(const std::vector<unsigned> &actualShape, const T *hostSrcBuff, int axiWidth);
   T* UnPadHostBuffer(const std::vector<unsigned> &actualShape, const T *hostSrcBuff, int axiWidth);
@@ -124,22 +125,22 @@ void CTensorXil<T>::ValidateBankIndex(int bankIndex){
 #ifndef USEMEMORYBANK0
     //assert(bankIndex!=0);
     if(bankIndex==0)
-      throw std::runtime_error(CStringFormatter()<< __func__ << ": Xilinx DDR Bank0 is disabled and should not be used.");
+      ThrowException("Xilinx DDR Bank0 is disabled and should not be used.");
 #endif
 #ifndef USEMEMORYBANK1
     //assert(bankIndex!=1);
     if(bankIndex==1)
-      throw std::runtime_error(CStringFormatter()<< __func__ << ": Xilinx DDR Bank1 is disabled and should not be used.");
+      ThrowException("Xilinx DDR Bank1 is disabled and should not be used.");
 #endif
 #ifndef USEMEMORYBANK2
     assert(bankIndex!=2);
     if(bankIndex==2)
-      throw std::runtime_error(CStringFormatter()<< __func__ << ": Xilinx DDR Bank2 is disabled and should not be used.");
+      ThrowException("Xilinx DDR Bank2 is disabled and should not be used.");
 #endif
 #ifndef USEMEMORYBANK3
     assert(bankIndex!=3);
     if(bankIndex==3)
-      throw std::runtime_error(CStringFormatter()<< __func__ << ": Xilinx DDR Bank3 is disabled and should not be used.");
+      ThrowException("Xilinx DDR Bank3 is disabled and should not be used.");
 #endif
   }
 }
@@ -298,6 +299,7 @@ cl::Event* CTensorXil<T>::GetEventPtr() {
 template<typename T>
 void CTensorXil<T>::CloneFrom(const CTensorXil<T> &other) {
   if (this != &other) { // not a self-assignment
+    SetTypeInfo();
     m_ptrCallBackData.reset(new CallbackData());
     m_ptrXilInfo = other.GetXilInfo(); // shallow-copy, there should be only one copy of CXilInfo and
     // it should be managed by Xilinx implementation class.
@@ -339,6 +341,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
   // WARNING:
   //   THIS METHOD IS NOT RESPONSIBLE FOR MAKING SURE THAT `hostBuff` IS NOT
   //   GOING TO GET RELEASED BEFORE NON BLOCKING OPERATION EXECUTES.
+  SetTypeInfo();
   m_ptrCallBackData.reset(new CallbackData());
   ValidateBankIndex(bank);
   m_iDramBank = bank==-1? m_iDramBank : bank;
@@ -371,6 +374,7 @@ void CTensorXil<T>::CloneFrom(CXilinxInfo *xilInfo,
                               const std::vector<unsigned> &shape,
                               int bank,
                               int axiWidth) {
+  SetTypeInfo();
   m_ptrCallBackData.reset(new CallbackData());
   ValidateBankIndex(bank);
   m_iDramBank = bank==-1? m_iDramBank : bank;
@@ -489,12 +493,12 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
   if(m_iDramBank==destBank) return this;
 
   if(!(m_iDramBank>=0 && m_iDramBank<=3)){
-    throw std::runtime_error(CStringFormatter()<< __func__ << ": Invalid or unsupported tensor src bank.");
+    ThrowException("Invalid or unsupported tensor src bank.");
     //SPDLOG_LOGGER_ERROR(logger,"Invalid or unsupported srcBank");
     //std::exit(1);
   }
   if(!(destBank>=0 && destBank<=3)){
-    throw std::runtime_error(CStringFormatter()<< __func__ << ": Invalid or unsupported tensor dest bank.");
+    ThrowException("Invalid or unsupported tensor dest bank.");
     //SPDLOG_LOGGER_ERROR(logger,"Invalid or unsupported dstBank");
     //std::exit(1);
   }
@@ -516,7 +520,7 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
     }
   }else{
     if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(0)->GetLen()){
-      throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
+      ThrowException("Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
     }
     OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(0))->GetDeviceBuffer()));
   }
@@ -532,7 +536,7 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
     }
   }else{
     if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(1)->GetLen()){
-      throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
+      ThrowException("Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
     }
     OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(1))->GetDeviceBuffer()));
   }
@@ -548,7 +552,7 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
         }
     }else{
         if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(2)->GetLen()){
-          throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
+          ThrowException("Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
         }
         OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(2))->GetDeviceBuffer()));
     }
@@ -564,7 +568,7 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
         }
     }else{
         if(GetLen() > m_ptrXilInfo->GetDatamoverDummyTensor(3)->GetLen()){
-          throw std::runtime_error(CStringFormatter()<< __func__ << ": Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
+          ThrowException("Increase DummyDatamoverTensor sizes, the min len should be "<< GetLen());
         }
         OclCheck(m_iOclStatus, m_iOclStatus = m_ptrXilInfo->GetDatamoverKernel()->setArg(argcnt++, ((CTensorXil<float>*)m_ptrXilInfo->GetDatamoverDummyTensor(3))->GetDeviceBuffer()));
     }
@@ -600,6 +604,12 @@ unsigned long CTensorXil<T>::GetSizeBytes() const {
 template<typename T>
 cl::Buffer* CTensorXil<T>::GetDeviceBufferPtr() {
   return &m_oDeviceBuffer;
+}
+template<typename T>
+void CTensorXil<T>::SetTypeInfo() {
+  m_bTypeIsFloat = std::is_floating_point<T>::value;
+  m_bTypeIsUint = std::is_integral<T>::value && std::is_unsigned<T>::value;
+  m_bTypeIsInt = std::is_integral<T>::value && !std::is_unsigned<T>::value;
 }
 
 

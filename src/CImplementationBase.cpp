@@ -16,7 +16,7 @@ unsigned CImplementationBase::GetTheLastLayerId() {
 void CImplementationBase::ValidateTensorPlatforms(const std::vector<CTensorBase *> &tensors, PLATFORMS requiredPlatform) {
   for(CTensorBase * tn:tensors){
     if(tn->GetPlatform()!=requiredPlatform){
-      throw std::runtime_error(CStringFormatter() << __func__ << ": The input tensors are on the wrong platform!");
+      ThrowException("The input tensors are on the wrong platform!");
     }
   }
 }

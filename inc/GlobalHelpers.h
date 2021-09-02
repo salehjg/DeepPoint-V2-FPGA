@@ -62,3 +62,10 @@ inline void OclCheckOLD(cl_int status, T command){
       exit(EXIT_FAILURE);                                           \
     }
 
+#define ThrowException(arg) \
+    {\
+    std::string _msg = CStringFormatter()<<__FILE__<<":"<<__LINE__<<": "<<arg;\
+    throw std::runtime_error(_msg); \
+    SPDLOG_LOGGER_ERROR(logger,_msg);\
+    exit(EXIT_FAILURE);\
+    }

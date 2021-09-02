@@ -17,7 +17,7 @@ CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inp
 
   ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::CPU);
   if(inputTn1->GetRank() != inputTn2->GetRank()){
-    throw std::runtime_error(CStringFormatter() << __func__ << ": Input tensors are of unequal ranks.");
+    ThrowException("Input tensors are of unequal ranks.");
   }
 
   int rank  = inputTn1->GetRank();
@@ -127,7 +127,7 @@ void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBase *i
     }else if(!inputUintTn){
       DumpToNumpyFile<unsigned>(npyFileName, inputUintTn, npyDumpDir);
     }else{
-      throw std::runtime_error(CStringFormatter() << __func__ << ": Unsupported tensor type.");
+      ThrowException("Unsupported tensor type.");
     }
   }
 }
@@ -144,6 +144,6 @@ bool CImplementationCpu::CompareTensors(CTensorBase *inputTn1, CTensorBase *inpu
   }else if(inputUintTn1!= nullptr && inputUintTn2!= nullptr){
     return CompareTensors<unsigned>(inputUintTn1, inputUintTn2);
   }else{
-    throw std::runtime_error(CStringFormatter() << __func__ << ": Unsupported tensor types.");
+    ThrowException("Unsupported tensor types.");
   }
 }

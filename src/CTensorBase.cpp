@@ -83,3 +83,15 @@ PLATFORMS CTensorBase::GetPlatform() {
 void CTensorBase::SetPlatform(PLATFORMS platform) {
   m_ePlatform = platform;
 }
+bool CTensorBase::IsTypeFloat32() const {
+  return m_bTypeIsFloat;
+}
+bool CTensorBase::IsTypeUint32() const {
+  return m_bTypeIsUint;
+}
+bool CTensorBase::IsTypeInt32() const {
+  return m_bTypeIsInt;
+}
+CTensorBase::CTensorBase() {
+}
+

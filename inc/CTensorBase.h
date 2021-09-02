@@ -20,10 +20,18 @@ class CTensorBase {
   virtual unsigned long GetSizeBytes() const = 0;
   bool IsEmpty() const;
   PLATFORMS GetPlatform();
+  bool IsTypeFloat32() const;
+  bool IsTypeUint32() const;
+  bool IsTypeInt32() const;
 
  protected:
+  CTensorBase();
   void SetShape(const std::vector<unsigned> &newShape);
   void SetPlatform(PLATFORMS platform);
+  bool m_bTypeIsFloat;
+  bool m_bTypeIsUint;
+  bool m_bTypeIsInt;
+
  private:
   std::vector<unsigned> m_vShape;
   PLATFORMS m_ePlatform;

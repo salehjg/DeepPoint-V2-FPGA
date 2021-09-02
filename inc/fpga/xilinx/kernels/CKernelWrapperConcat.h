@@ -34,13 +34,13 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
   CTensorXil<float>* EnqueueKernelLaunch(unsigned parentLayerId, CTensorXil<float> *inputTn1, CTensorXil<float> *inputTn2, unsigned concatDim){
     if(inputTn1->GetRank()!=4){
-      throw std::runtime_error(CStringFormatter()<<__func__<<": Bad input tensor rank.");
+      ThrowException("Bad input tensor rank.");
     }
     if(inputTn2->GetRank()!=4){
-      throw std::runtime_error(CStringFormatter()<<__func__<<": Bad input tensor rank.");
+      ThrowException("Bad input tensor rank.");
     }
     if(concatDim!=3){
-      throw std::runtime_error(CStringFormatter()<<__func__<<": Only concatDim=3 is implemented.");
+      ThrowException("Only concatDim=3 is implemented.");
     }
 
     auto *xinputTn1 = inputTn1->CloneIfNeededToBank(m_uBankInputTn1);
@@ -61,7 +61,7 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
     if(dimR3 >= CONFIG_M_AXI_WIDTH){
       if(dimA3 % CONFIG_M_AXI_WIDTH !=0 || dimB3 % CONFIG_M_AXI_WIDTH !=0){
-        throw std::runtime_error(CStringFormatter()<<__func__<<": for dimR3>=CONFIG_M_AXI_WIDTH, only tensors with dim3%CONFIG_M_AXI_WIDTH=0 are supported.");
+        ThrowException("for dimR3>=CONFIG_M_AXI_WIDTH, only tensors with dim3%CONFIG_M_AXI_WIDTH=0 are supported.");
       }
     }
 

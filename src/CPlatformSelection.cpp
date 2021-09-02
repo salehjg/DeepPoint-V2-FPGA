@@ -49,7 +49,7 @@ CTensorBase *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform
       } else if(cpuUnsigned = dynamic_cast<CpuUnsigned*>(srcTn)){
         return CrossThePlatform<unsigned>(destPlatform, cpuUnsigned);
       }else{
-        throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform crossing type, please manually defined your used type.");
+        ThrowException("Undefined platform crossing type, please manually defined your used type.");
       }
     }else{
       return srcTn;
@@ -63,18 +63,21 @@ CTensorBase *CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatform
       } else if(xilUnsigned = dynamic_cast<XilUnsigned*>(srcTn)){
         return CrossThePlatform<unsigned>(destPlatform, xilUnsigned);
       }else{
-        throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform crossing type, please manually defined your used type.");
+        ThrowException("Undefined platform crossing type, please manually defined your used type.");
       }
     }else{
       return srcTn;
     }
 
   }else{
-    throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform.");
+    ThrowException("Undefined platform.");
   }
 
 }
 CTensorBase *CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
+  if(!inputTn1->IsTypeFloat32() || !inputTn2->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
   auto xinputTn1 = CrossThePlatformIfNeeded(destPlatform, inputTn1);
   auto xinputTn2 = CrossThePlatformIfNeeded(destPlatform, inputTn2);
   if(destPlatform==PLATFORMS::CPU){
@@ -82,7 +85,7 @@ CTensorBase *CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBase *in
   }else if(destPlatform==PLATFORMS::XIL){
     return m_ptrImplXil->Concat2(xinputTn1,xinputTn2,concatAxis);
   }else{
-    throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform.");
+    ThrowException("Undefined Platform.");
   }
 }
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
@@ -101,7 +104,7 @@ void CPlatformSelection::DumpToNumpyFile(PLATFORMS destPlatform,
   }else if(destPlatform==PLATFORMS::XIL){
     return m_ptrImplCpu->DumpToNumpyFile(npyFileName,xinputCpuTn,npyDumpDir);
   }else{
-    throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform.");
+    ThrowException("Undefined platform.");
   }
 }
 
@@ -113,6 +116,6 @@ bool CPlatformSelection::CompareTensors(PLATFORMS destPlatform, CTensorBase *inp
   }else if(destPlatform==PLATFORMS::XIL){
     return m_ptrImplCpu->CompareTensors(xinputCpuTn1,xinputCpuTn2);
   }else{
-    throw std::runtime_error(CStringFormatter() << __func__ << ": Undefined platform.");
+    ThrowException("Undefined platform.");
   }
 }
