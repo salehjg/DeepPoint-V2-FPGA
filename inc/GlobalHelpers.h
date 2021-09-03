@@ -26,6 +26,7 @@ enum class MAT_OPS{
 struct CallbackData{
   void *classPtr;
   unsigned parentLayerId;
+  unsigned kernelBookKeeperId;
   bool profileKernel;
 };
 
@@ -69,3 +70,4 @@ inline void OclCheckOLD(cl_int status, T command){
     SPDLOG_LOGGER_ERROR(logger,_msg);\
     exit(EXIT_FAILURE);\
     }
+

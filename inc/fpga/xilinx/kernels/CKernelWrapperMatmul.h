@@ -6,6 +6,7 @@
 #include <vector>
 #include <cassert>
 
+/*
 class CKernelWrapperMatmul: public CKernelWrapper{
  public:
   CKernelWrapperMatmul(
@@ -103,3 +104,4 @@ class CKernelWrapperMatmul: public CKernelWrapper{
   unsigned m_uBankInputTn2;
   unsigned m_uBankOutputTn;
 };
+*/

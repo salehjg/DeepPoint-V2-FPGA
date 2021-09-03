@@ -6,7 +6,7 @@ CImplementationCpu::CImplementationCpu(CProfiler *profiler) {
   m_ptrProfiler = profiler;
   ResetLayerIdCounter(100000);
 }
-CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
+CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis){
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
@@ -20,14 +20,14 @@ CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inp
     ThrowException("Input tensors are of unequal ranks.");
   }
 
-  int rank  = inputTn1->GetRank();
-  CTensor<float>* rsltTn;
+  unsigned rank  = inputTn1->GetRank();
+  CTensorPtr<float> rsltTn;
 
   if(rank==4) {
-    CTensor<float>* xinputTn1 = dynamic_cast<CTensor<float>*>(inputTn1);
-    CTensor<float>* xinputTn2 = dynamic_cast<CTensor<float>*>(inputTn2);
-    auto shapeTn1 = inputTn1->GetShape();
-    auto shapeTn2 = inputTn2->GetShape();
+    auto pInputTn1 = std::dynamic_pointer_cast<CTensor<float>>(inputTn1);
+    auto pInputTn2 = std::dynamic_pointer_cast<CTensor<float>>(inputTn2);
+    auto shapeTn1 = pInputTn1->GetShape();
+    auto shapeTn2 = pInputTn2->GetShape();
     unsigned dimA0 = shapeTn1[0];
     unsigned dimA1 = shapeTn1[1];
     unsigned dimA2 = shapeTn1[2];
@@ -71,7 +71,7 @@ CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inp
       mat2_offset_dim3 = dimA3;
     }
 
-    rsltTn = new CTensor<float>({dimR0,dimR1,dimR2,dimR3});
+    rsltTn = std::shared_ptr<CTensor<float>>(new CTensor<float>({dimR0,dimR1,dimR2,dimR3}));
     unsigned indxS1, indxS2, indxD;
 
     for (unsigned d0 = 0; d0 < dimA0; d0++) {
@@ -86,16 +86,16 @@ CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inp
                 (d1) * dimR2 * dimR3 +
                 (d2) * dimR3 +
                 (d3);
-            (*rsltTn)[indxD] = (*xinputTn1)[indxS1];
+            (*rsltTn)[indxD] = (*pInputTn1)[indxS1];
           }
         }
       }
     }
 
-    for (int d0 = 0; d0 < dimB0; d0++) {
-      for (int d1 = 0; d1 < dimB1; d1++) {
-        for (int d2 = 0; d2 < dimB2; d2++) {
-          for (int d3 = 0; d3 < dimB3; d3++) {
+    for (unsigned d0 = 0; d0 < dimB0; d0++) {
+      for (unsigned d1 = 0; d1 < dimB1; d1++) {
+        for (unsigned d2 = 0; d2 < dimB2; d2++) {
+          for (unsigned d3 = 0; d3 < dimB3; d3++) {
             indxS2 = d0 * dimB1 * dimB2 * dimB3 +
                 d1 * dimB2 * dimB3 +
                 d2 * dimB3 +
@@ -104,27 +104,25 @@ CTensorBase *CImplementationCpu::Concat2(CTensorBase *inputTn1, CTensorBase *inp
                 (d1 + mat2_offset_dim1) * dimR2 * dimR3 +
                 (d2 + mat2_offset_dim2) * dimR3 +
                 (d3 + mat2_offset_dim3);
-            (*rsltTn)[indxD] = (*xinputTn2)[indxS2];
+            (*rsltTn)[indxD] = (*pInputTn2)[indxS2];
           }
         }
       }
     }
-
   }
-
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
 
-void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBase *inputTn, std::string npyDumpDir) {
+void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir) {
   // The template member functions of a non-template class should be declared and defined in the header file ONLY.
   if(globalDumpTensors){
     ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
-    auto* inputFloatTn = dynamic_cast<CTensor<float>*>(inputTn);
-    auto* inputUintTn = dynamic_cast<CTensor<unsigned>*>(inputTn);
-    if(inputFloatTn!= nullptr){
+    auto inputFloatTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+    auto inputUintTn = std::dynamic_pointer_cast<CTensor<unsigned>>(inputTn);
+    if(inputFloatTn!= NULL){
       DumpToNumpyFile<float>(npyFileName, inputFloatTn, npyDumpDir);
-    }else if(!inputUintTn){
+    }else if(inputUintTn!= NULL){
       DumpToNumpyFile<unsigned>(npyFileName, inputUintTn, npyDumpDir);
     }else{
       ThrowException("Unsupported tensor type.");
@@ -132,16 +130,16 @@ void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBase *i
   }
 }
 
-bool CImplementationCpu::CompareTensors(CTensorBase *inputTn1, CTensorBase *inputTn2) {
+bool CImplementationCpu::CompareTensors(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) {
   // The template member functions of a non-template class should be declared and defined in the header file ONLY.
   ValidateTensorPlatforms({inputTn1, inputTn2}, PLATFORMS::CPU);
-  auto* inputFloatTn1 = dynamic_cast<CTensor<float>*>(inputTn1);
-  auto* inputFloatTn2 = dynamic_cast<CTensor<float>*>(inputTn2);
-  auto* inputUintTn1 = dynamic_cast<CTensor<unsigned>*>(inputTn1);
-  auto* inputUintTn2 = dynamic_cast<CTensor<unsigned>*>(inputTn2);
-  if(inputFloatTn1!= nullptr && inputFloatTn2!= nullptr){
+  auto inputFloatTn1 = std::dynamic_pointer_cast<CTensor<float>>(inputTn1);
+  auto inputFloatTn2 = std::dynamic_pointer_cast<CTensor<float>>(inputTn2);
+  auto inputUintTn1  = std::dynamic_pointer_cast<CTensor<unsigned>>(inputTn1);
+  auto inputUintTn2  = std::dynamic_pointer_cast<CTensor<unsigned>>(inputTn2);
+  if(inputFloatTn1!= NULL && inputFloatTn2!= NULL){
     return CompareTensors<float>(inputFloatTn1, inputFloatTn2);
-  }else if(inputUintTn1!= nullptr && inputUintTn2!= nullptr){
+  }else if(inputUintTn1!= NULL && inputUintTn2!= NULL){
     return CompareTensors<unsigned>(inputUintTn1, inputUintTn2);
   }else{
     ThrowException("Unsupported tensor types.");

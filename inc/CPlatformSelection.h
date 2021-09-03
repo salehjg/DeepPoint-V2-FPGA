@@ -14,17 +14,17 @@ class CPlatformSelection {
   CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath="profiler.json");
   ~CPlatformSelection();
 
-  CTensorBase *Concat2(PLATFORMS destPlatform, CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis);
-  void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBase* inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
-  bool CompareTensors(PLATFORMS platform, CTensorBase* inputTn1, CTensorBase* inputTn2);
+  CTensorBasePtr Concat2(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
+  void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
+  bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
 
-  CTensorBase* CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensorBase *srcTn);
+  CTensorBasePtr CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensorBasePtr srcTn);
   CImplementationXilinx* GetClassPtrImplementationXilinx();
   CProfiler* GetClassPtrProfiler();
 
  private:
-  template<typename T> CTensorXil<T>* CrossThePlatform(PLATFORMS destPlatform, CTensor<T> *srcTn);
-  template<typename T> CTensor<T>* CrossThePlatform(PLATFORMS destPlatform, CTensorXil<T> *srcTn);
+  template<typename T> CTensorXilPtr<T> CrossThePlatform(PLATFORMS destPlatform, CTensorPtr<T> srcTn);
+  template<typename T> CTensorPtr<T> CrossThePlatform(PLATFORMS destPlatform, CTensorXilPtr<T> srcTn);
 
   CImplementationCpu *m_ptrImplCpu;
   CImplementationXilinx *m_ptrImplXil;
@@ -37,15 +37,14 @@ class CPlatformSelection {
 
 // The template member functions of a non-template class should be declared and defined in the header file ONLY.
 template<typename T>
-CTensorXil<T> *CPlatformSelection::CrossThePlatform(PLATFORMS destPlatform, CTensor<T> *srcTn) {
+CTensorXilPtr<T> CPlatformSelection::CrossThePlatform(PLATFORMS destPlatform, CTensorPtr<T> srcTn) {
   assert(destPlatform==PLATFORMS::XIL);
-  CTensorXil<T> *dstTn = new CTensorXil<T>(m_ptrImplXil->GetXilInfo(), *srcTn); // The default bank and AXI width.
-  return dstTn;
+  auto *dstTn = new CTensorXil<T>(m_ptrImplXil->GetXilInfo(), *(srcTn.get())); // The default bank and AXI width.
+  return CTensorXilPtr<T>(dstTn);
 }
 template<typename T>
-CTensor<T> *CPlatformSelection::CrossThePlatform(PLATFORMS destPlatform, CTensorXil<T> *srcTn) {
+CTensorPtr<T> CPlatformSelection::CrossThePlatform(PLATFORMS destPlatform, CTensorXilPtr<T> srcTn) {
   assert(destPlatform==PLATFORMS::CPU);
-  CTensor<T> *dstTn = srcTn->TransferToHost();
-  return dstTn;
+  return srcTn->TransferToHost();
 }
 

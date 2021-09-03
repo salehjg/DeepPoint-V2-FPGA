@@ -18,37 +18,45 @@ TEST(test_ctensor, subtest1) {
 
 TEST(test_ctensor, subtest2) {
   const unsigned N=1024;
-  CTensor<unsigned> tn1({N,N});
+  CTensorPtr<unsigned> tn1(new CTensor<unsigned>({N,N}));
 
-  for(int i=0; i<tn1.GetLen(); i++){
-    tn1[i]=i;
+  for(int i=0; i<tn1->GetLen(); i++){
+    (*(tn1))[i]=i;
   }
 
-  CTensor<unsigned> tn2(tn1);
+  CTensorPtr<unsigned> tn2(new CTensor<unsigned>(*tn1));
 
-  EXPECT_EQ (tn1.GetLen(),  tn2.GetLen());
-  EXPECT_EQ (tn1.GetRank(),  tn2.GetRank());
-  EXPECT_EQ (tn1.GetSizeBytes(),  tn2.GetSizeBytes());
+  EXPECT_EQ (tn1->GetLen(),  tn2->GetLen());
+  EXPECT_EQ (tn1->GetRank(),  tn2->GetRank());
+  EXPECT_EQ (tn1->GetSizeBytes(),  tn2->GetSizeBytes());
 
-  bool cmp = platSelection->CompareTensors(PLATFORMS::CPU, (CTensorBase*)(&tn1), (CTensorBase*)(&tn2));
+  bool cmp = platSelection->CompareTensors(
+      PLATFORMS::CPU,
+      Convert2TnBasePtr(tn1),
+      Convert2TnBasePtr(tn2)
+  );
   EXPECT_TRUE(cmp);
 }
 
 TEST(test_ctensor, subtest3) {
   const unsigned N=1024;
-  CTensor<float> tn1({N,N});
+  CTensorPtr<float> tn1(new CTensor<float>({N,N}));
 
-  for(int i=0; i<tn1.GetLen(); i++){
-    tn1[i]=i*0.25f;
+  for(int i=0; i<tn1->GetLen(); i++){
+    (*tn1)[i]=i*0.25f;
   }
 
-  CTensor<float> tn2(tn1);
+  CTensorPtr<float> tn2(new CTensor<float>(*tn1));
 
-  EXPECT_EQ (tn1.GetLen(),  tn2.GetLen());
-  EXPECT_EQ (tn1.GetRank(),  tn2.GetRank());
-  EXPECT_EQ (tn1.GetSizeBytes(),  tn2.GetSizeBytes());
+  EXPECT_EQ (tn1->GetLen(),  tn2->GetLen());
+  EXPECT_EQ (tn1->GetRank(),  tn2->GetRank());
+  EXPECT_EQ (tn1->GetSizeBytes(),  tn2->GetSizeBytes());
 
-  bool cmp = platSelection->CompareTensors(PLATFORMS::CPU, (CTensorBase*)(&tn1), (CTensorBase*)(&tn2));
+  bool cmp = platSelection->CompareTensors(
+      PLATFORMS::CPU,
+      Convert2TnBasePtr(tn1),
+      Convert2TnBasePtr(tn2)
+  );
   EXPECT_TRUE(cmp);
 }
 

@@ -28,7 +28,7 @@ class CImplementationXilinx: public CImplementationBase {
   RUN_MODE GetModeEnvVar() const;
   const std::string GetOclErrorMessage(cl_int error) const;
 
-  CTensorBase* Concat2(CTensorBase* inputTn1, CTensorBase* inputTn2, int concatAxis) override;
+  CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
 
  private:
   bool m_bOclProfileEnabled;

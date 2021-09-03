@@ -13,8 +13,8 @@ void CImplementationBase::ResetLayerIdCounter(unsigned offset) {
 unsigned CImplementationBase::GetTheLastLayerId() {
   return m_uAtomicCounter;
 }
-void CImplementationBase::ValidateTensorPlatforms(const std::vector<CTensorBase *> &tensors, PLATFORMS requiredPlatform) {
-  for(CTensorBase * tn:tensors){
+void CImplementationBase::ValidateTensorPlatforms(const std::vector<CTensorBasePtr> &tensors, PLATFORMS requiredPlatform) {
+  for(auto &tn:tensors){
     if(tn->GetPlatform()!=requiredPlatform){
       ThrowException("The input tensors are on the wrong platform!");
     }

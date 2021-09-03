@@ -120,3 +120,5 @@ class CTensorBase {
   std::vector<unsigned> m_vShape;
   PLATFORMS m_ePlatform;
 };
+
+using CTensorBasePtr = std::shared_ptr<CTensorBase>;

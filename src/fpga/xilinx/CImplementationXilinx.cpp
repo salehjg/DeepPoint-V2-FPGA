@@ -241,7 +241,7 @@ CImplementationXilinx::~CImplementationXilinx() {
 
   SPDLOG_LOGGER_TRACE(logger, "Destroyed CImplementationXilinx().");
 }
-CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *inputTn2, int concatAxis) {
+CTensorBasePtr CImplementationXilinx::Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
@@ -252,13 +252,8 @@ CTensorBase *CImplementationXilinx::Concat2(CTensorBase *inputTn1, CTensorBase *
 
   ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::XIL);
 
-  CTensorBase *outputTn =
-  m_ptrKernelConcat->EnqueueKernelLaunch(
-      GetTheLastLayerId(),
-      (CTensorXil<float>*)inputTn1,
-      (CTensorXil<float>*)inputTn2,
-      concatAxis);
-
+  CTensorBasePtr outputTn =
+      m_ptrKernelConcat->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn1, inputTn2, concatAxis);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;

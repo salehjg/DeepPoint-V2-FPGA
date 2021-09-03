@@ -35,6 +35,21 @@ class CTensor: public CTensorBase {
   BuffType m_pHostBuffAligned;
 };
 
+template <typename T>
+using CTensorPtr = std::shared_ptr<CTensor<T>>;
+
+template <typename T>
+inline CTensorPtr<T> Convert2TnPtr(CTensorBasePtr pTn){ //ConvertTnBasePtr2TnPtr
+  auto smartPtr = std::dynamic_pointer_cast<CTensor<T>>(pTn);
+  return smartPtr;
+}
+
+template <typename T>
+inline CTensorBasePtr Convert2TnBasePtr(CTensorPtr<T> pTn){ //ConvertTnPtr2TnBasePtr
+  auto smartPtr = std::dynamic_pointer_cast<CTensorBase>(pTn);
+  return smartPtr;
+}
+
 template<typename T>
 CTensor<T>::CTensor(const CTensor<T> &other) {
   CloneFrom(other);

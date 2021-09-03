@@ -13,6 +13,8 @@ class CImplementationCpu: public CImplementationBase {
  public:
   CImplementationCpu(CProfiler *profiler);
 
+  CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
+
   //CTensorBase* Transpose(CTensorBase *inputTn);
   //CTensorBase* MatMul(CTensorBase* inputTn1, CTensorBase* inputTn2);
   ////CTensorBase* MatMul(CTensorBase* inputTn, float scalar);
@@ -24,36 +26,32 @@ class CImplementationCpu: public CImplementationBase {
   //CTensorBase* MatOps(CTensorBase *inputTn1, CTensorBase *inputTn2, MAT_OPS mode);
   //CTensorBase* MatOps(CTensorBase *inputTn1, float scalar, MAT_OPS mode);
   //CTensorBase* Sqrt(CTensorBase* inputTn);
-  CTensorBase* Concat2(CTensorBase* inputTn1, CTensorBase* inputTn2, int concatAxis);
-  void DumpToNumpyFile(std::string npyFileName, CTensorBase* inputTn, std::string npyDumpDir);
-  bool CompareTensors(CTensorBase* inputTn1, CTensorBase* inputTn2);
-
   //CTensorBase* ReduceMax(CTensorBase* inputTn, int reductionDim);
   //CTensorBase* TopK(CTensorBase* inputTn, int axis, int k);
   //CTensorBase* Gather(CTensorBase* inputTn, CTensorBase* indicesTn, int indicesOfAxis);
   //CTensorBase* Conv2D(CTensorBase* inputTn, CTensorBase* weightsTn, CTensorBase* biasesTn);
   //CTensorBase* ReLU(CTensorBase* inputTn);
   //CTensorBase* Tile(CTensorBase *inputTn, int tileAxis, int tileCount);
-
-
   //CTensorBase* PadLastDim(CTensorBase* inputTn, unsigned lastDimPadded);
   //CTensorBase* UnpadLastDim(CTensorBase* inputTn, unsigned lastDimUnpadded);
 
+  void DumpToNumpyFile(std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir);
+  bool CompareTensors(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
 
  private:
-  template <typename T> void DumpToNumpyFile(std::string npyFileName, CTensor<T> *inputTn, std::string npyDumpDir);
-  template <typename T> bool CompareTensors(CTensor<T> *inputTn1, CTensor<T> *inputTn2);
+  template <typename T> void DumpToNumpyFile(std::string npyFileName, CTensorPtr<T> inputTn, std::string npyDumpDir);
+  template <typename T> bool CompareTensors(CTensorPtr<T> inputTn1, CTensorPtr<T> inputTn2);
 };
 
 template<typename T>
-void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensor<T> *inputTn, std::string npyDumpDir) {
+void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorPtr<T> inputTn, std::string npyDumpDir) {
   auto shape = inputTn->GetShape();
   std::vector<unsigned long> _shape(shape.begin(), shape.end());
   cnpy::npy_save<T>(npyDumpDir+npyFileName, inputTn->Get(), _shape, "w");
 }
 
 template<typename T>
-bool CImplementationCpu::CompareTensors(CTensor<T> *inputTn1, CTensor<T> *inputTn2) {
+bool CImplementationCpu::CompareTensors(CTensorPtr<T> inputTn1, CTensorPtr<T> inputTn2) {
   if(inputTn1->GetShape()!=inputTn2->GetShape()) return false;
   bool matches = true;
   for(size_t i=0; i<inputTn1->GetLen(); i++){

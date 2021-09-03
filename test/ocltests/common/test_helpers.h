@@ -31,8 +31,8 @@ inline float float_rand( float min, float max )
 }
 
 template <typename T>
-CTensor<T>* GenerateTensor(int pattern, const std::vector<unsigned> &shape){
-  auto *testTn = new CTensor<T>(shape);
+CTensorPtr<T> GenerateTensor(int pattern, const std::vector<unsigned> &shape){
+  auto testTn = CTensorPtr<T>(new CTensor<T>(shape));
   size_t _len = testTn->GetLen();
   T *buff = testTn->Get();
   if(pattern==-1){

@@ -7,6 +7,11 @@
 
 class CImplementationBase {
  public:
+  virtual CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis)=0;
+
+
+
+
   //virtual CTensorBase* Transpose(CTensorBase *inputTn)=0;
   //virtual CTensorBase* MatMul(CTensorBase* inputTn1, CTensorBase* inputTn2)=0;
   ////virtual CTensorBase* MatMul(CTensorBase* inputTn, float scalar)=0;
@@ -18,7 +23,7 @@ class CImplementationBase {
   //virtual CTensorBase* MatOps(CTensorBase *inputTn1, CTensorBase *inputTn2, MAT_OPS mode)=0;
   //virtual CTensorBase* MatOps(CTensorBase *inputTn1, float scalar, MAT_OPS mode)=0;
   //virtual CTensorBase* Sqrt(CTensorBase* inputTn)=0;
-  virtual CTensorBase* Concat2(CTensorBase* inputTn1, CTensorBase* inputTn2, int concatAxis)=0;
+
   //virtual CTensorBase* ReduceMax(CTensorBase* inputTn, int reductionDim)=0;
   //virtual CTensorBase* TopK(CTensorBase* inputTn, int axis, int k)=0;
   //virtual CTensorBase* Gather(CTensorBase* inputTn, CTensorBase* indicesTn, int indicesOfAxis)=0;
@@ -36,7 +41,7 @@ class CImplementationBase {
   unsigned GetTheLastLayerId();
   PLATFORMS GetPlatform() const;
   void ResetLayerIdCounter(unsigned offset);
-  void ValidateTensorPlatforms(const std::vector<CTensorBase*> &tensors, PLATFORMS requiredPlatform);
+  void ValidateTensorPlatforms(const std::vector<CTensorBasePtr> &tensors, PLATFORMS requiredPlatform);
 
   std::atomic_uint m_uAtomicCounter;
   PLATFORMS m_ePlatform;

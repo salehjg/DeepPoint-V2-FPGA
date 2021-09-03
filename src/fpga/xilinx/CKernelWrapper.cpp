@@ -15,7 +15,7 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
   m_bIsEnabled = isEnabled;
   m_bProfileOcl = profileOcl;
   m_oXilInfo = xilInfo;
-  m_ptrCallBackData.reset(new CallbackData());
+  ResetBookKeeper();
 
   if(m_bIsEnabled){
     OclCheck(m_iStatus,
@@ -38,17 +38,17 @@ void CKernelWrapper::EventCallback(cl_event event, cl_int execStatus, void *user
 
   if(((CallbackData *) userData)->profileKernel){
     cl_int stat;
-
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(deviceTimeStart), &deviceTimeStart, nullptr));
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(deviceTimeEnd), &deviceTimeEnd, nullptr));
-
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
-
     std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
-
-
     auto *classPtr = static_cast<CKernelWrapper*>(((CallbackData *)userData)->classPtr);
     classPtr->AddProfiledKernelLaunchDetails(classPtr->m_strTaskName, ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
+
+    // Now that the async kernel is executed, we can release the smart pointers of the tensors required for this kernel.
+    // Only the content of that row in the book-keeping vector is cleared; this is to make sure that the indexing system
+    // would not get changed across multiple kernel launches.
+    classPtr->ReleaseBookKeepingEntryAt( ((CallbackData *) userData)->kernelBookKeeperId);
   }
 }
 CXilinxInfo *CKernelWrapper::GetXilInfo() const {
@@ -77,4 +77,39 @@ void CKernelWrapper::AddProfiledKernelLaunchDetails(std::string taskName,
   data.parentLayerId = parentLayerId;
   data.durationOcl = durationNanoSecOcl;
   m_vProfiledKernelLaunches.push_back(data);
+}
+void CKernelWrapper::ResetBookKeeper() {
+  m_uBookKeeperCounter=0;
+  m_vBookKeeper.clear();
+}
+unsigned CKernelWrapper::GetTotalTensorsInBookKeeper() {
+  unsigned cnt=0;
+  if(!m_vBookKeeper.empty()){
+    for(auto &v:m_vBookKeeper){
+      cnt += v.size();
+    }
+  }
+  return cnt;
+}
+unsigned CKernelWrapper::GenerateBookKeeperId() {
+  return m_uBookKeeperCounter++;
+}
+unsigned CKernelWrapper::GetTheLastBookKeeperId() {
+  // returns -1 if empty otw a zero based index.
+  return m_uBookKeeperCounter-1;
+}
+CallbackData* CKernelWrapper::GenerateAndStoreCallBackData(void* classPtr, unsigned parentLayerId) {
+  CallbackData obj;
+  obj.profileKernel = GetProfileOclEnabled();
+  obj.kernelBookKeeperId = GenerateBookKeeperId();
+  obj.classPtr = classPtr;
+  obj.parentLayerId = parentLayerId;
+  m_vCallBackData.push_back(obj);
+  return &m_vCallBackData.back();
+}
+void CKernelWrapper::StoreBookKeepingEntry(const std::vector<CTensorBasePtr> &vecTensorsToBePreserved) {
+  m_vBookKeeper.push_back(vecTensorsToBePreserved);
+}
+void CKernelWrapper::ReleaseBookKeepingEntryAt(unsigned kernelBookKeepingId) {
+  m_vBookKeeper.at(kernelBookKeepingId).clear();
 }

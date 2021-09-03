@@ -2,7 +2,6 @@
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
-
 #include "fpga/xilinx/CXilinxInfo.h"
 #include "cpu/CTensor.h"
 #include "CTensorBase.h"
@@ -17,9 +16,9 @@
 #include "fpga/xilinx/AxiHelper.h"
 #include <algorithm>
 
-
 template <typename T>
-class CTensorXil: public CTensorBase {
+class CTensorXil: public CTensorBase, public std::enable_shared_from_this<CTensorXil<T>> {
+  // https://stackoverflow.com/questions/712279/what-is-the-usefulness-of-enable-shared-from-this
  public:
   using Ptr = std::shared_ptr<CTensorXil>;
 
@@ -28,7 +27,7 @@ class CTensorXil: public CTensorBase {
   CTensorXil(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, bool fillZeros, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
   CTensorXil(CXilinxInfo *xilInfo, const std::vector<unsigned> &shape, const T* hostBuff, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
   CTensorXil(CXilinxInfo *xilInfo, const CTensor<T> &hostTn, int bank=-1, int axiWidth = CONFIG_M_AXI_WIDTH);
-  CTensorXil<T>* CloneIfNeededToBank(const unsigned destBank);
+  std::shared_ptr<CTensorXil<T>> CloneIfNeededToBank(const unsigned destBank);
   std::string GetTensorTag() const;
   CXilinxInfo *GetXilInfo() const;
   void SetTensorTag(std::string &tag);
@@ -42,7 +41,7 @@ class CTensorXil: public CTensorBase {
   unsigned GetVectorCountPadded() const;
   std::vector<unsigned> GetShapePadded() const;
   cl::Event* GetEventPtr();
-  CTensor<T>* TransferToHost();
+  std::shared_ptr<CTensor<T>> TransferToHost();
 
  private:
   static void EventCallback(cl_event event, cl_int execStatus, void *userData);
@@ -84,36 +83,39 @@ class CTensorXil: public CTensorBase {
   std::unique_ptr<CallbackData[]> m_ptrCallBackData;
 };
 
+template <typename T>
+using CTensorXilPtr = std::shared_ptr<CTensorXil<T>>;
 
+template <typename T>
+inline CTensorXilPtr<T> Convert2TnXilPtr(CTensorBasePtr pTn){ //ConvertTnBasePtr2TnXilPtr
+  auto smartPtr = std::dynamic_pointer_cast<CTensorXil<T>>(pTn);
+  return smartPtr;
+}
 
-
-
-
-
-
-
-
+template <typename T>
+inline CTensorBasePtr Convert2TnBasePtr(CTensorXilPtr<T> pTn){ //ConvertTnXilPtr2TnBasePtr
+  auto smartPtr = std::dynamic_pointer_cast<CTensorBase>(pTn);
+  return smartPtr;
+}
 
 template <typename T>
 void CTensorXil<T>::EventCallback(cl_event event, cl_int execStatus, void *userData) {
+  // WARNING:
+  // This version of kernel execution callback is NOT responsible for book-keeping of the required tensors for
+  // the async kernel execution.
+
   if( execStatus != CL_COMPLETE ) {
     std::cout<<"ERROR IN KERNEL EXECUTION\n";
     ///TODO REPORT ERROR WITH SPDLOGGER
     return;
   }
-
   cl_ulong deviceTimeStart=0, deviceTimeEnd=0; //nano-seconds
-
   if(((CallbackData *) userData)->profileKernel){
     cl_int stat;
-
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(deviceTimeStart), &deviceTimeStart, nullptr));
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(deviceTimeEnd), &deviceTimeEnd, nullptr));
-
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
-
     std::cout<<"DATAMOVER: ns:"<<durationNanoSeconds<<std::endl;
-
     auto *classPtr = static_cast<CXilinxInfo*>(((CallbackData *)userData)->classPtr);
     classPtr->AddProfiledDataMoverLaunchDetails("task_datamover", ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
   }
@@ -414,7 +416,7 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
   delete[](paddedHostBuff);
 }
 template<typename T>
-CTensor<T> *CTensorXil<T>::TransferToHost() {
+std::shared_ptr<CTensor<T>> CTensorXil<T>::TransferToHost() {
   SPDLOG_LOGGER_TRACE(logger, "CTensorXil::TransferToHost().");
   T *paddedHostBuff = new T[GetLenPadded()];
   std::vector<cl::Event> dependencies;
@@ -436,7 +438,7 @@ CTensor<T> *CTensorXil<T>::TransferToHost() {
   auto *unpaddedHostTn = UnPadHostBuffer(GetShape(), paddedHostBuff, m_iAxiWidth);
   auto *hostTn = new CTensor<T>(GetShape(),unpaddedHostTn);
   delete[](unpaddedHostTn);
-  return hostTn;
+  return std::shared_ptr<CTensor<T>>(hostTn);
 }
 template<typename T>
 T *CTensorXil<T>::PadHostBuffer(const std::vector<unsigned> &actualShape, const T *hostSrcBuff, int axiWidth) {
@@ -489,8 +491,14 @@ T *CTensorXil<T>::UnPadHostBuffer(const std::vector<unsigned> &actualShape, cons
 }
 
 template<typename T>
-CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
-  if(m_iDramBank==destBank) return this;
+CTensorXilPtr<T> CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
+  // WARNING:
+  // The user is responsible of making sure that the tensor instance won't be released before async-datamover is executed.
+  // This is essential for prevention of data-loss and/or a fatal crash.
+  if(m_iDramBank==destBank) {
+    // https://stackoverflow.com/questions/17853212/using-shared-from-this-in-templated-classes
+    return this->shared_from_this();
+  }
 
   if(!(m_iDramBank>=0 && m_iDramBank<=3)){
     ThrowException("Invalid or unsupported tensor src bank.");
@@ -587,10 +595,11 @@ CTensorXil<T>* CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
 
   m_ptrCallBackData.get()->profileKernel = m_ptrXilInfo->GetProfileOclEnabled();
   m_ptrCallBackData.get()->parentLayerId = 4294967295;
+  m_ptrCallBackData.get()->kernelBookKeeperId = 4294967295;
   m_ptrCallBackData.get()->classPtr = m_ptrXilInfo;
   newTensor->GetEventPtr()->setCallback(CL_COMPLETE, &EventCallback, m_ptrCallBackData.get());
 
-  return newTensor;
+  return CTensorXilPtr<T>(newTensor);
 }
 
 template<typename T>

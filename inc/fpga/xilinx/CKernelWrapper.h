@@ -27,11 +27,21 @@ class CKernelWrapper {
   bool GetProfileOclEnabled() const;
   bool IsKernelEnabled() const;
   std::vector<ProfiledLaunchData>& GetAccumulatedProfiledKernelLaunchData();
+  void ResetBookKeeper();
+  unsigned GetTotalTensorsInBookKeeper();
+  unsigned GenerateBookKeeperId();
+  unsigned GetTheLastBookKeeperId();
+  CallbackData* GenerateAndStoreCallBackData(void* classPtr, unsigned parentLayerId);
+  void StoreBookKeepingEntry(const std::vector<CTensorBasePtr> &vecTensorsToBePreserved);
+  void ReleaseBookKeepingEntryAt(unsigned kernelBookKeepingId);
 
  protected:
   static void EventCallback(cl_event event, cl_int execStatus, void* userData);
   void AddProfiledKernelLaunchDetails(std::string taskName, unsigned parentLayerId, cl_ulong durationNanoSecOcl);
-  std::unique_ptr<CallbackData[]> m_ptrCallBackData;
+
+  std::vector<CallbackData> m_vCallBackData;
+  std::vector<std::vector<CTensorBasePtr>> m_vBookKeeper;
+
  private:
   std::string m_strTaskName, m_strKernelName, m_strKernelPath;
   cl::Kernel *m_oKernel;
@@ -41,6 +51,6 @@ class CKernelWrapper {
   CXilinxInfo *m_oXilInfo;
   int m_iArgCounter;
   std::vector<ProfiledLaunchData> m_vProfiledKernelLaunches;
-
+  unsigned m_uBookKeeperCounter;
 };
 

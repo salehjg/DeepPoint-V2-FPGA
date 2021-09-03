@@ -9,37 +9,40 @@
 template <int N, int BANK, typename T>
 bool TensorXilTestType1(){
   CXilinxInfo *xilInfo = platSelection->GetClassPtrImplementationXilinx()->GetXilInfo();
-  CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
-  auto *deviceTn = new CTensorXil<T>(xilInfo,*srcTn,BANK);
-  auto *dstTn = deviceTn->TransferToHost();
+  auto srcTn = GenerateTensor<T>(0,{N});
+  auto deviceTn = CTensorXilPtr<T>(new CTensorXil<T>(xilInfo,*srcTn,BANK));
+  auto dstTn = deviceTn->TransferToHost();
 
-  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
+  return platSelection->CompareTensors(PLATFORMS::CPU,
+                                       Convert2TnBasePtr(srcTn),
+                                       Convert2TnBasePtr(dstTn)
+      );
 }
 
 template <int N, int BANK, typename T>
 bool TensorXilTestType2(){
-  CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
-  auto *deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, srcTn);
-  auto *dstTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::CPU, deviceTn);
-  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
+  auto srcTn = GenerateTensor<T>(0,{N});
+  auto deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, Convert2TnBasePtr(srcTn));
+  auto dstTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::CPU, deviceTn);
+  return platSelection->CompareTensors(PLATFORMS::CPU, Convert2TnBasePtr(srcTn), dstTn);
 }
 
 template <int N, int BANK, typename T>
 bool TensorXilTestType3(){
-  CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
-  auto *deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, srcTn);
-  auto *dstTn = ((CTensorXil<T>*)deviceTn)->TransferToHost();
+  auto srcTn = GenerateTensor<T>(0,{N});
+  auto deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, Convert2TnBasePtr(srcTn));
+  auto dstTn = Convert2TnXilPtr<T>(deviceTn)->TransferToHost();
 
-  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
+  return platSelection->CompareTensors(PLATFORMS::CPU, Convert2TnBasePtr(srcTn), Convert2TnBasePtr(dstTn) );
 }
 
 template <int N, int BANK, typename T>
 bool TensorXilTestType4(){
-  CTensor<T> *srcTn = GenerateTensor<T>(0,{N});
-  auto *deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, srcTn);
-  auto *dstTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::CPU, deviceTn);
+  auto srcTn = GenerateTensor<T>(0,{N});
+  auto deviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::XIL, Convert2TnBasePtr(srcTn));
+  auto dstTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS ::CPU, deviceTn);
 
-  return platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcTn), (CTensorBase*)(dstTn));
+  return platSelection->CompareTensors(PLATFORMS::CPU, Convert2TnBasePtr(srcTn), dstTn);
 }
 
 template <int N, typename T>
@@ -47,14 +50,14 @@ bool TensorXilTestType5(){
   // Redundant platform crossing tests
   // CPU->CPU
   // XIL->XIL (on the default bank)
-  CTensor<T> *srcHostTn = GenerateTensor<T>(0,{N});
-  auto *srcDeviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcHostTn);
+  auto srcHostTn = GenerateTensor<T>(0,{N});
+  auto srcDeviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, Convert2TnBasePtr(srcHostTn));
 
-  auto *dstTn1 = platSelection->CrossThePlatformIfNeeded(PLATFORMS::CPU, srcHostTn);
-  bool cmp1 = platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcHostTn), (CTensorBase*)(dstTn1));
+  auto dstTn1 = platSelection->CrossThePlatformIfNeeded(PLATFORMS::CPU, Convert2TnBasePtr(srcHostTn));
+  bool cmp1 = platSelection->CompareTensors(PLATFORMS::CPU, Convert2TnBasePtr(srcHostTn), dstTn1);
 
-  auto *dstTn2 = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcDeviceTn);
-  bool cmp2 = platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcDeviceTn), (CTensorBase*)(dstTn2));
+  auto dstTn2 = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcDeviceTn);
+  bool cmp2 = platSelection->CompareTensors(PLATFORMS::CPU, srcDeviceTn, dstTn2);
 
   return cmp1 && cmp2;
 }
@@ -62,15 +65,15 @@ bool TensorXilTestType5(){
 template <int N, typename T>
 bool TensorXilTestType6(){
   // Mixed platform tensor comparisons
-  CTensor<T> *srcHostTn = GenerateTensor<T>(0,{N});
-  auto *srcDeviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, srcHostTn);
-  bool cmp1 = platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(srcHostTn), (CTensorBase*)(srcDeviceTn));
+  auto srcHostTn = GenerateTensor<T>(0,{N});
+  auto srcDeviceTn = platSelection->CrossThePlatformIfNeeded(PLATFORMS::XIL, Convert2TnBasePtr(srcHostTn));
+  bool cmp1 = platSelection->CompareTensors(PLATFORMS::CPU, Convert2TnBasePtr(srcHostTn), srcDeviceTn);
   return cmp1;
 }
 
 template <int N, typename T>
 bool TensorXilTestCloneBanksType1(int pattern){
-  CTensor<T> *srcTn = GenerateTensor<T>(pattern,{N});
+  auto srcTn = GenerateTensor<T>(0,{N});
 
   vector<unsigned> vBanks;
 #ifdef USEMEMORYBANK0
@@ -89,16 +92,16 @@ bool TensorXilTestCloneBanksType1(int pattern){
   CXilinxInfo *xilInfo = platSelection->GetClassPtrImplementationXilinx()->GetXilInfo();
 
   for(unsigned bankSrc:vBanks){
-    auto *deviceSrcTn = new CTensorXil<T>(xilInfo,*srcTn,bankSrc);
-    auto *hostSrcTn = deviceSrcTn->TransferToHost();
+    CTensorXilPtr<T> deviceSrcTn(new CTensorXil<T>(xilInfo,*srcTn,bankSrc));
+    auto hostSrcTn = deviceSrcTn->TransferToHost();
     for(unsigned bankDest:vBanks) {
       SPDLOG_LOGGER_INFO(logger, "From bank {} to {}", bankSrc, bankDest);
-      auto *deviceDstTn = deviceSrcTn->CloneIfNeededToBank(bankDest);
-      auto *hostDstTn = deviceDstTn->TransferToHost();
+      auto deviceDstTn = deviceSrcTn->CloneIfNeededToBank(bankDest);
+      auto hostDstTn = deviceDstTn->TransferToHost();
       if (err > 0) {
         SPDLOG_LOGGER_ERROR(logger, "Tensor data mismatch");
       }
-      err += (int) !platSelection->CompareTensors(PLATFORMS::XIL, (CTensorBase*)(hostSrcTn), (CTensorBase*)(hostDstTn));
+      err += (int) !platSelection->CompareTensors(PLATFORMS::CPU, Convert2TnBasePtr(hostSrcTn), Convert2TnBasePtr(hostDstTn));
     }
   }
 

@@ -32,7 +32,10 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
   }
 
-  CTensorXil<float>* EnqueueKernelLaunch(unsigned parentLayerId, CTensorXil<float> *inputTn1, CTensorXil<float> *inputTn2, unsigned concatDim){
+  CTensorBasePtr EnqueueKernelLaunch(unsigned parentLayerId, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatDim){
+    //-----------------------------------------------------------------------------------------------------------------
+    // #. Requirement Checks
+
     if(inputTn1->GetRank()!=4){
       ThrowException("Bad input tensor rank.");
     }
@@ -43,12 +46,18 @@ class CKernelWrapperConcat: public CKernelWrapper{
       ThrowException("Only concatDim=3 is implemented.");
     }
 
-    /// TODO: MEM LEAK HERE! USE SMART PTRs
-    auto *xinputTn1 = inputTn1->CloneIfNeededToBank(m_uBankInputTn1);
-    auto *xinputTn2 = inputTn2->CloneIfNeededToBank(m_uBankInputTn2);
+    // -----------------------------------------------------------------------------------------------------------------
+    // #. Pointer Castings And Memory Bank Crossings
+    auto pInputTn1 = std::static_pointer_cast<CTensorXil<float>>(inputTn1);
+    auto pInputTn2 = std::static_pointer_cast<CTensorXil<float>>(inputTn2);
+    auto xInputTn1 = pInputTn1->CloneIfNeededToBank(m_uBankInputTn1);
+    auto xInputTn2 = pInputTn2->CloneIfNeededToBank(m_uBankInputTn2);
 
-    const auto shape1 = xinputTn1->GetShape();
-    const auto shape2 = xinputTn2->GetShape();
+    // -----------------------------------------------------------------------------------------------------------------
+    // #. Kernel Launch
+
+    const auto shape1 = xInputTn1->GetShape();
+    const auto shape2 = xInputTn2->GetShape();
     assert(shape1[0]==shape2[0]);
     assert(shape1[1]==shape2[1]);
     assert(shape1[2]==shape2[2]);
@@ -67,12 +76,12 @@ class CKernelWrapperConcat: public CKernelWrapper{
     }
 
     const std::vector<unsigned> shapeOut = {dim0, dim1, dim2, dimR3};
-    auto *outputTn = new CTensorXil<float>(GetXilInfo(), shapeOut, false, m_uBankOutputTn);
+    CTensorXilPtr<float> outputTn(new CTensorXil<float>(GetXilInfo(), shapeOut, false, m_uBankOutputTn));
 
     cl_int stat;
     ResetArgCounter();
-    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), xinputTn1->GetDeviceBuffer()));
-    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), xinputTn2->GetDeviceBuffer()));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), xInputTn1->GetDeviceBuffer()));
+    OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), xInputTn2->GetDeviceBuffer()));
     OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), outputTn->GetDeviceBuffer()));
     OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dim0));
     OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), dim1));
@@ -82,8 +91,10 @@ class CKernelWrapperConcat: public CKernelWrapper{
     OclCheck(stat, stat = GetKernel()->setArg(ArgCounter(), concatDim));
 
     std::vector<cl::Event> dependencies;
-    dependencies.push_back(*xinputTn1->GetEventPtr()); // xinputTn1 not xinputTn1
-    dependencies.push_back(*xinputTn1->GetEventPtr());
+
+    // Double check to make sure that bank-crossed tensors are used here.
+    dependencies.push_back(*xInputTn1->GetEventPtr());
+    dependencies.push_back(*xInputTn1->GetEventPtr());
 
     GetXilInfo()->GetQueue()->enqueueTask(
         *GetKernel(),
@@ -91,14 +102,22 @@ class CKernelWrapperConcat: public CKernelWrapper{
         outputTn->GetEventPtr()
     );
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // #. Callbacks And Book-keepings
+    auto *callBackDataPtr = GenerateAndStoreCallBackData(this, parentLayerId);
+    outputTn->GetEventPtr()->setCallback(CL_COMPLETE, &EventCallback, callBackDataPtr);
 
-    m_ptrCallBackData.get()->profileKernel = GetProfileOclEnabled();
-    m_ptrCallBackData.get()->parentLayerId = parentLayerId;
-    m_ptrCallBackData.get()->classPtr = this;
+    // WARNING: Always store:
+    //  - the raw input tensors
+    //  - the bank-crossed versions of the input tensors
+    //  - the output tensors
+    // Not storing raw input tensors could allow a tensor to be released
+    // before its async bank-crossing operation is executed, resulting in data loss and/or fatal crash.
+    StoreBookKeepingEntry({inputTn1, inputTn2, xInputTn1, xInputTn2, outputTn});
 
-
-    outputTn->GetEventPtr()->setCallback(CL_COMPLETE, &EventCallback, m_ptrCallBackData.get());
-    return outputTn;
+    // -----------------------------------------------------------------------------------------------------------------
+    // #. Returning Part
+    return std::dynamic_pointer_cast<CTensorBase>(outputTn);
   }
 
  private:
