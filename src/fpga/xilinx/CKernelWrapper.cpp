@@ -63,7 +63,7 @@ int CKernelWrapper::ArgCounter() {
 bool CKernelWrapper::GetProfileOclEnabled() const {
   return m_bProfileOcl;
 }
-bool CKernelWrapper::GetKernelEnabled() const {
+bool CKernelWrapper::IsKernelEnabled() const {
   return m_bIsEnabled;
 }
 std::vector<ProfiledLaunchData> &CKernelWrapper::GetAccumulatedProfiledKernelLaunchData() {

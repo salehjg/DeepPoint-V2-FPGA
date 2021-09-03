@@ -40,6 +40,7 @@ class CKernelWrapperMatmul: public CKernelWrapper{
       ThrowException("The input tensors should be rank 2 or 3.");
     }
 
+    /// TODO: MEM LEAK HERE! USE SMART PTRs
     auto *xinputTn1 = inputTn1->CloneIfNeededToBank(m_uBankInputTn1);
     auto *xinputTn2 = inputTn2->CloneIfNeededToBank(m_uBankInputTn2);
 

@@ -25,7 +25,7 @@ class CKernelWrapper {
   void ResetArgCounter();
   int ArgCounter();
   bool GetProfileOclEnabled() const;
-  bool GetKernelEnabled() const;
+  bool IsKernelEnabled() const;
   std::vector<ProfiledLaunchData>& GetAccumulatedProfiledKernelLaunchData();
 
  protected:

@@ -43,6 +43,7 @@ class CKernelWrapperConcat: public CKernelWrapper{
       ThrowException("Only concatDim=3 is implemented.");
     }
 
+    /// TODO: MEM LEAK HERE! USE SMART PTRs
     auto *xinputTn1 = inputTn1->CloneIfNeededToBank(m_uBankInputTn1);
     auto *xinputTn2 = inputTn2->CloneIfNeededToBank(m_uBankInputTn2);
 
