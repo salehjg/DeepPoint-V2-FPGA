@@ -2,9 +2,11 @@
 
 #include <string>
 #include "CStringFormatter.h"
+#include <iostream>
+#include <execinfo.h>
+#include <unistd.h>
+#include <csignal>
 #include "fpga/xilinx/xcl2.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/spdlog.h"
 
 //https://github.com/gabime/spdlog/wiki/0.-FAQ#how-to-remove-all-debug-statements-at-compile-time-
@@ -44,6 +46,8 @@ extern bool globalDumpTensors;
 extern bool globalProfileOclEnabled;
 extern bool globalModelnet;
 extern bool globalShapenet;
+
+extern void SetupModules(int argc, const char* argv[]);
 
 /*
 template <typename T>

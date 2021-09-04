@@ -13,8 +13,6 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
 
   std::ifstream inFile(pathToTxtFnameList);
   m_uWeightCount = std::count(std::istreambuf_iterator<char>(inFile), std::istreambuf_iterator<char>(), '\n');
-  m_ptrWeightsCpu  = new CTensor<float>*[m_uWeightCount];
-  m_ptrWeightsXil  = new CTensorXil<float>*[m_uWeightCount];
 
   std::ifstream txtFile (pathToTxtFnameList);
   if (!txtFile.is_open()) {
@@ -28,26 +26,24 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
     m_mWeightNameToIndex.insert(std::make_pair(line, idx) );
     m_vNumpyBuff.push_back(cnpy::npy_load(weight_npy_path));
     std::vector<unsigned> __shape(m_vNumpyBuff.back().shape.begin(), m_vNumpyBuff.back().shape.end());
-
-    m_ptrWeightsCpu[idx] = new CTensor<float>(
-        __shape,
-        m_vNumpyBuff.back().data<float>()
-    );
-
-    if(__shape.size()==1 && __shape[0]==0) continue;
+    if(__shape.size()==1 && __shape[0]==0){
+      SPDLOG_LOGGER_TRACE(logger, "LoadWeightsFromDisk: An ill-shaped weight is found at index {}, skipping...", idx);
+      continue;
+    }
+    m_vWeightsCpu.push_back(CTensorBasePtr(new CTensor<float>(__shape,m_vNumpyBuff.back().data<float>())));
     int bank = ResolveMemoryBank(PLATFORMS::XIL, line);
-    m_ptrWeightsXil[idx] = new CTensorXil<float>(m_ptrXilInfo, __shape, m_vNumpyBuff.back().data<float>(), bank);
+    m_vWeightsXil.push_back(CTensorBasePtr(new CTensorXil<float>(m_ptrXilInfo, __shape, m_vNumpyBuff.back().data<float>(), bank)));
     auto tag = _ResolveTensorTagOclXilinx(line);
-    m_ptrWeightsXil[idx]->SetTensorTag(tag);
+    std::dynamic_pointer_cast<CTensorXil<float>>(m_vWeightsXil[idx])->SetTensorTag(tag);
   }
   m_bIsLoaded = true;
   txtFile.close();
 }
-CTensorBase *CWeightLoader::AccessWeights(PLATFORMS platform, std::string &name) {
+CTensorBasePtr CWeightLoader::AccessWeights(PLATFORMS platform, std::string &name) {
   if(platform == PLATFORMS::CPU)
-    return m_ptrWeightsCpu[m_mWeightNameToIndex[name]];
+    return m_vWeightsCpu[m_mWeightNameToIndex[name]];
   else if (platform == PLATFORMS::XIL)
-    return m_ptrWeightsXil[m_mWeightNameToIndex[name]];
+    return m_vWeightsXil[m_mWeightNameToIndex[name]];
   else
     assert(false);
 }
@@ -347,11 +343,6 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
 }
 CWeightLoader::~CWeightLoader() {
   if(m_bIsLoaded){
-    for(unsigned i=0;i<m_uWeightCount;i++){
-      delete m_ptrWeightsCpu[i];
-      delete m_ptrWeightsXil[i];
-    }
-    delete[](m_ptrWeightsCpu);
-    delete[](m_ptrWeightsXil);
+    SPDLOG_LOGGER_TRACE(logger, "Releasing the platform-specific weights that were loaded.");
   }
 }

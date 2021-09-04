@@ -509,6 +509,7 @@ add_executable(${HostExecutableName}
         ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/CKernelWrapper.cpp
         ${CMAKE_SOURCE_DIR}/src/cnpy.cpp
         ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/xcl2.cpp
+        ${CMAKE_SOURCE_DIR}/src/GlobalHelpers.cpp
         )
 
 target_link_libraries(${HostExecutableName} ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)

@@ -33,6 +33,8 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/CKernelWrapper.cpp
         ${CMAKE_SOURCE_DIR}/src/cnpy.cpp
         ${CMAKE_SOURCE_DIR}/src/fpga/xilinx/xcl2.cpp
+        ${CMAKE_SOURCE_DIR}/src/GlobalHelpers.cpp
+
         ${TEST_SOURCES}
         )
 message("SOURCES: ")

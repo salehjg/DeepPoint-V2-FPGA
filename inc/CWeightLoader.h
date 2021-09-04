@@ -18,7 +18,7 @@ class CWeightLoader {
   void LoadWeightsFromDisk(
       std::string &weightsBaseDir,
       std::string &pathToTxtFnameList);
-  CTensorBase* AccessWeights(PLATFORMS platform, std::string &name);
+  CTensorBasePtr AccessWeights(PLATFORMS platform, std::string &name);
 
  private:
   int ResolveMemoryBank(PLATFORMS platform, std::string &name);
@@ -28,8 +28,8 @@ class CWeightLoader {
   bool m_bIsLoaded;
   CXilinxInfo *m_ptrXilInfo;
   unsigned m_uWeightCount;
-  CTensor<float>** m_ptrWeightsCpu;
-  CTensorXil<float>** m_ptrWeightsXil;
+  std::vector<CTensorBasePtr> m_vWeightsCpu;
+  std::vector<CTensorBasePtr> m_vWeightsXil;
   std::map<std::string,int> m_mWeightNameToIndex;
   std::vector<cnpy::NpyArray> m_vNumpyBuff;
 };
