@@ -100,6 +100,13 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskConcat::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelMatmul = new CKernelWrapperMatmul(
+      "task_matmul","matmul.cpp",m_ptrXilInfo,
+      ConfigTaskMatMul::BankIndex_inputTn1,
+      ConfigTaskMatMul::BankIndex_inputTn2,
+      ConfigTaskMatMul::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -254,6 +261,23 @@ CTensorBasePtr CImplementationXilinx::Concat2(CTensorBasePtr inputTn1, CTensorBa
 
   CTensorBasePtr outputTn =
       m_ptrKernelConcat->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn1, inputTn2, concatAxis);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::MatMul(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape1",inputTn1->GetShape()},{"shape2",inputTn2->GetShape()}}),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn =
+      m_ptrKernelMatmul->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn1, inputTn2);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;

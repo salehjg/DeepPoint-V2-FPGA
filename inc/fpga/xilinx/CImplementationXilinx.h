@@ -29,6 +29,7 @@ class CImplementationXilinx: public CImplementationBase {
   const std::string GetOclErrorMessage(cl_int error) const;
 
   CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
+  CTensorBasePtr MatMul(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
 
  private:
   bool m_bOclProfileEnabled;
@@ -47,6 +48,7 @@ class CImplementationXilinx: public CImplementationBase {
   std::vector<ProfiledLaunchData> *m_ptrDataMoverProfiledDataVec;
 
   CKernelWrapperConcat *m_ptrKernelConcat;
+  CKernelWrapperMatmul *m_ptrKernelMatmul;
 };
 
 

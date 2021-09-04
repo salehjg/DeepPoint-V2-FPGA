@@ -8,12 +8,12 @@
 class CImplementationBase {
  public:
   virtual CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis)=0;
-
+  virtual CTensorBasePtr MatMul(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2)=0;
 
 
 
   //virtual CTensorBase* Transpose(CTensorBase *inputTn)=0;
-  //virtual CTensorBase* MatMul(CTensorBase* inputTn1, CTensorBase* inputTn2)=0;
+  //
   ////virtual CTensorBase* MatMul(CTensorBase* inputTn, float scalar)=0;
   //virtual CTensorBase* Square(CTensorBase* inputTn)=0;
   //virtual CTensorBase* ReduceSum(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2)=0;

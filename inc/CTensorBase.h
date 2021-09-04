@@ -58,6 +58,13 @@ class CTensorBase {
   unsigned SqueezeDimZeroToRankTry(unsigned targetRank);
 
   /**
+   * Calls SqueezeDimZero `targetDiff` times.
+   * @param targetDiff
+   * @return returns the total number of items of value 1 that are removed.
+   */
+  unsigned SqueezeDimZeroTimesTry(unsigned times);
+
+  /**
    * Replaces the shape of the tensor if they are both of the same length.
    * Please note that Reshape() does not affect the data layout in anyways.
    * @param newShape

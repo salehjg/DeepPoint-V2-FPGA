@@ -16,9 +16,8 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
       nullptr);
 
   ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::CPU);
-  if(inputTn1->GetRank() != inputTn2->GetRank()){
-    ThrowException("Input tensors are of unequal ranks.");
-  }
+  ConditionCheck(inputTn1->GetRank()==inputTn2->GetRank(), "Input tensors are of unequal ranks.");
+  ConditionCheck(inputTn1->GetRank()==4, "Only rank 4 tensors are supported.");
 
   unsigned rank  = inputTn1->GetRank();
   CTensorPtr<float> rsltTn;
@@ -113,7 +112,63 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::MatMul(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape1",inputTn1->GetShape()},{"shape2",inputTn2->GetShape()}}),
+      nullptr,
+      nullptr);
 
+  ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::CPU);
+
+  ConditionCheck(inputTn1->GetRank()==inputTn2->GetRank(), "Input tensors are of unequal ranks.");
+  ConditionCheck(inputTn1->GetRank()==3||inputTn1->GetRank()==2, "Only rank 3 or rank 2 tensors are supported.");
+
+  auto pInputTn1 = std::dynamic_pointer_cast<CTensor<float>>(inputTn1);
+  auto pInputTn2 = std::dynamic_pointer_cast<CTensor<float>>(inputTn2);
+  unsigned diff = pInputTn1->ExpandDimZeroToRank(3);
+  pInputTn2->ExpandDimZeroToRank(3);
+
+  auto shape1 = pInputTn1->GetShape();
+  auto shape2 = pInputTn2->GetShape();
+  auto matrixH1  = shape1[1];
+  auto matrixW1  = shape1[2];
+  auto matrixH2  = shape2[1];
+  auto matrixW2  = shape2[2];
+  auto batchSize = shape1[0];
+  ConditionCheck(matrixW1==matrixH2, "Unequal shape1[2] and shape2[1].");
+  ConditionCheck(shape1[0]==shape2[0], "Unequal shape1[0] and shape2[0].");
+  CTensorPtr<float> rsltTn(new CTensor<float>({batchSize,matrixH1,matrixW2}));
+
+  size_t indxS1,indxS2,indxD;
+
+  for(unsigned b=0;b<batchSize;b++) {
+    // for element of output of matrixH1 x matrixW2
+    for(unsigned j=0;j<matrixH1;j++){
+      for(unsigned i=0;i<matrixW2;i++){
+        //mat1: select row j
+        //mat2: select col i
+        float sum=0;
+        for(unsigned mat1_x=0;mat1_x<matrixW1;mat1_x++)
+        {
+          indxS1 = b*matrixH1*matrixW1 + j*matrixW1 + mat1_x;
+          indxS2 = b*matrixH2*matrixW2 + mat1_x*matrixW2 + i;
+          sum += (*pInputTn1)[indxS1] * (*pInputTn2)[indxS2];
+        }
+        // for element of output of matrixH1 x matrixW2
+        indxD = b*matrixH1*matrixW2 + j*matrixW2 + i;
+        (*rsltTn)[indxD] = sum;
+      }
+    }
+  }
+
+  pInputTn1->SqueezeDimZeroTimesTry(diff);
+  pInputTn2->SqueezeDimZeroTimesTry(diff);
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}
 void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir) {
   // The template member functions of a non-template class should be declared and defined in the header file ONLY.
   if(globalDumpTensors){
@@ -129,7 +184,6 @@ void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBasePtr
     }
   }
 }
-
 bool CImplementationCpu::CompareTensors(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) {
   // The template member functions of a non-template class should be declared and defined in the header file ONLY.
   ValidateTensorPlatforms({inputTn1, inputTn2}, PLATFORMS::CPU);

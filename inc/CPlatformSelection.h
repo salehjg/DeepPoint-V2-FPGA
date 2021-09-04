@@ -15,6 +15,8 @@ class CPlatformSelection {
   ~CPlatformSelection();
 
   CTensorBasePtr Concat2(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
+  CTensorBasePtr MatMul(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
+
   void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
   bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
 

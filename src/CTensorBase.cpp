@@ -122,4 +122,12 @@ unsigned CTensorBase::SqueezeDimZeroToRankTry(unsigned targetRank) {
   }
 
 }
+unsigned CTensorBase::SqueezeDimZeroTimesTry(unsigned times) {
+  unsigned diff = 0;
+  unsigned i=times;
+  while(i--){
+    diff += SqueezeDimZero() ? 1 : 0;
+  }
+  return diff;
+}
 

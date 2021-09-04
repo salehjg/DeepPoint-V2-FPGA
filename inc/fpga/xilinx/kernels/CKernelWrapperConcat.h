@@ -36,15 +36,9 @@ class CKernelWrapperConcat: public CKernelWrapper{
     //-----------------------------------------------------------------------------------------------------------------
     // #. Requirement Checks
 
-    if(inputTn1->GetRank()!=4){
-      ThrowException("Bad input tensor rank.");
-    }
-    if(inputTn2->GetRank()!=4){
-      ThrowException("Bad input tensor rank.");
-    }
-    if(concatDim!=3){
-      ThrowException("Only concatDim=3 is implemented.");
-    }
+    ConditionCheck(inputTn1->GetRank()==4, "Bad input tensor rank.");
+    ConditionCheck(inputTn2->GetRank()==4, "Bad input tensor rank.");
+    ConditionCheck(concatDim==3, "Only concatDim==3 is supported.");
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Pointer Castings And Memory Bank Crossings
@@ -58,9 +52,9 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
     const auto shape1 = xInputTn1->GetShape();
     const auto shape2 = xInputTn2->GetShape();
-    assert(shape1[0]==shape2[0]);
-    assert(shape1[1]==shape2[1]);
-    assert(shape1[2]==shape2[2]);
+    ConditionCheck(shape1[0]==shape2[0], "Unequal shape[0]'s.");
+    ConditionCheck(shape1[1]==shape2[1], "Unequal shape[1]'s.");
+    ConditionCheck(shape1[2]==shape2[2], "Unequal shape[2]'s.");
 
     const unsigned dim0 = shape1[0];
     const unsigned dim1 = shape1[1];
