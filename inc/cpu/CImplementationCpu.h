@@ -15,10 +15,9 @@ class CImplementationCpu: public CImplementationBase {
 
   CTensorBasePtr Concat2  (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
   CTensorBasePtr MatMul   (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
-  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
-  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
   CTensorBasePtr ReLU     (CTensorBasePtr inputTn) override;
-
+  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
 
 
 

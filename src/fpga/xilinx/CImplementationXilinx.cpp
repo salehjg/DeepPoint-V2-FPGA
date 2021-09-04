@@ -107,6 +107,12 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskMatMul::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelRss = new CKernelWrapperRelusqrtsquare(
+      "task_relu_sqrt_square","relu_sqrt_square.cpp",m_ptrXilInfo,
+      ConfigTaskReluSqrtSquare::BankIndex_inputTn,
+      ConfigTaskReluSqrtSquare::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -282,3 +288,55 @@ CTensorBasePtr CImplementationXilinx::MatMul(CTensorBasePtr inputTn1, CTensorBas
   m_ptrProfiler->FinishLayer();
   return outputTn;
 }
+CTensorBasePtr CImplementationXilinx::ReLU(CTensorBasePtr inputTn) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn =
+      m_ptrKernelRss->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, true, false, false);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Sqrt(CTensorBasePtr inputTn) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn =
+      m_ptrKernelRss->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, false, true, false);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Square(CTensorBasePtr inputTn) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn =
+      m_ptrKernelRss->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, false, false, true);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+

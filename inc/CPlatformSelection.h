@@ -14,8 +14,11 @@ class CPlatformSelection {
   CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath="profiler.json");
   ~CPlatformSelection();
 
-  CTensorBasePtr Concat2(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
-  CTensorBasePtr MatMul(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
+  CTensorBasePtr Concat2  (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
+  CTensorBasePtr MatMul   (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
+  CTensorBasePtr ReLU     (PLATFORMS destPlatform, CTensorBasePtr inputTn);
+  CTensorBasePtr Sqrt     (PLATFORMS destPlatform, CTensorBasePtr inputTn);
+  CTensorBasePtr Square   (PLATFORMS destPlatform, CTensorBasePtr inputTn);
 
   void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
   bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);

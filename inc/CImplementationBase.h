@@ -9,10 +9,10 @@ class CImplementationBase {
  public:
   virtual CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis)=0;
   virtual CTensorBasePtr MatMul(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2)=0;
-
-  virtual CTensorBasePtr Square   (CTensorBasePtr inputTn)=0;
-  virtual CTensorBasePtr Sqrt     (CTensorBasePtr inputTn)=0;
   virtual CTensorBasePtr ReLU     (CTensorBasePtr inputTn)=0;
+  virtual CTensorBasePtr Sqrt     (CTensorBasePtr inputTn)=0;
+  virtual CTensorBasePtr Square   (CTensorBasePtr inputTn)=0;
+
   //virtual CTensorBasePtr MatOps   (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, MAT_OPS mode)=0;
   //virtual CTensorBasePtr MatOps   (CTensorBasePtr inputTn1, float scalar, MAT_OPS mode)=0;
   //virtual CTensorBasePtr Tile     (CTensorBasePtr inputTn, int tileAxis, int tileCount)=0;

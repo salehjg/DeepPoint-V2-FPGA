@@ -102,6 +102,48 @@ CTensorBasePtr CPlatformSelection::MatMul(PLATFORMS destPlatform, CTensorBasePtr
   }
 }
 
+CTensorBasePtr CPlatformSelection::ReLU(PLATFORMS destPlatform, CTensorBasePtr inputTn) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->ReLU(qInputTn);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->ReLU(qInputTn);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+CTensorBasePtr CPlatformSelection::Sqrt(PLATFORMS destPlatform, CTensorBasePtr inputTn) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->Sqrt(qInputTn);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->Sqrt(qInputTn);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+CTensorBasePtr CPlatformSelection::Square(PLATFORMS destPlatform, CTensorBasePtr inputTn) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->Square(qInputTn);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->Square(qInputTn);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }

@@ -31,9 +31,9 @@ class CImplementationXilinx: public CImplementationBase {
 
   CTensorBasePtr Concat2  (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
   CTensorBasePtr MatMul   (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
-  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
-  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
   CTensorBasePtr ReLU     (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
 
  private:
   bool m_bOclProfileEnabled;
@@ -53,6 +53,7 @@ class CImplementationXilinx: public CImplementationBase {
 
   CKernelWrapperConcat *m_ptrKernelConcat;
   CKernelWrapperMatmul *m_ptrKernelMatmul;
+  CKernelWrapperRelusqrtsquare *m_ptrKernelRss;
 };
 
 
