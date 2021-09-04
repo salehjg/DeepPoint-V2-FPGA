@@ -83,7 +83,7 @@ class CKernelWrapperMatmul: public CKernelWrapper{
 
     // Double check to make sure that bank-crossed tensors are used here.
     dependencies.push_back(*xInputTn1->GetEventPtr());
-    dependencies.push_back(*xInputTn1->GetEventPtr());
+    dependencies.push_back(*xInputTn2->GetEventPtr());
 
     GetXilInfo()->GetQueue()->enqueueTask(
         *GetKernel(),

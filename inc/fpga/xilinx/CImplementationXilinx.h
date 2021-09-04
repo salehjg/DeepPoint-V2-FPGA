@@ -7,6 +7,7 @@
 #include "CXilinxInfo.h"
 #include "fpga/xilinx/kernels/CKernelWrapperConcat.h"
 #include "fpga/xilinx/kernels/CKernelWrapperMatmul.h"
+#include "fpga/xilinx/kernels/CKernelWrapperReluSqrtSquare.h"
 
 enum class RUN_MODE{
   SwEmu,
@@ -28,8 +29,11 @@ class CImplementationXilinx: public CImplementationBase {
   RUN_MODE GetModeEnvVar() const;
   const std::string GetOclErrorMessage(cl_int error) const;
 
-  CTensorBasePtr Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
-  CTensorBasePtr MatMul(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
+  CTensorBasePtr Concat2  (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
+  CTensorBasePtr MatMul   (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
+  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
+  CTensorBasePtr ReLU     (CTensorBasePtr inputTn) override;
 
  private:
   bool m_bOclProfileEnabled;
