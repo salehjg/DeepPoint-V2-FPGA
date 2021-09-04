@@ -43,6 +43,8 @@ void CProfiler::StartLayer(PLATFORMS platform,
   m_ptrWriter->StartObject();
   m_ptrWriter->Key("type");
   m_ptrWriter->String("layer");
+  m_ptrWriter->Key("name");
+  m_ptrWriter->String(name.c_str());
   m_ptrWriter->Key("platform");
   m_ptrWriter->String(platform==PLATFORMS::CPU? "cpu": (platform==PLATFORMS::XIL? "xil": "undef"));
   m_ptrWriter->Key("id");
@@ -96,6 +98,8 @@ void CProfiler::StartKernel(PLATFORMS platform,
   m_ptrWriter->StartObject();
   m_ptrWriter->Key("type");
   m_ptrWriter->String("kernel");
+  m_ptrWriter->Key("name");
+  m_ptrWriter->String(name.c_str());
   m_ptrWriter->Key("platform");
   m_ptrWriter->String(platform==PLATFORMS::CPU? "cpu": (platform==PLATFORMS::XIL? "xil": "undef"));
   m_ptrWriter->Key("id");
