@@ -36,10 +36,10 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
     unsigned dimB2 = shapeTn2[2];
     unsigned dimB3 = shapeTn2[3];
     unsigned dimR0 = 0, dimR1 = 0, dimR2 = 0, dimR3 = 0;
-    int mat2_offset_dim0 = 0;
-    int mat2_offset_dim1 = 0;
-    int mat2_offset_dim2 = 0;
-    int mat2_offset_dim3 = 0;
+    unsigned mat2_offset_dim0 = 0;
+    unsigned mat2_offset_dim1 = 0;
+    unsigned mat2_offset_dim2 = 0;
+    unsigned mat2_offset_dim3 = 0;
 
     if (concatAxis == 0) {
       dimR0 = dimA0 + dimB0;
@@ -70,7 +70,7 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
       mat2_offset_dim3 = dimA3;
     }
 
-    rsltTn = std::shared_ptr<CTensor<float>>(new CTensor<float>({dimR0,dimR1,dimR2,dimR3}));
+    rsltTn = CTensorPtr<float>(new CTensor<float>({dimR0,dimR1,dimR2,dimR3}));
     unsigned indxS1, indxS2, indxD;
 
     for (unsigned d0 = 0; d0 < dimA0; d0++) {
