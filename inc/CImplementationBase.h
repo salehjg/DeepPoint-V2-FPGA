@@ -15,9 +15,9 @@ class CImplementationBase {
   virtual CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode)=0;
   virtual CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode)=0;
   virtual CTensorBasePtr Tile         (CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount)=0;
+  virtual CTensorBasePtr Transpose    (CTensorBasePtr inputTn)=0;
 
   //virtual CTensorBasePtr Gather   (CTensorBasePtr inputTn, CTensorBasePtr indicesTn, int indicesOfAxis)=0;
-  //virtual CTensorBasePtr Transpose(CTensorBasePtr inputTn)=0;
 
 
   //virtual CTensorBase* ReduceSum(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2)=0;

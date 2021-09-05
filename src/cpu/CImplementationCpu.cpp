@@ -471,3 +471,38 @@ CTensorBasePtr CImplementationCpu::Tile(CTensorBasePtr inputTn, unsigned tileAxi
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::Transpose(CTensorBasePtr inputTn) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  ConditionCheck(inputTn->GetRank()==3 || inputTn->GetRank()==2, "Unsupported input tensor rank.");
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  unsigned diff = pInputTn->ExpandDimZeroToRank(3);
+  auto shape = pInputTn->GetShape();
+  auto dim0 = shape[0];
+  auto dim1 = shape[1];
+  auto dim2 = shape[2];
+  CTensorPtr<float> rsltTn(new CTensor<float>({dim0, dim2, dim1}));
+  unsigned indxS, indxD;
+
+  for(unsigned b=0; b<dim0; b++){
+    for(unsigned j = 0; j < dim1; j++) {
+      for(unsigned i = 0; i < dim2 ; i++) {
+        indxS = b * dim1 * dim2 + j * dim2 + i;
+        indxD = b * dim1 * dim2 + i * dim1 + j;
+        (*rsltTn)[indxD] = (*pInputTn)[indxS];
+      }
+    }
+  }
+
+  pInputTn->SqueezeDimZeroTimesTry(diff);
+  ///TODO: Confirm that squeezing the output tensor is NOT required ?
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

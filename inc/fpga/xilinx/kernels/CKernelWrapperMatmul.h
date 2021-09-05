@@ -52,7 +52,6 @@ class CKernelWrapperMatmul: public CKernelWrapper{
     unsigned diff = xInputTn1->ExpandDimZeroToRank(3);
     xInputTn2->ExpandDimZeroToRank(3);
 
-
     const auto shape1 = xInputTn1->GetShape();
     const auto shape2 = xInputTn2->GetShape();
 
