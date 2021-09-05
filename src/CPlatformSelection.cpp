@@ -179,6 +179,24 @@ CTensorBasePtr CPlatformSelection::BasicOps(PLATFORMS destPlatform,
   }
 }
 
+CTensorBasePtr CPlatformSelection::Tile(PLATFORMS destPlatform,
+                                        CTensorBasePtr inputTn,
+                                        unsigned tileAxis,
+                                        unsigned tileCount) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->Tile(qInputTn,tileAxis,tileCount);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->Tile(qInputTn,tileAxis,tileCount);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }

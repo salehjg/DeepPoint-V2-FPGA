@@ -120,6 +120,12 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskBasicOps::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelTile = new CKernelWrapperTile(
+      "task_tile","tile.cpp",m_ptrXilInfo,
+      ConfigTaskTile::BankIndex_inputTn,
+      ConfigTaskTile::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -394,6 +400,23 @@ CTensorBasePtr CImplementationXilinx::BasicOps(CTensorBasePtr inputTn1, float sc
       mode,
       true,
       scalar);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Tile(CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"tileAxis",tileAxis},{"tileCount",tileCount}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelTile->EnqueueKernelLaunch(
+      GetTheLastLayerId(), inputTn, tileAxis, tileCount);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;

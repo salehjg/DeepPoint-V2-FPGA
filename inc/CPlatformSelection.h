@@ -21,6 +21,7 @@ class CPlatformSelection {
   CTensorBasePtr Square       (PLATFORMS destPlatform, CTensorBasePtr inputTn);
   CTensorBasePtr BasicOps     (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode);
   CTensorBasePtr BasicOps     (PLATFORMS destPlatform, CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode);
+  CTensorBasePtr Tile         (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount);
 
   void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
   bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);

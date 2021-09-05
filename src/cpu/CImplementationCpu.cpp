@@ -380,3 +380,94 @@ CTensorBasePtr CImplementationCpu::BasicOps(CTensorBasePtr inputTn1, float scala
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::Tile(CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount) {
+  // inputTn       rsltTn         tileAxis        inputTn's Rank
+  // BxNxD   ----> BxNxKxD        2               3
+  // BxN     ----> BxNxK          2               2
+  // BxN     ----> BxKxN          1               2
+
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"tileAxis",tileAxis},{"tileCount",tileCount}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  const unsigned rank = pInputTn->GetRank();
+  auto shape = pInputTn->GetShape();
+  CTensorPtr<float> rsltTn;
+  unsigned indxS1, indxD;
+
+  if(rank==3 && tileAxis==2) {
+    unsigned B,N,K,D;
+    B = shape[0];
+    N = shape[1];
+    D = shape[2];
+    K = tileCount;
+
+    // Tile input of shape BxNxD into BxNxKxD.
+    rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K, D}));
+
+    for (unsigned b = 0; b < B; b++) {
+      for (unsigned n = 0; n < N; n++) {
+        indxS1 = b * N * D + n * D + 0; //beginning of dim2 of input
+        for (unsigned k = 0; k < K; k++) {
+          indxD = b * N * K * D + n * K * D + k * D + 0;
+          std::copy(pInputTn->Get() + indxS1,
+                    pInputTn->Get() + indxS1 + D,
+                    rsltTn->Get() + indxD);
+        }
+      }
+    }
+
+  }
+
+  if(rank==2 && tileAxis==2) { //BxN = BxNx1   ------->  BxNxK  (PAGE 221 of the notebook)
+    unsigned B,N,K,D;
+    B = shape[0];
+    N = shape[1];
+    K = tileCount;
+
+    // Tile input of shape BxN or BxNx1 into BxNxK.
+    rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K}));
+
+    for (unsigned b = 0; b < B; b++) {
+      for (unsigned n = 0; n < N; n++) {
+        indxS1 = b*N + n;
+        for(unsigned k=0;k<K;k++){
+          indxD = b*N*K + n*K + k;
+          (*rsltTn)[indxD] = (*pInputTn)[indxS1];
+        }
+      }
+    }
+
+  }
+
+  if(rank==2 && tileAxis==1) { //BxN = Bx1xN   ------->  BxKxN  (PAGE 221 of my notebook)
+    unsigned B,N,K,D;
+    B = shape[0];
+    N = shape[1];
+    K = tileCount;
+
+    // Tile input of shape BxN or Bx1xN into BxKxN.
+    rsltTn = CTensorPtr<float>(new CTensor<float>({B, K, N}));
+
+    for(unsigned b = 0; b < B; b++) {
+      for(unsigned k=0; k<K; k++){
+        for(unsigned n = 0; n < N; n++) {
+          indxD  = b*K*N + k*N + n;
+          indxS1 = b*1*N + n;
+          (*rsltTn)[indxD] = (*pInputTn)[indxS1];
+        }
+      }
+    }
+
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

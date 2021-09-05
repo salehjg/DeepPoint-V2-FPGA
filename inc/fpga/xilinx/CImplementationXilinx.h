@@ -9,6 +9,7 @@
 #include "fpga/xilinx/kernels/CKernelWrapperMatmul.h"
 #include "fpga/xilinx/kernels/CKernelWrapperReluSqrtSquare.h"
 #include "fpga/xilinx/kernels/CKernelWrapperBasicOps.h"
+#include "fpga/xilinx/kernels/CKernelWrapperTile.h"
 
 enum class RUN_MODE{
   SwEmu,
@@ -37,6 +38,7 @@ class CImplementationXilinx: public CImplementationBase {
   CTensorBasePtr Square       (CTensorBasePtr inputTn) override;
   CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode) override;
   CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode) override;
+  CTensorBasePtr Tile         (CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount) override ;
 
  private:
   bool m_bOclProfileEnabled;
@@ -58,6 +60,7 @@ class CImplementationXilinx: public CImplementationBase {
   CKernelWrapperMatmul *m_ptrKernelMatmul;
   CKernelWrapperReluSqrtSquare *m_ptrKernelRss;
   CKernelWrapperBasicOps *m_ptrKernelBasicOps;
+  CKernelWrapperTile *m_ptrKernelTile;
 };
 
 
