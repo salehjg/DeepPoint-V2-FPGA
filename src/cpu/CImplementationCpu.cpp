@@ -506,3 +506,53 @@ CTensorBasePtr CImplementationCpu::Transpose(CTensorBasePtr inputTn) {
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  ConditionCheck(inputTn->GetRank()==3, "inputTn is required to be of rank 3.");
+  ConditionCheck(indicesTn->GetRank()==3, "indicesTn is required to be of rank 3.");
+  ConditionCheck(inputTn->GetShape()[0]==indicesTn->GetShape()[0], "Incompatible shapes.");
+  ConditionCheck(inputTn->GetShape()[1]==indicesTn->GetShape()[1], "Incompatible shapes.");
+  ConditionCheck(indicesOfAxis==1, "Unsupported indicesOfAxis.");
+
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  auto pIndices = std::dynamic_pointer_cast<CTensor<unsigned>>(indicesTn);
+
+
+  //inputTn       is considered as BxNxD
+  //indices       is considered as BxNxK
+  //indices_axis  is considered to be 1 (the dimension that is equal to 'N')
+
+  //Gather knn's indices from input array.
+  unsigned indxS1, indxS2, indxD;
+  auto shape = pInputTn->GetShape();
+  unsigned
+      B = shape[0],
+      N = shape[1],
+      K = pIndices->GetShape()[2],
+      D = shape[2];
+  CTensorPtr<float> rsltTn(new CTensor<float>({B, N, K, D}));
+
+  for(unsigned b=0;b<B;b++){
+    for(unsigned n=0;n<N;n++){
+      for(unsigned k=0;k<K;k++){
+        indxS1 = b*N*K + n*K + k;
+        for(unsigned d=0;d<D;d++){
+          indxD = b*N*K*D + n*K*D + k*D + d;
+          indxS2 = b*N*D + (*pIndices)[indxS1]*D + d;
+          (*rsltTn)[indxD] = (*pInputTn)[indxS2];
+        }
+      }
+    }
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

@@ -132,6 +132,13 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskTranspose::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelGather = new CKernelWrapperGather(
+      "task_gather","gather.cpp",m_ptrXilInfo,
+      ConfigTaskGather::BankIndex_inputTn,
+      ConfigTaskGather::BankIndex_indicesTn,
+      ConfigTaskGather::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -439,6 +446,22 @@ CTensorBasePtr CImplementationXilinx::Transpose(CTensorBasePtr inputTn) {
   ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
 
   CTensorBasePtr outputTn = m_ptrKernelTranspose->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Gather(CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"indicesOfAxis",indicesOfAxis}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn,indicesTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelGather->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, indicesTn, indicesOfAxis);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;

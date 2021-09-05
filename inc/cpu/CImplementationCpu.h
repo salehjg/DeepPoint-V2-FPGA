@@ -22,7 +22,7 @@ class CImplementationCpu: public CImplementationBase {
   CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode) override;
   CTensorBasePtr Tile         (CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount) override;
   CTensorBasePtr Transpose    (CTensorBasePtr inputTn) override;
-
+  CTensorBasePtr Gather       (CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis) override;
 
 
   //CTensorBase* Transpose(CTensorBase *inputTn);

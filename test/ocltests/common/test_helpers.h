@@ -82,3 +82,13 @@ CTensorPtr<T> GenerateTensor(int pattern, const std::vector<unsigned> &shape){
   }
   return testTn;
 }
+template <typename T>
+CTensorPtr<T> GenerateTensor(float minVal, float maxVal, const std::vector<unsigned> &shape){
+  auto testTn = CTensorPtr<T>(new CTensor<T>(shape));
+  size_t _len = testTn->GetLen();
+  T *buff = testTn->Get();
+  for (size_t i = 0; i < _len; i++) {
+    buff[i] = (T)float_rand(minVal,maxVal);
+  }
+  return testTn;
+}
