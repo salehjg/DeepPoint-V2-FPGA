@@ -21,12 +21,14 @@ class CImplementationBase {
 
   //virtual CTensorBase* ReduceSum(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2)=0;
   //virtual CTensorBase* ReduceSum4D(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
+  //virtual CTensorBase* ReduceMax(CTensorBase* inputTn, int reductionDim)=0;
   //virtual CTensorBase* Mean(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
   //virtual CTensorBase* Variance(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
-  //virtual CTensorBase* ReduceMax(CTensorBase* inputTn, int reductionDim)=0;
-  //virtual CTensorBase* TopK(CTensorBase* inputTn, int axis, int k)=0;
+
   //virtual CTensorBase* PadLastDim(CTensorBase* inputTn, unsigned lastDimPadded)=0;
   //virtual CTensorBase* UnpadLastDim(CTensorBase* inputTn, unsigned lastDimUnpadded)=0;
+
+  //virtual CTensorBase* TopK(CTensorBase* inputTn, int axis, int k)=0;
   //virtual CTensorBase* Conv2D(CTensorBase* inputTn, CTensorBase* weightsTn, CTensorBase* biasesTn)=0;
 
   //virtual void         DumpMatrix(std::string npyFilename, CTensorBase* inputTn, std::string npyDir)=0;
