@@ -18,7 +18,7 @@ enum class PLATFORMS{
   XIL
 };
 
-enum class MAT_OPS{
+enum class BASIC_OPS{
   ADD,
   SUB,
   MUL_ELEMENTWISE,

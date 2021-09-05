@@ -8,6 +8,7 @@
 #include "fpga/xilinx/kernels/CKernelWrapperConcat.h"
 #include "fpga/xilinx/kernels/CKernelWrapperMatmul.h"
 #include "fpga/xilinx/kernels/CKernelWrapperReluSqrtSquare.h"
+#include "fpga/xilinx/kernels/CKernelWrapperBasicOps.h"
 
 enum class RUN_MODE{
   SwEmu,
@@ -29,11 +30,13 @@ class CImplementationXilinx: public CImplementationBase {
   RUN_MODE GetModeEnvVar() const;
   const std::string GetOclErrorMessage(cl_int error) const;
 
-  CTensorBasePtr Concat2  (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
-  CTensorBasePtr MatMul   (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
-  CTensorBasePtr ReLU     (CTensorBasePtr inputTn) override;
-  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
-  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
+  CTensorBasePtr MatMul       (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
+  CTensorBasePtr ReLU         (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Sqrt         (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Square       (CTensorBasePtr inputTn) override;
+  CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode) override;
+  CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode) override;
 
  private:
   bool m_bOclProfileEnabled;
@@ -53,7 +56,8 @@ class CImplementationXilinx: public CImplementationBase {
 
   CKernelWrapperConcat *m_ptrKernelConcat;
   CKernelWrapperMatmul *m_ptrKernelMatmul;
-  CKernelWrapperRelusqrtsquare *m_ptrKernelRss;
+  CKernelWrapperReluSqrtSquare *m_ptrKernelRss;
+  CKernelWrapperBasicOps *m_ptrKernelBasicOps;
 };
 
 

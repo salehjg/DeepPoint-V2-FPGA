@@ -8,9 +8,9 @@
 
 using namespace std;
 using hlslib::Stream;
-using namespace ConfigTaskMatOps;
+using namespace ConfigTaskBasicOps;
 
-void MatOpsRank4Rankx_V2_UnitRead(
+void BasicOpsRank4Rankx_V2_UnitRead(
         const MemoryPackF_t *inputTn1,
         const MemoryPackF_t *inputTn2,
         Stream<MemoryPackF_t, PipeDepth> &streamOut1,
@@ -24,7 +24,8 @@ void MatOpsRank4Rankx_V2_UnitRead(
         const unsigned dim2B,
         const unsigned dim3B,
         const int rankA,
-        const int rankB){
+        const int rankB,
+        const float scalar){
             
     unsigned indxS1, indxS2;
     const unsigned dim3Padded = MakeDivisible<unsigned>(dim3, CONFIG_M_AXI_WIDTH);
@@ -38,10 +39,9 @@ void MatOpsRank4Rankx_V2_UnitRead(
     assert(vecsPerLastDimB<=vecsPerLastDim);
     
     if(isConstantB){
-        MemoryPackF_t tmp = inputTn2[0];
         LoopInitConstant:
         for(unsigned i=0; i<CONFIG_M_AXI_WIDTH; i++){
-            sliceBConstant[i] = tmp[0];
+            sliceBConstant[i] = scalar;
         }
     }
 
@@ -109,7 +109,7 @@ void MatOpsRank4Rankx_V2_UnitRead(
     }       
 }
 
-void MatOpsRank4Rankx_V2_UnitProcess(
+void BasicOpsRank4Rankx_V2_UnitProcess(
         Stream<MemoryPackF_t, PipeDepth> &streamIn1,
         Stream<MemoryPackF_t, PipeDepth> &streamIn2,
         MemoryPackF_t *outputTn,
@@ -130,8 +130,6 @@ void MatOpsRank4Rankx_V2_UnitProcess(
     const unsigned vecsPerLastDim = dim3Padded / CONFIG_M_AXI_WIDTH;
     const unsigned dim3BPadded = MakeDivisible<unsigned>(dim3B, CONFIG_M_AXI_WIDTH);
     const unsigned vecsPerLastDimB = dim3BPadded / CONFIG_M_AXI_WIDTH;
-    MemoryPackF_t sliceBConstant;
-    const bool isConstantB = (rankB==1 && dim3B==1);
 
     assert(rankA>=rankB);
     assert(vecsPerLastDimB<=vecsPerLastDim);
@@ -218,7 +216,7 @@ void MatOpsRank4Rankx_V2_UnitProcess(
  * @param[in]  mode      The mode
  */
 
-void MatOpsRank4Rankx_V2(
+void BasicOpsRank4Rankx_V2(
         const MemoryPackF_t *inputTn1, //is always of rank4 (forced)
         const MemoryPackF_t *inputTn2, //rank4 or less
         MemoryPackF_t *outputTn,
@@ -232,7 +230,8 @@ void MatOpsRank4Rankx_V2(
         const unsigned dim3B,
         const int rankA,
         const int rankB, 
-        const int mode){
+        const int mode,
+        const float scalar){
 
 #pragma HLS DATAFLOW
 
@@ -243,9 +242,9 @@ void MatOpsRank4Rankx_V2(
 
     HLSLIB_DATAFLOW_INIT();
 
-    HLSLIB_DATAFLOW_FUNCTION(MatOpsRank4Rankx_V2_UnitRead,
-    		inputTn1, inputTn2, stream1, stream2, dim0, dim1, dim2, dim3, dim0B, dim1B, dim2B, dim3B, rankA, rankB);
-    HLSLIB_DATAFLOW_FUNCTION(MatOpsRank4Rankx_V2_UnitProcess, 
+    HLSLIB_DATAFLOW_FUNCTION(BasicOpsRank4Rankx_V2_UnitRead,
+    		inputTn1, inputTn2, stream1, stream2, dim0, dim1, dim2, dim3, dim0B, dim1B, dim2B, dim3B, rankA, rankB, scalar);
+    HLSLIB_DATAFLOW_FUNCTION(BasicOpsRank4Rankx_V2_UnitProcess,
         stream1, stream2, outputTn, dim0, dim1, dim2, dim3, dim0B, dim1B, dim2B, dim3B, rankA, rankB, mode);
 
     HLSLIB_DATAFLOW_FINALIZE();
@@ -278,7 +277,7 @@ void MatOpsRank4Rankx_V2(
  * @param[in]  mode      The mode
  */
 /*
-void MatOpsRank4Rankx(
+void BasicOpsRank4Rankx(
         const MemoryPackF_t *inputTn1, //is always of rank4 (forced)
         const MemoryPackF_t *inputTn2, //rank4 or less
         MemoryPackF_t *outputTn,
@@ -378,7 +377,7 @@ void MatOpsRank4Rankx(
 */
 
 extern "C" {
-void task_matops(
+void task_basicops(
         const MemoryPackF_t *inputTn1, //is always of rank4 (forced)
         const MemoryPackF_t *inputTn2, //rank4 or less
         MemoryPackF_t *outputTn,
@@ -392,7 +391,8 @@ void task_matops(
         const unsigned dim3B, 
         const int rankA,
         const int rankB,
-        const int mode){
+        const int mode,
+        const float scalar){
 
 #pragma HLS INTERFACE m_axi port=inputTn1 offset=slave bundle=gmem1 max_read_burst_length=16 max_write_burst_length=16
 #pragma HLS INTERFACE m_axi port=inputTn2 offset=slave bundle=gmem2 max_read_burst_length=16 max_write_burst_length=2
@@ -411,9 +411,10 @@ void task_matops(
 #pragma HLS INTERFACE s_axilite port=rankA bundle=control
 #pragma HLS INTERFACE s_axilite port=rankB bundle=control
 #pragma HLS INTERFACE s_axilite port=mode bundle=control
+#pragma HLS INTERFACE s_axilite port=scalar bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    MatOpsRank4Rankx_V2(
+    BasicOpsRank4Rankx_V2(
         inputTn1,
         inputTn2,
         outputTn,
@@ -427,7 +428,8 @@ void task_matops(
         dim3B,
         rankA,
         rankB,
-        mode);
+        mode,
+        scalar);
 
 }
 }

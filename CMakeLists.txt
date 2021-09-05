@@ -237,10 +237,10 @@ set(SP_TAG_TOPK
         "--sp task_topk_1.inputTn:bank${CFG2_TopK_DDRBANK_inputTn}\
  --sp task_topk_1.indicesSplitedTn:bank${CFG2_TopK_DDRBANK_indicesSplitedTn}")
 
-set(SP_TAG_MATOPS
-        "--sp task_matops_1.inputTn1:bank${CFG3_MatOps_DDRBANK_inputTn1}\
- --sp task_matops_1.inputTn2:bank${CFG3_MatOps_DDRBANK_inputTn2}\
- --sp task_matops_1.outputTn:bank${CFG3_MatOps_DDRBANK_outputTn}")
+set(SP_TAG_BASICOPS
+        "--sp task_basicops_1.inputTn1:bank${CFG3_BasicOps_DDRBANK_inputTn1}\
+ --sp task_basicops_1.inputTn2:bank${CFG3_BasicOps_DDRBANK_inputTn2}\
+ --sp task_basicops_1.outputTn:bank${CFG3_BasicOps_DDRBANK_outputTn}")
 
 set(SP_TAG_REDUCE
         "--sp task_reduce_1.inputTn:bank${CFG4_Reduce_DDRBANK_inputTn}\
@@ -336,12 +336,12 @@ sdaccel_target(
         ${SP_TAG_TOPK}
         "")
 sdaccel_target(
-        "${CMAKE_SOURCE_DIR}/src/fpga/xilinx/kernels/matops.cpp"
-        "matops"
-        "task_matops"
+        "${CMAKE_SOURCE_DIR}/src/fpga/xilinx/kernels/basicops.cpp"
+        "basicops"
+        "task_basicops"
         FALSE
         TRUE
-        ${SP_TAG_MATOPS}
+        ${SP_TAG_BASICOPS}
         "")
 sdaccel_target(
         "${CMAKE_SOURCE_DIR}/src/fpga/xilinx/kernels/reduce.cpp"

@@ -6,9 +6,9 @@
 #include <vector>
 #include <cassert>
 
-class CKernelWrapperRelusqrtsquare: public CKernelWrapper{
+class CKernelWrapperReluSqrtSquare: public CKernelWrapper{
  public:
-  CKernelWrapperRelusqrtsquare(
+  CKernelWrapperReluSqrtSquare(
       std::string taskName,
       std::string fileName,
       CXilinxInfo *xilInfo,

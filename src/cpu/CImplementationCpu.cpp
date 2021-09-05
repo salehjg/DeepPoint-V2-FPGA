@@ -256,3 +256,127 @@ CTensorBasePtr CImplementationCpu::Square(CTensorBasePtr inputTn) {
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::BasicOps(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape1",inputTn1->GetShape()},{"shape2",inputTn2->GetShape()}}),
+      new CProfiler::DictIntPtr({{
+                                     "mode",
+                                     mode==BASIC_OPS::ADD ? 0 : mode==BASIC_OPS::SUB ? 1 : mode==BASIC_OPS::MUL_ELEMENTWISE ? 2 : 3}}),
+      nullptr);
+  ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::CPU);
+  ConditionCheck(inputTn1->GetRank()>=inputTn2->GetRank(), "The first input tensor's rank cannot be smaller than the second's.");
+  ConditionCheck(inputTn1->GetRank()>=1 && inputTn1->GetRank()<=4, "Bad inputTn1 tensor rank.");
+  ConditionCheck(inputTn2->GetRank()>=1 && inputTn2->GetRank()<=4, "Bad inputTn2 tensor rank.");
+  auto pInputTn1 = std::dynamic_pointer_cast<CTensor<float>>(inputTn1);
+  auto pInputTn2 = std::dynamic_pointer_cast<CTensor<float>>(inputTn2);
+  unsigned diff = pInputTn1->ExpandDimZeroToRank(4);
+  CTensorPtr<float> rsltTn(new CTensor<float>(pInputTn1->GetShape()));
+  {
+    unsigned indxS1;
+    unsigned indxS2;
+    unsigned dim0, dim1, dim2, dim3;
+    unsigned dim0B, dim1B, dim2B, dim3B;
+    int dim0B_IsNotZero, dim1B_IsNotZero, dim2B_IsNotZero, dim3B_IsNotZero;
+    auto shape1 = pInputTn1->GetShape();
+    auto shape2 = pInputTn2->GetShape();
+
+    dim0 = shape1[0];
+    dim1 = shape1[1];
+    dim2 = shape1[2];
+    dim3 = shape1[3];
+
+    if(pInputTn2->GetRank()==4){
+      dim0B=shape2[0];
+      dim1B=shape2[1];
+      dim2B=shape2[2];
+      dim3B=shape2[3];
+    }
+    if(pInputTn2->GetRank()==3){
+      dim0B=0;
+      dim1B=shape2[0];
+      dim2B=shape2[1];
+      dim3B=shape2[2];
+    }
+    if(pInputTn2->GetRank()==2){
+      dim0B=0;
+      dim1B=0;
+      dim2B=shape2[0];
+      dim3B=shape2[1];
+    }
+    if(pInputTn2->GetRank()==1 && shape2[0]!=1){
+      dim0B=0;
+      dim1B=0;
+      dim2B=0;
+      dim3B=shape2[0];
+    }else if(pInputTn2->GetRank()==1 && shape2[0]==1){
+      dim0B=0;
+      dim1B=0;
+      dim2B=0;
+      dim3B=1; //and rank should be 1 which already is
+    }
+
+
+    int tmp =15>>(4-pInputTn2->GetRank());
+    dim0B_IsNotZero = (tmp >> 3) & 1;
+    dim1B_IsNotZero = (tmp >> 2) & 1;
+    dim2B_IsNotZero = (tmp >> 1) & 1;
+    dim3B_IsNotZero = (tmp >> 0) & 1;
+
+    if(pInputTn2->GetRank()==1 && dim0B==0&&dim1B==0&&dim2B==0&&dim3B==1){//scalar value
+      dim3B_IsNotZero=0; //force it to be zero, so in the kernel, indxS2 would be zero;
+    }
+
+    for(unsigned d0=0;d0<dim0;d0++){
+      for(unsigned d1=0;d1<dim1;d1++) {
+        for(unsigned d2=0;d2<dim2;d2++) {
+          for(unsigned d3=0;d3<dim3;d3++) {
+            indxS1 = d0*dim1*dim2*dim3+
+                d1*dim2*dim3+
+                d2*dim3+
+                d3;
+            indxS2 = d0 * dim1B * dim2B * dim3B * dim0B_IsNotZero +
+                d1 * dim2B * dim3B * dim1B_IsNotZero +
+                d2 * dim3B * dim2B_IsNotZero +
+                d3 * dim3B_IsNotZero;
+
+            if(mode==BASIC_OPS::ADD)                      //Add
+              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] + (*pInputTn2)[indxS2];
+            else if(mode==BASIC_OPS::SUB)                 //Sub
+              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] - (*pInputTn2)[indxS2];
+            else if(mode==BASIC_OPS::MUL_ELEMENTWISE)     //Mul (element wise)
+              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] * (*pInputTn2)[indxS2];
+            else if(mode==BASIC_OPS::DIV_ELEMENTWISE)     //Div (element wise)
+              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] / (*pInputTn2)[indxS2];
+          }
+        }
+      }
+    }
+
+  }
+  
+  pInputTn1->SqueezeDimZeroTimesTry(diff);
+  rsltTn->SqueezeDimZeroTimesTry(diff);
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}
+CTensorBasePtr CImplementationCpu::BasicOps(CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn1->GetShape()}}),
+      nullptr,
+      new CProfiler::DictFloatPtr({{"scalar",scalar}}));
+  ValidateTensorPlatforms({inputTn1}, PLATFORMS::CPU);
+
+  // This method is used only in CPU impl.
+  CTensorBasePtr tmpTn(new CTensor<float>({1}, &scalar));
+  auto rsltTn = BasicOps(inputTn1, tmpTn, mode);
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

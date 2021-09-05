@@ -107,10 +107,17 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskMatMul::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelRss = new CKernelWrapperRelusqrtsquare(
+  m_ptrKernelRss = new CKernelWrapperReluSqrtSquare(
       "task_relu_sqrt_square","relu_sqrt_square.cpp",m_ptrXilInfo,
       ConfigTaskReluSqrtSquare::BankIndex_inputTn,
       ConfigTaskReluSqrtSquare::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
+  m_ptrKernelBasicOps = new CKernelWrapperBasicOps(
+      "task_basicops","basicops.cpp",m_ptrXilInfo,
+      ConfigTaskBasicOps::BankIndex_inputTn1,
+      ConfigTaskBasicOps::BankIndex_inputTn2,
+      ConfigTaskBasicOps::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
 
@@ -300,7 +307,8 @@ CTensorBasePtr CImplementationXilinx::ReLU(CTensorBasePtr inputTn) {
   ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
 
   CTensorBasePtr outputTn =
-      m_ptrKernelRss->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, true, false, false);
+      m_ptrKernelRss->EnqueueKernelLaunch(
+          GetTheLastLayerId(), inputTn, true, false, false);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;
@@ -317,7 +325,8 @@ CTensorBasePtr CImplementationXilinx::Sqrt(CTensorBasePtr inputTn) {
   ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
 
   CTensorBasePtr outputTn =
-      m_ptrKernelRss->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, false, true, false);
+      m_ptrKernelRss->EnqueueKernelLaunch(
+          GetTheLastLayerId(), inputTn, false, true, false);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;
@@ -333,10 +342,59 @@ CTensorBasePtr CImplementationXilinx::Square(CTensorBasePtr inputTn) {
 
   ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
 
-  CTensorBasePtr outputTn =
-      m_ptrKernelRss->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, false, false, true);
+  CTensorBasePtr outputTn = m_ptrKernelRss->EnqueueKernelLaunch(
+      GetTheLastLayerId(), inputTn, false, false, true);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;
 }
+CTensorBasePtr CImplementationXilinx::BasicOps(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape1",inputTn1->GetShape()},{"shape2",inputTn2->GetShape()}}),
+      new CProfiler::DictIntPtr({{
+                                     "mode",
+                                     mode==BASIC_OPS::ADD ? 0 : mode==BASIC_OPS::SUB ? 1 : mode==BASIC_OPS::MUL_ELEMENTWISE ? 2 : 3}}),
+      nullptr);
 
+  ValidateTensorPlatforms({inputTn1,inputTn2}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelBasicOps->EnqueueKernelLaunch(
+      GetTheLastLayerId(),
+      inputTn1,
+      inputTn2,
+      mode,
+      false,
+      0.0f);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::BasicOps(CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape1",inputTn1->GetShape()},{"shape2",{1}}}),
+      new CProfiler::DictIntPtr({{
+                                     "mode",
+                                     mode==BASIC_OPS::ADD ? 0 :
+                                       mode==BASIC_OPS::SUB ? 1 :
+                                       mode==BASIC_OPS::MUL_ELEMENTWISE ? 2 : 3}}),
+      new CProfiler::DictFloatPtr({{"scalar",scalar}}));
+
+  ValidateTensorPlatforms({inputTn1}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelBasicOps->EnqueueKernelLaunch(
+      GetTheLastLayerId(),
+      inputTn1,
+      nullptr,
+      mode,
+      true,
+      scalar);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}

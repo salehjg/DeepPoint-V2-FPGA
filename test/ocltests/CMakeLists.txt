@@ -20,7 +20,8 @@ set(TEST_SOURCES
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensorxil/test_ctensorxil.cpp
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconcat/test_ckwconcat.cpp
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwmatmul/test_ckwmatmul.cpp
-        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwrelusqrtsquare/test_ckwrelusqrtsquare.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwrelusqrtsquare/test_ckwrelusqrtsquare.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwbasicops/test_ckwbasicops.cpp
         )
 
 

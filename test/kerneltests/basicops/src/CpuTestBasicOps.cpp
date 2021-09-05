@@ -9,13 +9,13 @@
 #include <vector>
 #include <string>
 #include <cassert>
-#include "GoldMatops.h"
+#include "GoldBasicOps.h"
 
 using namespace std;
 using namespace ConfigTaskMatOps;
 
 extern "C"
-void task_matops(
+void task_basicops(
         const MemoryPackF_t *inputTn1,
         const MemoryPackF_t *inputTn2,
         MemoryPackF_t *outputTn,
@@ -29,10 +29,11 @@ void task_matops(
         const unsigned dim3B, 
         const int rankA,
         const int rankB,
-        const int mode);
+        const int mode,
+        const float scalar);
 
 template<unsigned int vecSize>
-int TestMatops(
+int TestBasicOps(
     const string testName, 
     const std::vector<unsigned> &shapeA,
     const std::vector<unsigned> &shapeB,
@@ -179,7 +180,7 @@ int TestMatops(
             rankA,
             rankB,
             mode);
-    GoldMatops<CONFIG_DTYPE>(
+    GoldBasicOps<CONFIG_DTYPE>(
             hostInputTnA.data(),
             hostInputTnB.data(),
             hostGold.data(),
@@ -243,58 +244,58 @@ int RunTests(unsigned _dim0, unsigned _dim1, unsigned _dim2, unsigned _dim3){
     {
         std::printf("\nRunning tests for 4D,nD n<=4 [%d,%d,%d,%d]...\n",dim0,dim1,dim2,dim3);
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:4D,4D", {dim0, dim1, dim2, dim3}, {dim0, dim1, dim2, dim3}, mode);
+            result += TestBasicOps<16>("MatOps:4D,4D", {dim0, dim1, dim2, dim3}, {dim0, dim1, dim2, dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:4D,3D", {dim0, dim1, dim2, dim3}, {dim1, dim2, dim3}, mode);
+            result += TestBasicOps<16>("MatOps:4D,3D", {dim0, dim1, dim2, dim3}, {dim1, dim2, dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:4D,2D", {dim0, dim1, dim2, dim3}, {dim2, dim3}, mode);
+            result += TestBasicOps<16>("MatOps:4D,2D", {dim0, dim1, dim2, dim3}, {dim2, dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:4D,1D", {dim0, dim1, dim2, dim3}, {dim3}, mode);
+            result += TestBasicOps<16>("MatOps:4D,1D", {dim0, dim1, dim2, dim3}, {dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:4D,cte", {dim0, dim1, dim2, dim3}, {1}, mode);
+            result += TestBasicOps<16>("MatOps:4D,cte", {dim0, dim1, dim2, dim3}, {1}, mode);
         }
     }
     {
         dim0=-1;
         std::printf("\nRunning tests for 3D,nD n<=3 [%d,%d,%d]...\n",dim1,dim2,dim3);
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:3D,3D", {dim1, dim2, dim3}, {dim1, dim2, dim3}, mode);
+            result += TestBasicOps<16>("MatOps:3D,3D", {dim1, dim2, dim3}, {dim1, dim2, dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:3D,2D", {dim1, dim2, dim3}, {dim2, dim3}, mode);
+            result += TestBasicOps<16>("MatOps:3D,2D", {dim1, dim2, dim3}, {dim2, dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:3D,1D", {dim1, dim2, dim3}, {dim3}, mode);
+            result += TestBasicOps<16>("MatOps:3D,1D", {dim1, dim2, dim3}, {dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:3D,cte", {dim1, dim2, dim3}, {1}, mode);
+            result += TestBasicOps<16>("MatOps:3D,cte", {dim1, dim2, dim3}, {1}, mode);
         }
     }
     {
         dim0=-1; dim1=-1;
         std::printf("\nRunning tests for 2D,nD n<=2 [%d,%d]...\n",dim2,dim3);
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:2D,2D", {dim2, dim3}, {dim2, dim3}, mode);
+            result += TestBasicOps<16>("MatOps:2D,2D", {dim2, dim3}, {dim2, dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:2D,1D", {dim2, dim3}, {dim3}, mode);
+            result += TestBasicOps<16>("MatOps:2D,1D", {dim2, dim3}, {dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:2D,cte", {dim2, dim3}, {1}, mode);
+            result += TestBasicOps<16>("MatOps:2D,cte", {dim2, dim3}, {1}, mode);
         }
     }
     {
         dim0=-1; dim1=-1; dim2=-1;
         std::printf("\nRunning tests for 1D,nD n<=1 [%d]...\n",dim3);
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:1D,1D", {dim3}, {dim3}, mode);
+            result += TestBasicOps<16>("MatOps:1D,1D", {dim3}, {dim3}, mode);
         }
         for(int mode=0; mode<4; mode++){
-            result += TestMatops<16>("MatOps:1D,cte", {dim3}, {1}, mode);
+            result += TestBasicOps<16>("MatOps:1D,cte", {dim3}, {1}, mode);
         }
     }
 

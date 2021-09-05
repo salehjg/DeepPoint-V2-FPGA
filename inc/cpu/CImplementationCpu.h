@@ -13,12 +13,13 @@ class CImplementationCpu: public CImplementationBase {
  public:
   CImplementationCpu(CProfiler *profiler);
 
-  CTensorBasePtr Concat2  (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
-  CTensorBasePtr MatMul   (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
-  CTensorBasePtr ReLU     (CTensorBasePtr inputTn) override;
-  CTensorBasePtr Sqrt     (CTensorBasePtr inputTn) override;
-  CTensorBasePtr Square   (CTensorBasePtr inputTn) override;
-
+  CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
+  CTensorBasePtr MatMul       (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
+  CTensorBasePtr ReLU         (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Sqrt         (CTensorBasePtr inputTn) override;
+  CTensorBasePtr Square       (CTensorBasePtr inputTn) override;
+  CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode) override;
+  CTensorBasePtr BasicOps     (CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode) override;
 
 
 

@@ -144,6 +144,41 @@ CTensorBasePtr CPlatformSelection::Square(PLATFORMS destPlatform, CTensorBasePtr
   }
 }
 
+CTensorBasePtr CPlatformSelection::BasicOps(PLATFORMS destPlatform,
+                                            CTensorBasePtr inputTn1,
+                                            CTensorBasePtr inputTn2,
+                                            BASIC_OPS mode) {
+  if(!inputTn1->IsTypeFloat32() || !inputTn2->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn1 = CrossThePlatformIfNeeded(destPlatform, inputTn1);
+  auto qInputTn2 = CrossThePlatformIfNeeded(destPlatform, inputTn2);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->BasicOps(qInputTn1,qInputTn2,mode);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->BasicOps(qInputTn1,qInputTn2,mode);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+CTensorBasePtr CPlatformSelection::BasicOps(PLATFORMS destPlatform,
+                                            CTensorBasePtr inputTn1,
+                                            float scalar,
+                                            BASIC_OPS mode) {
+  if(!inputTn1->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn1 = CrossThePlatformIfNeeded(destPlatform, inputTn1);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->BasicOps(qInputTn1,scalar,mode);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->BasicOps(qInputTn1,scalar,mode);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }
@@ -179,3 +214,6 @@ bool CPlatformSelection::CompareTensors(PLATFORMS destPlatform, CTensorBasePtr i
     ThrowException("Undefined platform.");
   }
 }
+
+
+

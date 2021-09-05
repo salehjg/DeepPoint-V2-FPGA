@@ -14,11 +14,13 @@ class CPlatformSelection {
   CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath="profiler.json");
   ~CPlatformSelection();
 
-  CTensorBasePtr Concat2  (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
-  CTensorBasePtr MatMul   (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
-  CTensorBasePtr ReLU     (PLATFORMS destPlatform, CTensorBasePtr inputTn);
-  CTensorBasePtr Sqrt     (PLATFORMS destPlatform, CTensorBasePtr inputTn);
-  CTensorBasePtr Square   (PLATFORMS destPlatform, CTensorBasePtr inputTn);
+  CTensorBasePtr Concat2      (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
+  CTensorBasePtr MatMul       (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
+  CTensorBasePtr ReLU         (PLATFORMS destPlatform, CTensorBasePtr inputTn);
+  CTensorBasePtr Sqrt         (PLATFORMS destPlatform, CTensorBasePtr inputTn);
+  CTensorBasePtr Square       (PLATFORMS destPlatform, CTensorBasePtr inputTn);
+  CTensorBasePtr BasicOps     (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode);
+  CTensorBasePtr BasicOps     (PLATFORMS destPlatform, CTensorBasePtr inputTn1, float scalar, BASIC_OPS mode);
 
   void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
   bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
@@ -52,4 +54,3 @@ CTensorPtr<T> CPlatformSelection::CrossThePlatform(PLATFORMS destPlatform, CTens
   assert(destPlatform==PLATFORMS::CPU);
   return srcTn->TransferToHost();
 }
-

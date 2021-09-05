@@ -1,7 +1,7 @@
 #pragma once
 
 template <typename T>
-void GoldMatops(
+void GoldBasicOps(
         const T* inputA,
         const T* inputB,
         T* output,

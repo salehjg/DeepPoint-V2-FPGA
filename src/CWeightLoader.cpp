@@ -61,8 +61,8 @@ int CWeightLoader::_ResolveMemoryBankOclXilinx(std::string &name) {
   );
 
   assert(
-    ConfigTaskMatOps::BankIndex_inputTn1 == ConfigTaskMatOps::BankIndex_inputTn2 &&
-    ConfigTaskMatOps::BankIndex_inputTn2 == ConfigTaskMatOps::BankIndex_outputTn
+    ConfigTaskBasicOps::BankIndex_inputTn1 == ConfigTaskBasicOps::BankIndex_inputTn2 &&
+    ConfigTaskBasicOps::BankIndex_inputTn2 == ConfigTaskBasicOps::BankIndex_outputTn
   );
 
   assert(
@@ -71,7 +71,7 @@ int CWeightLoader::_ResolveMemoryBankOclXilinx(std::string &name) {
   );
 
   int indexConv2 = ConfigTaskConv2::BankIndex_inputTn;
-  int indexMatOps = ConfigTaskMatOps::BankIndex_inputTn1;
+  int indexBasicOps = ConfigTaskBasicOps::BankIndex_inputTn1;
   int indexMatMul = ConfigTaskMatMul::BankIndex_inputTn1;
 
   bool isConv[] = {
@@ -93,7 +93,7 @@ int CWeightLoader::_ResolveMemoryBankOclXilinx(std::string &name) {
     name == "agg.biases.npy"
   };
 
-  bool isMatOps[] = {
+  bool isBasicOps[] = {
     name == "transform_net1.tconv1.bn.gamma.npy",
     name == "transform_net1.tconv1.bn.beta.npy",
     name == "transform_net1.tconv1.bn.transform_net1.tconv1.bn.moments.Squeeze.ExponentialMovingAverage.npy",
@@ -158,15 +158,15 @@ int CWeightLoader::_ResolveMemoryBankOclXilinx(std::string &name) {
   };
 
   bool rsltConv = false;
-  bool rsltMatOps = false;
+  bool rsltBasicOps = false;
   bool rsltMatMul = false;
 
   for(bool item:isConv){
     rsltConv = rsltConv | item;
   }
 
-  for(bool item:isMatOps){
-    rsltMatOps = rsltMatOps | item;
+  for(bool item:isBasicOps){
+    rsltBasicOps = rsltBasicOps | item;
   }
 
   for(bool item:isMatMul){
@@ -178,9 +178,9 @@ int CWeightLoader::_ResolveMemoryBankOclXilinx(std::string &name) {
     return indexConv2;
   }
 
-  if(rsltMatOps){
-    SPDLOG_LOGGER_DEBUG(logger,"The weight tensor \"{}\" is considered to be related to the layer \"MatOps\" and will be transferred to the DDR bank {}", name, indexMatOps);
-    return indexMatOps;
+  if(rsltBasicOps){
+    SPDLOG_LOGGER_DEBUG(logger,"The weight tensor \"{}\" is considered to be related to the layer \"BasicOps\" and will be transferred to the DDR bank {}", name, indexBasicOps);
+    return indexBasicOps;
   }
 
   if(rsltMatMul){
@@ -198,8 +198,8 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
   );
 
   assert(
-    ConfigTaskMatOps::BankIndex_inputTn1 == ConfigTaskMatOps::BankIndex_inputTn2 &&
-    ConfigTaskMatOps::BankIndex_inputTn2 == ConfigTaskMatOps::BankIndex_outputTn
+    ConfigTaskBasicOps::BankIndex_inputTn1 == ConfigTaskBasicOps::BankIndex_inputTn2 &&
+    ConfigTaskBasicOps::BankIndex_inputTn2 == ConfigTaskBasicOps::BankIndex_outputTn
   );
 
   assert(
@@ -230,7 +230,7 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
     name == "agg.biases.npy"
   };
 
-  bool isMatOpsIn1[] = {
+  bool isBasicOpsIn1[] = {
     name == "transform_net1.tconv1.bn.transform_net1.tconv1.bn.moments.Squeeze.ExponentialMovingAverage.npy",
     name == "transform_net1.tconv1.bn.transform_net1.tconv1.bn.moments.Squeeze_1.ExponentialMovingAverage.npy",
     name == "transform_net1.tconv2.bn.transform_net1.tconv2.bn.moments.Squeeze.ExponentialMovingAverage.npy",
@@ -257,7 +257,7 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
     name == "fc2.bn.fc2.bn.moments.Squeeze_1.ExponentialMovingAverage.npy"
   };
 
-  bool isMatOpsIn2[] = {
+  bool isBasicOpsIn2[] = {
     name == "transform_net1.tconv1.bn.gamma.npy",
     name == "transform_net1.tconv1.bn.beta.npy",
     name == "transform_net1.tconv2.bn.gamma.npy",
@@ -299,8 +299,8 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
 
   bool rsltConvWeight = false;
   bool rsltConvBias = false;
-  bool rsltMatOpsIn1 = false;
-  bool rsltMatOpsIn2 = false;
+  bool rsltBasicOpsIn1 = false;
+  bool rsltBasicOpsIn2 = false;
   bool rsltMatMulIn2 = false;
 
   for(bool item:isConvWeight){
@@ -310,11 +310,11 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
     rsltConvBias = rsltConvBias | item;
   }
 
-  for(bool item:isMatOpsIn1){
-    rsltMatOpsIn1 = rsltMatOpsIn1 | item;
+  for(bool item:isBasicOpsIn1){
+    rsltBasicOpsIn1 = rsltBasicOpsIn1 | item;
   }
-  for(bool item:isMatOpsIn2){
-    rsltMatOpsIn2 = rsltMatOpsIn2 | item;
+  for(bool item:isBasicOpsIn2){
+    rsltBasicOpsIn2 = rsltBasicOpsIn2 | item;
   }
 
   for(bool item:isMatMulIn2){
@@ -328,11 +328,11 @@ std::string CWeightLoader::_ResolveTensorTagOclXilinx(std::string &name) {
     return "conv_b";
   }
 
-  if(rsltMatOpsIn1){
-    return "matops_in1";
+  if(rsltBasicOpsIn1){
+    return "basicops_in1";
   }
-  if(rsltMatOpsIn2){
-    return "matops_in2";
+  if(rsltBasicOpsIn2){
+    return "basicops_in2";
   }
 
   if(rsltMatMulIn2){
