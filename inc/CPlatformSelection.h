@@ -24,6 +24,7 @@ class CPlatformSelection {
   CTensorBasePtr Tile         (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount);
   CTensorBasePtr Transpose    (PLATFORMS destPlatform, CTensorBasePtr inputTn);
   CTensorBasePtr Gather       (PLATFORMS destPlatform, CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis);
+  CTensorBasePtr Reduce       (PLATFORMS destPlatform, CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3);
 
   void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
   bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);

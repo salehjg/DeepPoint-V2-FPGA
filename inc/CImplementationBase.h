@@ -17,11 +17,10 @@ class CImplementationBase {
   virtual CTensorBasePtr Tile         (CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount)=0;
   virtual CTensorBasePtr Transpose    (CTensorBasePtr inputTn)=0;
   virtual CTensorBasePtr Gather       (CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis)=0;
+  virtual CTensorBasePtr Reduce       (CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
 
 
-  //virtual CTensorBase* ReduceSum(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2)=0;
-  //virtual CTensorBase* ReduceSum4D(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
-  //virtual CTensorBase* ReduceMax(CTensorBase* inputTn, int reductionDim)=0;
+
   //virtual CTensorBase* Mean(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
   //virtual CTensorBase* Variance(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
 

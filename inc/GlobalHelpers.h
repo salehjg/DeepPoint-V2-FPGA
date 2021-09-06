@@ -25,6 +25,11 @@ enum class BASIC_OPS{
   DIV_ELEMENTWISE
 };
 
+enum class REDUCTION_OPS{
+  SUM,
+  MAX
+};
+
 struct CallbackData{
   void *classPtr;
   unsigned parentLayerId;

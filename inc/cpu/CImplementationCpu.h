@@ -23,11 +23,8 @@ class CImplementationCpu: public CImplementationBase {
   CTensorBasePtr Tile         (CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount) override;
   CTensorBasePtr Transpose    (CTensorBasePtr inputTn) override;
   CTensorBasePtr Gather       (CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis) override;
+  CTensorBasePtr Reduce       (CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3) override ;
 
-
-  //CTensorBase* Transpose(CTensorBase *inputTn);
-  //;
-  ////CTensorBase* MatMul(CTensorBase* inputTn, float scalar);
   //CTensorBase* Square(CTensorBase* inputTn);
   //CTensorBase* ReduceSum(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2);
   //CTensorBase* ReduceSum4D(CTensorBase* inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3);

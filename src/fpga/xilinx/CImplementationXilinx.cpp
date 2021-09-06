@@ -139,6 +139,12 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskGather::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelReduce = new CKernelWrapperReduce(
+      "task_reduce","reduce.cpp",m_ptrXilInfo,
+      ConfigTaskReduce::BankIndex_inputTn,
+      ConfigTaskReduce::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -462,6 +468,49 @@ CTensorBasePtr CImplementationXilinx::Gather(CTensorBasePtr inputTn, CTensorBase
   ValidateTensorPlatforms({inputTn,indicesTn}, PLATFORMS::XIL);
 
   CTensorBasePtr outputTn = m_ptrKernelGather->EnqueueKernelLaunch(GetTheLastLayerId(), inputTn, indicesTn, indicesOfAxis);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
+                                             REDUCTION_OPS mode,
+                                             unsigned powY,
+                                             bool overAxis0,
+                                             bool overAxis1,
+                                             bool overAxis2,
+                                             bool overAxis3) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+        {"reduction_op",
+         mode==REDUCTION_OPS::SUM?0:
+         mode==REDUCTION_OPS::MAX?1:
+         -1
+        },
+        {"powY",powY},
+        {"rank",inputTn->GetRank()},
+        {"overAxis0",overAxis0},
+        {"overAxis1",overAxis1},
+        {"overAxis2",overAxis2},
+        {"overAxis3",overAxis3}
+      }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelReduce->EnqueueKernelLaunch(
+      GetTheLastLayerId(),
+      inputTn,
+      mode,
+      powY,
+      overAxis0,
+      overAxis1,
+      overAxis2,
+      overAxis3
+  );
 
   m_ptrProfiler->FinishLayer();
   return outputTn;

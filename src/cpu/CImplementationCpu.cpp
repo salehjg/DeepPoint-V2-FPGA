@@ -556,3 +556,231 @@ CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
+                                          REDUCTION_OPS mode,
+                                          unsigned powY,
+                                          bool overAxis0,
+                                          bool overAxis1,
+                                          bool overAxis2,
+                                          bool overAxis3) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+                                    {"reduction_op",
+                                     mode==REDUCTION_OPS::SUM?0:
+                                     mode==REDUCTION_OPS::MAX?1:
+                                     -1
+                                    },
+                                    {"powY",powY},
+                                    {"rank",inputTn->GetRank()},
+                                    {"overAxis0",overAxis0},
+                                    {"overAxis1",overAxis1},
+                                    {"overAxis2",overAxis2},
+                                    {"overAxis3",overAxis3}
+                                }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  ConditionCheck(pInputTn->GetRank()<=4, "The CPU implementation of reduce only supports tensors of rank 4 and less.");
+
+  unsigned diff = 0;
+  if(pInputTn->GetRank()<3) {
+    diff = pInputTn->ExpandDimZeroToRank(3);
+  }
+  unsigned rank = pInputTn->GetRank();
+  auto shape = pInputTn->GetShape();
+  CTensorPtr<float> rsltTn;
+  unsigned indxD, indxS;
+
+  if(mode==REDUCTION_OPS::SUM && rank==3){
+    //rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K, D}));
+
+    if(overAxis0&&overAxis1&&overAxis2){ //TTT
+      rsltTn = CTensorPtr<float>(new CTensor<float>({1}));
+      float sum = 0;
+      unsigned limit = pInputTn->GetLen();
+
+      for(unsigned b=0;b<limit;b++) {
+        sum += (*pInputTn)[b];
+      }
+      (*rsltTn)[0] = sum;
+    } else if(overAxis0&&!overAxis1&&!overAxis2){ //TFF
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim1,dim2}));
+      float sum=0;
+
+      for(unsigned d1=0; d1<dim1; d1++){
+        for(unsigned d2=0; d2<dim2; d2++){
+          sum=0;
+          indxD = d1 * dim2 + d2;
+          for(unsigned dx=0;dx<dim0;dx++){
+            indxS = dx * dim1*dim2 + d1 * dim2 + d2;
+            sum += (*pInputTn)[indxS] ;
+          }
+          (*rsltTn)[indxD] = sum;
+        }
+      }
+    }else if(!overAxis0&&overAxis1&&!overAxis2) { //FTF
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim0,dim2}));
+      float sum=0;
+
+      for(unsigned d0=0; d0<dim0;d0++){
+        for(unsigned d2=0;d2<dim2;d2++){
+          sum=0;
+          indxD = d0 *dim2 + d2;
+          for(unsigned dx=0;dx<dim1;dx++){
+            indxS = d0 * dim1*dim2 + dx * dim2 + d2;
+            sum+=(*pInputTn)[indxS] ;
+          }
+          (*rsltTn)[indxD] = sum;
+        }
+      }
+    }else if(!overAxis0&&!overAxis1&&overAxis2) { //FFT
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim0,dim1}));
+      float sum=0;
+
+      for(unsigned d0=0; d0<dim0;d0++){
+        for(unsigned d1=0;d1<dim1;d1++){
+          sum=0;
+          indxD = d0 * dim1 + d1;
+          for(unsigned dx=0;dx<dim2;dx++){
+            indxS = d0 * dim1*dim2 + d1 * dim2 + dx;
+            sum+=(*pInputTn)[indxS] ;
+          }
+          (*rsltTn)[indxD] = sum;
+        }
+      }
+    }else{
+      ConditionCheck(false, "Unimplemented reduce sum 3 combination.");
+    }
+  }else if(mode==REDUCTION_OPS::SUM && rank==4) {
+    // Sum4 TTTF
+    if(overAxis0 && overAxis1 && overAxis2 && !overAxis3) {
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim3}));
+
+      float sum = 0;
+      for (unsigned d3 = 0; d3 < dim3; d3++) {
+        sum = 0;
+        indxD = d3;
+        for (unsigned d0 = 0; d0 < dim0; d0++) {
+          for (unsigned d1 = 0; d1 < dim1; d1++) {
+            for (unsigned d2 = 0; d2 < dim2; d2++) {
+
+              indxS = d0 * dim1 * dim2 * dim3 +
+                  d1 * dim2 * dim3 +
+                  d2 * dim3 +
+                  d3;
+
+              sum += (*pInputTn)[indxS];
+            }
+          }
+        }
+        (*rsltTn)[indxD] = sum;
+      }
+    }else{
+      ConditionCheck(false, "Unimplemented reduce sum 4 combination.");
+    }
+  }else if(mode==REDUCTION_OPS::MAX && rank==4){
+    // Max4 FTFF
+    if(!overAxis0 && !overAxis1 && !overAxis2 && overAxis3){ //over dim 3
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim1, dim2}));
+
+      const float max_cte= -std::numeric_limits<float>::max();
+      float max= -std::numeric_limits<float>::max();
+
+      for(unsigned d0=0;d0<dim0;d0++){
+        for(unsigned d1=0;d1<dim1;d1++){
+          for(unsigned d2=0;d2<dim2;d2++){
+            indxD = d0*dim1*dim2+
+                d1*dim2+
+                d2;
+            max = max_cte;
+            for(unsigned d3=0;d3<dim3;d3++){
+              indxS = d0*dim1*dim2*dim3+
+                  d1*dim2*dim3+
+                  d2*dim3+
+                  d3;
+              if(max<(*pInputTn)[indxS]){
+                max = (*pInputTn)[indxS];
+              }
+            }
+            (*rsltTn)[indxD]=max;
+          }
+        }
+      }
+    }else if(!overAxis0 && !overAxis1 && overAxis2 && !overAxis3) { //over dim 2
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim1, dim3}));
+
+      const float max_cte= -std::numeric_limits<float>::max();
+      float max= 0;
+
+      for(unsigned d0=0;d0<dim0;d0++){
+        for(unsigned d1=0;d1<dim1;d1++){
+          for(unsigned d3=0;d3<dim3;d3++){
+            indxD = d0*dim1*dim3+
+                d1*dim3+
+                d3;
+            max = max_cte;
+
+            for(unsigned d2=0;d2<dim2;d2++){
+              indxS = d0*dim1*dim2*dim3+
+                  d1*dim2*dim3+
+                  d2*dim3+
+                  d3;
+              if(max<(*pInputTn)[indxS]){
+                max = (*pInputTn)[indxS];
+              }
+            }
+            (*rsltTn)[indxD]=max;
+          }
+        }
+      }
+    }else if(!overAxis0 && overAxis1 && !overAxis2 && !overAxis3) { //over dim 1
+      const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim2, dim3}));
+
+      const float max_cte= -std::numeric_limits<float>::max();
+      float max= 0;
+
+      for(unsigned d0=0;d0<dim0;d0++){
+        for(unsigned d2=0;d2<dim2;d2++){
+          for(unsigned d3=0;d3<dim3;d3++){
+            indxD = d0*dim2*dim3+
+                d2*dim3+
+                d3;
+            max = max_cte;
+
+            for(unsigned d1=0;d1<dim1;d1++){
+              indxS = d0*dim1*dim2*dim3+
+                  d1*dim2*dim3+
+                  d2*dim3+
+                  d3;
+              if(max<(*pInputTn)[indxS]){
+                max = (*pInputTn)[indxS];
+              }
+            }
+            (*rsltTn)[indxD]=max;
+          }
+        }
+      }
+    }else{
+      ConditionCheck(false, "Unimplemented reduce max 4 combination.");
+    }
+
+  }else{
+    assert(false); //NYI
+  }
+
+  pInputTn->SqueezeDimZeroTimesTry(diff);
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}
