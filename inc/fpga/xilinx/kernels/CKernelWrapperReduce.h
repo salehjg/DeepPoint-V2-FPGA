@@ -113,7 +113,7 @@ class CKernelWrapperReduce: public CKernelWrapper{
       }
     } else if (mode == REDUCTION_OPS::MAX){
       if(rank==4 && ((!overAxis0 && overAxis1 && !overAxis2 && !overAxis3) && inputTn->GetShape()[2]==1)){
-        // ReduceMax4D TFTT && shape[2]==1
+        // ReduceMax4D FTFF && shape[2]==1
         // Uses the kernel for reduce max TFT
         dim0 = shape[0];
         dim1 = shape[1];
@@ -127,7 +127,7 @@ class CKernelWrapperReduce: public CKernelWrapper{
         kernelMode = 3;
 
       }else if(rank==4 && (!overAxis0 && !overAxis1 && overAxis2 && !overAxis3)){
-        // ReduceMax4D TTFT
+        // ReduceMax4D FFTF
         dim0 = shape[0]*shape[1];
         dim1 = shape[2];
         dim2 = shape[3];

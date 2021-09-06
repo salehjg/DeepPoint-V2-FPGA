@@ -17,15 +17,16 @@ bool ReduceTest(const unsigned pattern, const std::vector<unsigned> &shape, REDU
 
 TEST(test_ckwreduce, mixed1) {
   std::vector<bool> results = {
-      ReduceTest<float>(0, {1,1024,3}, REDUCTION_OPS::SUM, 1, false, false, true, false),
-      ReduceTest<float>(0, {1,1024,64}, REDUCTION_OPS::SUM, 1, false, false, true, false),
+      ReduceTest<float>(0, {1,1024,3}, REDUCTION_OPS::SUM, 1, false, false, true, false),   // RS3 FFT
+      ReduceTest<float>(0, {1,1024,64}, REDUCTION_OPS::SUM, 1, false, false, true, false),  // RS3 FFT
 
-      ReduceTest<float>(3, {2,2,16,512}, REDUCTION_OPS::SUM, 1, true, true, true, false),
-      ReduceTest<float>(4, {2,2,2,16}, REDUCTION_OPS::SUM, 1, true, true, true, false),
+      ReduceTest<float>(3, {2,2,16,512}, REDUCTION_OPS::SUM, 1, true, true, true, false),   // RS4 TTTF
+      ReduceTest<float>(4, {2,2,2,16}, REDUCTION_OPS::SUM, 1, true, true, true, false),     // RS4 TTTF
 
-      ReduceTest<float>(0, {2,2,3,32}, REDUCTION_OPS::MAX, 1, false, false, true, false),
-      ReduceTest<float>(0, {2,2,3,16}, REDUCTION_OPS::MAX, 1, false, false, true, false),
-      ReduceTest<float>(0, {2,1,1,1024}, REDUCTION_OPS::MAX, 1, false, false, true, false),
+      ReduceTest<float>(0, {2,2,3,32}, REDUCTION_OPS::MAX, 1, false, false, true, false),   // RM4 FFTF
+      ReduceTest<float>(0, {2,2,3,16}, REDUCTION_OPS::MAX, 1, false, false, true, false),   // RM4 FFTF
+      ReduceTest<float>(0, {2,1,1,1024}, REDUCTION_OPS::MAX, 1, false, false, true, false), // RM4 FFTF
+      ReduceTest<float>(0, {2,2,1,1024}, REDUCTION_OPS::MAX, 1, false, true, false, false), // RM4 FTFF
   };
 
   for(auto r:results){
