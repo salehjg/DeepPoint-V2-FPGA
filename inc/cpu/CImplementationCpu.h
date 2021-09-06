@@ -1,5 +1,7 @@
 #pragma once
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -59,10 +61,11 @@ void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorPtr<T> 
 
 template<typename T>
 bool CImplementationCpu::CompareTensors(CTensorPtr<T> inputTn1, CTensorPtr<T> inputTn2) {
+  const float tolerance = 0.005f;
   if(inputTn1->GetShape()!=inputTn2->GetShape()) return false;
   bool matches = true;
   for(size_t i=0; i<inputTn1->GetLen(); i++){
-    if((*inputTn1)[i]!=(*inputTn2)[i]){
+    if(fabsf( (*inputTn1)[i]-(*inputTn2)[i] ) > tolerance){
       SPDLOG_LOGGER_ERROR(
           logger,
           "CompareTensors: Mismatch at tn1[{}]={}, tn2[{}]={}",
