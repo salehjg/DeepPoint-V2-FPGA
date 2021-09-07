@@ -19,7 +19,7 @@ class CKernelWrapper {
       std::string path,
       bool isDisabled,
       bool profileOcl);
-  ~CKernelWrapper();
+  virtual ~CKernelWrapper();
 
   cl::Kernel* GetKernel() const;
   CXilinxInfo* GetXilInfo() const;

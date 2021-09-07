@@ -64,14 +64,14 @@ class CImplementationXilinx: public CImplementationBase {
   CTensorXil<float> *m_ptrDataMoverDummyTensorBank3;
   std::vector<ProfiledLaunchData> *m_ptrDataMoverProfiledDataVec;
 
-  CKernelWrapperConcat *m_ptrKernelConcat;
-  CKernelWrapperMatmul *m_ptrKernelMatmul;
-  CKernelWrapperReluSqrtSquare *m_ptrKernelRss;
-  CKernelWrapperBasicOps *m_ptrKernelBasicOps;
-  CKernelWrapperTile *m_ptrKernelTile;
-  CKernelWrapperTranspose *m_ptrKernelTranspose;
-  CKernelWrapperGather *m_ptrKernelGather;
-  CKernelWrapperReduce *m_ptrKernelReduce;
+  std::unique_ptr<CKernelWrapperConcat>         m_ptrKernelConcat;
+  std::unique_ptr<CKernelWrapperMatmul>         m_ptrKernelMatmul;
+  std::unique_ptr<CKernelWrapperReluSqrtSquare> m_ptrKernelRss;
+  std::unique_ptr<CKernelWrapperBasicOps>       m_ptrKernelBasicOps;
+  std::unique_ptr<CKernelWrapperTile>           m_ptrKernelTile;
+  std::unique_ptr<CKernelWrapperTranspose>      m_ptrKernelTranspose;
+  std::unique_ptr<CKernelWrapperGather>         m_ptrKernelGather;
+  std::unique_ptr<CKernelWrapperReduce>         m_ptrKernelReduce;
 };
 
 

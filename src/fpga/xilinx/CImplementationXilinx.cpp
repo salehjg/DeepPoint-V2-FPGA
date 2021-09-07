@@ -2,6 +2,7 @@
 
 #include "fpga/xilinx/CImplementationXilinx.h"
 #include <iostream>
+#include <memory>
 #include "GlobalHelpers.h"
 
 using namespace std;
@@ -93,53 +94,53 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
   }
 
   //======================================================================================================================
-  m_ptrKernelConcat = new CKernelWrapperConcat(
+  m_ptrKernelConcat = std::make_unique<CKernelWrapperConcat>(
       "task_concat","concat.cpp",m_ptrXilInfo,
       ConfigTaskConcat::BankIndex_inputTn1,
       ConfigTaskConcat::BankIndex_inputTn2,
       ConfigTaskConcat::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelMatmul = new CKernelWrapperMatmul(
+  m_ptrKernelMatmul = std::make_unique<CKernelWrapperMatmul>(
       "task_matmul","matmul.cpp",m_ptrXilInfo,
       ConfigTaskMatMul::BankIndex_inputTn1,
       ConfigTaskMatMul::BankIndex_inputTn2,
       ConfigTaskMatMul::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelRss = new CKernelWrapperReluSqrtSquare(
+  m_ptrKernelRss = std::make_unique<CKernelWrapperReluSqrtSquare>(
       "task_relu_sqrt_square","relu_sqrt_square.cpp",m_ptrXilInfo,
       ConfigTaskReluSqrtSquare::BankIndex_inputTn,
       ConfigTaskReluSqrtSquare::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelBasicOps = new CKernelWrapperBasicOps(
+  m_ptrKernelBasicOps = std::make_unique<CKernelWrapperBasicOps>(
       "task_basicops","basicops.cpp",m_ptrXilInfo,
       ConfigTaskBasicOps::BankIndex_inputTn1,
       ConfigTaskBasicOps::BankIndex_inputTn2,
       ConfigTaskBasicOps::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelTile = new CKernelWrapperTile(
+  m_ptrKernelTile = std::make_unique<CKernelWrapperTile>(
       "task_tile","tile.cpp",m_ptrXilInfo,
       ConfigTaskTile::BankIndex_inputTn,
       ConfigTaskTile::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelTranspose = new CKernelWrapperTranspose(
+  m_ptrKernelTranspose = std::make_unique<CKernelWrapperTranspose>(
       "task_transpose","transpose.cpp",m_ptrXilInfo,
       ConfigTaskTranspose::BankIndex_inputTn,
       ConfigTaskTranspose::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelGather = new CKernelWrapperGather(
+  m_ptrKernelGather = std::make_unique<CKernelWrapperGather>(
       "task_gather","gather.cpp",m_ptrXilInfo,
       ConfigTaskGather::BankIndex_inputTn,
       ConfigTaskGather::BankIndex_indicesTn,
       ConfigTaskGather::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
-  m_ptrKernelReduce = new CKernelWrapperReduce(
+  m_ptrKernelReduce = std::make_unique<CKernelWrapperReduce>(
       "task_reduce","reduce.cpp",m_ptrXilInfo,
       ConfigTaskReduce::BankIndex_inputTn,
       ConfigTaskReduce::BankIndex_outputTn,
@@ -277,7 +278,6 @@ CImplementationXilinx::~CImplementationXilinx() {
 
   SPDLOG_LOGGER_TRACE(logger, "Destroying CImplementationXilinx().");
 
-  delete m_ptrKernelConcat;
   delete m_ptrXilInfo;
   delete m_ptrDataMoverProfiledDataVec;
   delete m_ptrProgram;

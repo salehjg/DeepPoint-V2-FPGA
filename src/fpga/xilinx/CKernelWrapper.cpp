@@ -23,6 +23,12 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
   }
 }
 
+CKernelWrapper::~CKernelWrapper() {
+  for(auto *p:m_vCallBackData){
+    delete(p);
+  }
+}
+
 cl::Kernel *CKernelWrapper::GetKernel() const {
   return m_oKernel;
 }
@@ -113,8 +119,4 @@ void CKernelWrapper::StoreBookKeepingEntry(const std::vector<CTensorBasePtr> &ve
 void CKernelWrapper::ReleaseBookKeepingEntryAt(unsigned kernelBookKeepingId) {
   m_vBookKeeper.at(kernelBookKeepingId).clear();
 }
-CKernelWrapper::~CKernelWrapper() {
-  for(auto *p:m_vCallBackData){
-    delete(p);
-  }
-}
+
