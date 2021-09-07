@@ -784,3 +784,165 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::Mean(CTensorBasePtr inputTn,
+                                        bool overAxis0,
+                                        bool overAxis1,
+                                        bool overAxis2,
+                                        bool overAxis3) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+                                    {"rank",inputTn->GetRank()},
+                                    {"overAxis0",overAxis0},
+                                    {"overAxis1",overAxis1},
+                                    {"overAxis2",overAxis2},
+                                    {"overAxis3",overAxis3}
+                                }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+
+  auto shape = pInputTn->GetShape();
+  unsigned
+      dim0 = shape[0],
+      dim1 = shape[1],
+      dim2 = shape[2],
+      dim3 = shape[3],
+      rank = pInputTn->GetRank();
+
+  CTensorPtr<float> rsltTn;
+
+  if(rank==4){
+    if(!overAxis3 && overAxis0 && overAxis1 && overAxis2){
+      CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, overAxis0, overAxis1, overAxis2, overAxis3);
+      CTensorPtr<float> pReduced = std::dynamic_pointer_cast<CTensor<float>>(reduced);
+      rsltTn = CTensorPtr<float>(new CTensor<float>({dim3}));
+      const auto l = (float)(dim0*dim1*dim2);
+      for(unsigned d3=0;d3<dim3;d3++){
+        (*rsltTn)[d3] = ((*pReduced)[d3])/l;
+      }
+    }
+  }
+
+  if(rank==2) { //dim0 is batch, dim1 is fc layer output, ex.: for B=1 --> output=[1,256]
+    if (!overAxis1 && overAxis0) {
+      CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, false, true, false, false);
+      auto meanTn = BasicOps(reduced, 1.0f/(float)dim0,BASIC_OPS::MUL_ELEMENTWISE);
+      rsltTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
+    }
+  }
+
+  if(rank==1){
+    CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, true, true, true, false);
+    CTensorBasePtr meanTn = BasicOps(reduced, 1.0f/(float)dim0,BASIC_OPS::MUL_ELEMENTWISE);
+    rsltTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}
+CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
+                                            bool overAxis0,
+                                            bool overAxis1,
+                                            bool overAxis2,
+                                            bool overAxis3) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+                                    {"rank",inputTn->GetRank()},
+                                    {"overAxis0",overAxis0},
+                                    {"overAxis1",overAxis1},
+                                    {"overAxis2",overAxis2},
+                                    {"overAxis3",overAxis3}
+                                }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+
+  auto shape = pInputTn->GetShape();
+  unsigned
+      dim0 = shape[0],
+      dim1 = shape[1],
+      dim2 = shape[2],
+      dim3 = shape[3],
+      rank = pInputTn->GetRank();
+
+  CTensorPtr<float> rsltTn;
+
+  if(rank==4){
+    if(!overAxis3 && overAxis0 && overAxis1 && overAxis2) {
+      CTensorBasePtr meanTn = Mean(inputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+      CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
+      CTensorPtr<float> varianceTn(new CTensor<float>({dim3}));
+      unsigned indxS1;
+      for (unsigned d3 = 0; d3 < dim3; d3++) { //over the last-dim
+        (*varianceTn)[d3]=0;
+
+
+        for (unsigned d0 = 0; d0 < dim0; d0++) {
+          for (unsigned d1 = 0; d1 < dim1; d1++) {
+            for (unsigned d2 = 0; d2 < dim2; d2++) {
+              indxS1 = d0*dim1*dim2*dim3+
+                  d1*dim2*dim3+
+                  d2*dim3+
+                  d3;
+
+              float delta = ((*pInputTn)[indxS1] - (*pMeanTn)[d3]);
+              (*varianceTn)[d3] += delta*delta;
+            }
+          }
+        }
+      }
+
+      auto varianceFinalTn = BasicOps(varianceTn,(float)(1.0f/(float)(dim0*dim1*dim2)),BASIC_OPS::MUL_ELEMENTWISE);
+      rsltTn = std::dynamic_pointer_cast<CTensor<float>>(varianceFinalTn);
+    }
+  }
+
+  if(rank==2) { //dim0 is batch, dim1 is fc layer output, ex.: for B=1 --> output=[1,256]
+    if(!overAxis1 && overAxis0) {
+      CTensorBasePtr meanTn = Mean(inputTn, true, false, false, false);
+      CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
+      CTensorPtr<float> varianceTn(new CTensor<float>({dim1}));
+
+      unsigned indxS1;
+      for(unsigned d1 = 0; d1 < dim1; d1++) { //over the last-dim
+        (*varianceTn)[d1]=0;
+
+        for (unsigned d0 = 0; d0 < dim0; d0++) {
+          indxS1 = d0*dim1 + d1;
+
+          float delta = ((*pInputTn)[indxS1]-(*pMeanTn)[d1]);
+          (*varianceTn)[d1] += delta*delta;
+        }
+      }
+      auto varianceFinalTn = BasicOps(varianceTn,(float)(1.0f/(float)(dim0)),BASIC_OPS::MUL_ELEMENTWISE);
+      rsltTn = std::dynamic_pointer_cast<CTensor<float>>(varianceFinalTn);
+    }
+  }
+
+  if(rank==1){
+    CTensorBasePtr meanTn = Mean(inputTn, true, true, true, true);
+    CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
+    CTensorPtr<float> varianceTn(new CTensor<float>({1}));
+
+    unsigned indxS1;
+    for (int d0 = 0; d0 < dim0; d0++) {
+      float delta = ((*pInputTn)[d0] - (*pMeanTn)[0]);
+      (*varianceTn)[0] += delta*delta;
+    }
+    (*varianceTn)[0] = (*varianceTn)[0]/(float)dim0;
+    rsltTn = std::dynamic_pointer_cast<CTensor<float>>(varianceTn);
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

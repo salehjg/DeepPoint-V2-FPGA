@@ -25,7 +25,9 @@ set(TEST_SOURCES
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtile/test_ckwtile.cpp
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtranspose/test_ckwtranspose.cpp
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwgather/test_ckwgather.cpp
-        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwreduce/test_ckwreduce.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwreduce/test_ckwreduce.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layermean/test_layermean.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layervariance/test_layervariance.cpp
         )
 
 

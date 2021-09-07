@@ -475,7 +475,7 @@ CTensorBasePtr CImplementationXilinx::Gather(CTensorBasePtr inputTn, CTensorBase
 CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
                                              REDUCTION_OPS mode,
                                              unsigned powY,
-                                             bool overAxis0,
+                                             bool overAxis,
                                              bool overAxis1,
                                              bool overAxis2,
                                              bool overAxis3) {
@@ -492,7 +492,7 @@ CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
         },
         {"powY",powY},
         {"rank",inputTn->GetRank()},
-        {"overAxis0",overAxis0},
+        {"overAxis",overAxis},
         {"overAxis1",overAxis1},
         {"overAxis2",overAxis2},
         {"overAxis3",overAxis3}
@@ -506,12 +506,120 @@ CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
       inputTn,
       mode,
       powY,
-      overAxis0,
+      overAxis,
       overAxis1,
       overAxis2,
       overAxis3
   );
 
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Mean(CTensorBasePtr inputTn,
+                                           bool overAxis,
+                                           bool overAxis1,
+                                           bool overAxis2,
+                                           bool overAxis3) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+                                    {"rank",inputTn->GetRank()},
+                                    {"overAxis",overAxis},
+                                    {"overAxis1",overAxis1},
+                                    {"overAxis2",overAxis2},
+                                    {"overAxis3",overAxis3}
+      }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+  ConditionCheck(inputTn->GetRank()==2 || inputTn->GetRank()==4, "Only tensors of ranks 2 and 4 are supported.");
+  ConditionCheck(
+      (overAxis && overAxis1 && overAxis2 && !overAxis3 && inputTn->GetRank()==4) ||
+      (overAxis && !overAxis1 && !overAxis2 && !overAxis3 && inputTn->GetRank()==2),
+      "Unsupported combination for the input tensor."
+  );
+  
+  unsigned diff = inputTn->ExpandDimZeroToRank(4);
+  bool _mean_axis0, _mean_axis1, _mean_axis2, _mean_axis3;
+  if(inputTn->GetRank()==4){
+    _mean_axis0 = overAxis;
+    _mean_axis1 = overAxis1;
+    _mean_axis2 = overAxis2;
+    _mean_axis3 = overAxis3;
+  }else if (inputTn->GetRank()==2){
+    _mean_axis0 = true;
+    _mean_axis1 = true;
+    _mean_axis2 = true;
+    _mean_axis3 = false;
+  }
+
+  CTensorBasePtr reducedTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _mean_axis0, _mean_axis1, _mean_axis2, _mean_axis3);
+  float coef = (float)inputTn->GetLen() / (float)reducedTn->GetLen(); // dim0xdim1xdim2 (for TTTF)
+  CTensorBasePtr outputTn = BasicOps(reducedTn, coef, BASIC_OPS::DIV_ELEMENTWISE);
+
+  inputTn->SqueezeDimZeroTimesTry(diff);
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Variance(CTensorBasePtr inputTn,
+                                               bool overAxis0,
+                                               bool overAxis1,
+                                               bool overAxis2,
+                                               bool overAxis3) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+                                    {"rank",inputTn->GetRank()},
+                                    {"overAxis",overAxis0},
+                                    {"overAxis1",overAxis1},
+                                    {"overAxis2",overAxis2},
+                                    {"overAxis3",overAxis3}
+                                }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+  ConditionCheck(inputTn->GetRank()==2 || inputTn->GetRank()==4, "Only tensors of ranks 2 and 4 are supported.");
+  ConditionCheck(
+      (overAxis0 && overAxis1 && overAxis2 && !overAxis3 && inputTn->GetRank()==4) ||
+          (overAxis0 && !overAxis1 && !overAxis2 && !overAxis3 && inputTn->GetRank()==2),
+      "Unsupported combination for the input tensor."
+  );
+
+  unsigned diff = inputTn->ExpandDimZeroToRank(4);
+  bool _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3;
+  if(inputTn->GetRank()==4){
+    _variance_axis0 = overAxis0;
+    _variance_axis1 = overAxis1;
+    _variance_axis2 = overAxis2;
+    _variance_axis3 = overAxis3;
+  }else if (inputTn->GetRank()==2){
+    _variance_axis0 = true;
+    _variance_axis1 = true;
+    _variance_axis2 = true;
+    _variance_axis3 = false;
+  }
+
+  //CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
+  CTensorBasePtr tmpTn2 = BasicOps(inputTn, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
+  CTensorBasePtr outputTn = BasicOps(tmpTn2, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
+  /*
+  CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
+  CTensorBasePtr varianceXi2Tn = Reduce(inputTn, REDUCTION_OPS::SUM, 2, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
+  float coef = (float)inputTn->GetLen() / (float)tmpTn->GetLen();
+
+  CTensorBasePtr meanTn = BasicOps(tmpTn, coef, BASIC_OPS::DIV_ELEMENTWISE);
+  CTensorBasePtr tmp2Tn = BasicOps(varianceXi2Tn, coef, BASIC_OPS::DIV_ELEMENTWISE);
+  CTensorBasePtr tmp3Tn = BasicOps(meanTn, meanTn, BASIC_OPS::MUL_ELEMENTWISE);
+  CTensorBasePtr outputTn = BasicOps(tmp2Tn, tmp3Tn, BASIC_OPS::SUB);
+   */
+
+  inputTn->SqueezeDimZeroTimesTry(diff);
   m_ptrProfiler->FinishLayer();
   return outputTn;
 }

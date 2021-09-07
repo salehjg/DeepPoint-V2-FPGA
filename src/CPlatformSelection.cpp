@@ -249,6 +249,44 @@ CTensorBasePtr CPlatformSelection::Reduce(PLATFORMS destPlatform,
   }
 }
 
+CTensorBasePtr CPlatformSelection::Mean(PLATFORMS destPlatform,
+                                        CTensorBasePtr inputTn,
+                                        bool overAxis0,
+                                        bool overAxis1,
+                                        bool overAxis2,
+                                        bool overAxis3) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->Mean(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->Mean(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+CTensorBasePtr CPlatformSelection::Variance(PLATFORMS destPlatform,
+                                            CTensorBasePtr inputTn,
+                                            bool overAxis0,
+                                            bool overAxis1,
+                                            bool overAxis2,
+                                            bool overAxis3){
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->Variance(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->Variance(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }
