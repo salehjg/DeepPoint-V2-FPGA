@@ -29,7 +29,6 @@ class CKernelWrapperBasicOps: public CKernelWrapper{
     m_uBankInputTn1=bankInputTn1;
     m_uBankInputTn2=bankInputTn2;
     m_uBankOutputTn=bankOutputTn;
-
   }
 
   CTensorBasePtr EnqueueKernelLaunch(unsigned parentLayerId, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, BASIC_OPS mode, bool useScalar, float scalar){

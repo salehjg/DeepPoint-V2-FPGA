@@ -605,12 +605,6 @@ CTensorBasePtr CImplementationXilinx::Variance(CTensorBasePtr inputTn,
     _variance_axis3 = false;
   }
 
-  /*
-  CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
-  CTensorBasePtr tmpTn2 = BasicOps(tmpTn, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
-  CTensorBasePtr outputTn = BasicOps(tmpTn2, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
-   */
-
   CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
   CTensorBasePtr varianceXi2Tn = Reduce(inputTn, REDUCTION_OPS::SUM, 2, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
   float coef = (float)inputTn->GetLen() / (float)tmpTn->GetLen();

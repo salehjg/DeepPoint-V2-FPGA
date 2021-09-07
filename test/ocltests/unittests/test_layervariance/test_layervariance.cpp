@@ -23,7 +23,7 @@ TEST(test_layervariance, variance4_TTTF1) {
     EXPECT_TRUE(r);
   }
 }
-/*
+
 TEST(test_layervariance, variance4_TTTF2) {
   std::vector<bool> results = {
       VarianceTest<float>({2,2,2,17}),
@@ -33,4 +33,3 @@ TEST(test_layervariance, variance4_TTTF2) {
     EXPECT_TRUE(r);
   }
 }
-*/
