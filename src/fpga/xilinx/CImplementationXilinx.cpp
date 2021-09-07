@@ -605,19 +605,19 @@ CTensorBasePtr CImplementationXilinx::Variance(CTensorBasePtr inputTn,
     _variance_axis3 = false;
   }
 
-  //CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
-  CTensorBasePtr tmpTn2 = BasicOps(inputTn, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
-  CTensorBasePtr outputTn = BasicOps(tmpTn2, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
   /*
+  CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
+  CTensorBasePtr tmpTn2 = BasicOps(tmpTn, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
+  CTensorBasePtr outputTn = BasicOps(tmpTn2, 2.0f, BASIC_OPS::DIV_ELEMENTWISE);
+   */
+
   CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
   CTensorBasePtr varianceXi2Tn = Reduce(inputTn, REDUCTION_OPS::SUM, 2, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
   float coef = (float)inputTn->GetLen() / (float)tmpTn->GetLen();
-
   CTensorBasePtr meanTn = BasicOps(tmpTn, coef, BASIC_OPS::DIV_ELEMENTWISE);
   CTensorBasePtr tmp2Tn = BasicOps(varianceXi2Tn, coef, BASIC_OPS::DIV_ELEMENTWISE);
   CTensorBasePtr tmp3Tn = BasicOps(meanTn, meanTn, BASIC_OPS::MUL_ELEMENTWISE);
   CTensorBasePtr outputTn = BasicOps(tmp2Tn, tmp3Tn, BASIC_OPS::SUB);
-   */
 
   inputTn->SqueezeDimZeroTimesTry(diff);
   m_ptrProfiler->FinishLayer();

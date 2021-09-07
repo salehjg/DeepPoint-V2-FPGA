@@ -99,13 +99,13 @@ unsigned CKernelWrapper::GetTheLastBookKeeperId() {
   return m_uBookKeeperCounter-1;
 }
 CallbackData* CKernelWrapper::GenerateAndStoreCallBackData(void* classPtr, unsigned parentLayerId) {
-  CallbackData obj;
-  obj.profileKernel = GetProfileOclEnabled();
-  obj.kernelBookKeeperId = GenerateBookKeeperId();
-  obj.classPtr = classPtr;
-  obj.parentLayerId = parentLayerId;
+  CallbackData *obj = new CallbackData();
+  obj->profileKernel = GetProfileOclEnabled();
+  obj->kernelBookKeeperId = GenerateBookKeeperId();
+  obj->classPtr = classPtr;
+  obj->parentLayerId = parentLayerId;
   m_vCallBackData.push_back(obj);
-  return &m_vCallBackData.back();
+  return obj;//m_vCallBackData.back();
 }
 void CKernelWrapper::StoreBookKeepingEntry(const std::vector<CTensorBasePtr> &vecTensorsToBePreserved) {
   m_vBookKeeper.push_back(vecTensorsToBePreserved);

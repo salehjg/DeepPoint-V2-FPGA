@@ -39,7 +39,7 @@ class CKernelWrapper {
   static void EventCallback(cl_event event, cl_int execStatus, void* userData);
   void AddProfiledKernelLaunchDetails(std::string taskName, unsigned parentLayerId, cl_ulong durationNanoSecOcl);
 
-  std::vector<CallbackData> m_vCallBackData;
+  std::vector<CallbackData*> m_vCallBackData;
   std::vector<std::vector<CTensorBasePtr>> m_vBookKeeper;
 
  private:
