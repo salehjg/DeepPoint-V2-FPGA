@@ -317,6 +317,20 @@ CTensorBasePtr CPlatformSelection::UnpadLastDim(PLATFORMS destPlatform,
   }
 }
 
+CTensorBasePtr CPlatformSelection::TopK(PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned axis, unsigned k) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->TopK(qInputTn, axis, k);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->TopK(qInputTn, axis, k);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }

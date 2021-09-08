@@ -30,7 +30,7 @@ class CImplementationCpu: public CImplementationBase {
   CTensorBasePtr Variance     (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3) override;
   CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded) override;
   CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded) override;
-
+  CTensorBasePtr TopK         (CTensorBasePtr inputTn, unsigned axis, unsigned k) override;
 
 
 

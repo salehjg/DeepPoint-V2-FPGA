@@ -22,8 +22,8 @@ class CImplementationBase {
   virtual CTensorBasePtr Variance     (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
   virtual CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded)=0;
   virtual CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded)=0;
+  virtual CTensorBasePtr TopK         (CTensorBasePtr inputTn, unsigned axis, unsigned k)=0;
 
-  //virtual CTensorBase* TopK(CTensorBase* inputTn, int axis, int k)=0;
   //virtual CTensorBase* Conv2D(CTensorBase* inputTn, CTensorBase* weightsTn, CTensorBase* biasesTn)=0;
 
   //virtual void         DumpMatrix(std::string npyFilename, CTensorBase* inputTn, std::string npyDir)=0;

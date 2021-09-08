@@ -1042,3 +1042,45 @@ CTensorBasePtr CImplementationCpu::UnpadLastDim(CTensorBasePtr inputTn, unsigned
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::TopK(CTensorBasePtr inputTn, unsigned axis, unsigned k) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+        {"axis",axis},
+        {"k",k},
+        }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  ConditionCheck(inputTn->GetRank()==3, "Only input tensors of rank 3 are supported.");
+  ConditionCheck(inputTn->GetShape()[2]>k && k>0, "The value for k should be greater than zero and less than shape[2].");
+  ConditionCheck(axis==2, "Only axis=2 is supported.");
+
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  const auto shape = pInputTn->GetShape();
+
+  unsigned indxS = 0;
+  const unsigned B = shape[0], N2 = shape[1], N = shape[2], K = (unsigned)k;
+  CTensorPtr<unsigned> rsltTn(new CTensor<unsigned>({B,N2,K}));
+  float tmp_array[N];
+  unsigned indices[N];
+
+  for(unsigned b=0;b<B*N2;b++){
+    for(unsigned i = 0 ;i<N;i++){
+      indices[i]=i;
+    }
+    indxS = b*N + 0;
+    std::copy(pInputTn->Get() +indxS, pInputTn->Get()+indxS+N, tmp_array);
+    std::sort(  indices,
+                indices+N,
+                [&](int i1, int i2) { return tmp_array[i1] < tmp_array[i2]; } );
+
+    std::copy(indices, indices+K, rsltTn->Get()+(b*K));
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

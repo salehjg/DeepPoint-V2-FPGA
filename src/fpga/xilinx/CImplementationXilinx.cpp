@@ -152,6 +152,13 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskPadUnpad::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelTopK = std::make_unique<CKernelWrapperTopK>(
+      "task_topk","topk_mergesoftdf_pe.cpp",m_ptrXilInfo,
+      ConfigTaskTopK::BankIndex_inputTn,
+      ConfigTaskTopK::BankIndex_indicesSplitedTn,
+      ConfigTaskTopK::MaxSliceLen,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -653,6 +660,26 @@ CTensorBasePtr CImplementationXilinx::UnpadLastDim(CTensorBasePtr inputTn, unsig
 
   CTensorBasePtr outputTn = m_ptrKernelPadUnpad->EnqueueKernelLaunch(
       GetTheLastLayerId(), inputTn, false, true, 0, lastDimUnpadded);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::TopK(CTensorBasePtr inputTn, unsigned axis, unsigned k) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({
+        {"axis",axis},
+        {"k",k},
+      }),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelTopK->EnqueueKernelLaunch(
+      GetTheLastLayerId(), inputTn, axis, k);
 
   m_ptrProfiler->FinishLayer();
   return outputTn;

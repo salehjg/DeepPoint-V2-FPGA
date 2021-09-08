@@ -29,6 +29,7 @@ class CPlatformSelection {
   CTensorBasePtr Variance     (PLATFORMS destPlatform, CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3);
   CTensorBasePtr PadLastDim   (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned lastDimPadded);
   CTensorBasePtr UnpadLastDim (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned lastDimUnpadded);
+  CTensorBasePtr TopK         (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned axis, unsigned k);
 
   void DumpToNumpyFile(PLATFORMS platform, std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir=REPO_DIR"/data/matrix_dumps/");
   bool CompareTensors(PLATFORMS platform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
