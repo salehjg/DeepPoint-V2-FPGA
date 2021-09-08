@@ -14,7 +14,7 @@ bool TransposeTest(const std::vector<unsigned> &shape){
   return platSelection->CompareTensors(PLATFORMS::CPU, goldTn, dstTn);
 }
 
-TEST(test_ckwtile, mixed1) {
+TEST(test_ckwtranspose, mixed1) {
   std::vector<bool> results = {
       TransposeTest<float>({2,32,32}),
       TransposeTest<float>({64,64}),

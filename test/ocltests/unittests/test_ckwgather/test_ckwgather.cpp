@@ -13,7 +13,7 @@ bool GatherTest(const std::vector<unsigned> &shapeInputTn, const std::vector<uns
   return platSelection->CompareTensors(PLATFORMS::CPU, goldTn, dstTn);
 }
 
-TEST(test_ckwtile, mixed1) {
+TEST(test_ckwgather, mixed1) {
   std::vector<bool> results = {
       GatherTest({5,5,2}, {5,5,3}, 1)
   };
