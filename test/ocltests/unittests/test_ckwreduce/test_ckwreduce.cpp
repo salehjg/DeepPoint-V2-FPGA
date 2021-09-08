@@ -13,7 +13,9 @@ bool ReduceTest(const unsigned pattern, const std::vector<unsigned> &shape, REDU
 
   bool cmp = platSelection->CompareTensors(PLATFORMS::CPU, goldTn, dstTn);
   if(!cmp)SPDLOG_LOGGER_TRACE(logger, "Reduce, Rank{}: {}", srcTn->GetRank(), cmp?"PASS":"FAIL");
+  return cmp;
 }
+
 
 TEST(test_ckwreduce, RS3_FFT1) {
   std::vector<bool> results = {
