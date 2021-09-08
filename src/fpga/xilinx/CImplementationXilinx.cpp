@@ -146,6 +146,12 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskReduce::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelPadUnpad = std::make_unique<CKernelWrapperPadUnpad>(
+      "task_pad_unpad","pad_unpad.cpp",m_ptrXilInfo,
+      ConfigTaskPadUnpad::BankIndex_inputTn,
+      ConfigTaskPadUnpad::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -614,6 +620,40 @@ CTensorBasePtr CImplementationXilinx::Variance(CTensorBasePtr inputTn,
   CTensorBasePtr outputTn = BasicOps(tmp2Tn, tmp3Tn, BASIC_OPS::SUB);
 
   inputTn->SqueezeDimZeroTimesTry(diff);
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::PadLastDim(CTensorBasePtr inputTn, unsigned lastDimPadded) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"lastDimPadded",lastDimPadded}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelPadUnpad->EnqueueKernelLaunch(
+      GetTheLastLayerId(), inputTn, true, false, lastDimPadded, 0);
+
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::UnpadLastDim(CTensorBasePtr inputTn, unsigned lastDimUnpadded) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"lastDimUnpadded",lastDimUnpadded}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
+
+  CTensorBasePtr outputTn = m_ptrKernelPadUnpad->EnqueueKernelLaunch(
+      GetTheLastLayerId(), inputTn, false, true, 0, lastDimUnpadded);
+
   m_ptrProfiler->FinishLayer();
   return outputTn;
 }

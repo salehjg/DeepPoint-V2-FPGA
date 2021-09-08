@@ -28,6 +28,8 @@ class CImplementationCpu: public CImplementationBase {
   CTensorBasePtr Reduce       (CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3) override ;
   CTensorBasePtr Mean         (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3) override;
   CTensorBasePtr Variance     (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3) override;
+  CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded) override;
+  CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded) override;
 
 
 

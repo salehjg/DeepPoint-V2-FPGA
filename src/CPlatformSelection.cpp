@@ -287,6 +287,36 @@ CTensorBasePtr CPlatformSelection::Variance(PLATFORMS destPlatform,
   }
 }
 
+CTensorBasePtr CPlatformSelection::PadLastDim(PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned lastDimPadded) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->PadLastDim(qInputTn, lastDimPadded);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->PadLastDim(qInputTn, lastDimPadded);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+CTensorBasePtr CPlatformSelection::UnpadLastDim(PLATFORMS destPlatform,
+                                                CTensorBasePtr inputTn,
+                                                unsigned lastDimUnpadded) {
+  if(!inputTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->UnpadLastDim(qInputTn, lastDimUnpadded);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->UnpadLastDim(qInputTn, lastDimUnpadded);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }
@@ -322,6 +352,3 @@ bool CPlatformSelection::CompareTensors(PLATFORMS destPlatform, CTensorBasePtr i
     ThrowException("Undefined platform.");
   }
 }
-
-
-

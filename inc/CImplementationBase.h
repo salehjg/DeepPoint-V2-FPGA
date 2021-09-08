@@ -20,9 +20,8 @@ class CImplementationBase {
   virtual CTensorBasePtr Reduce       (CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
   virtual CTensorBasePtr Mean         (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
   virtual CTensorBasePtr Variance     (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
-
-  //virtual CTensorBase* PadLastDim(CTensorBase* inputTn, unsigned lastDimPadded)=0;
-  //virtual CTensorBase* UnpadLastDim(CTensorBase* inputTn, unsigned lastDimUnpadded)=0;
+  virtual CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded)=0;
+  virtual CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded)=0;
 
   //virtual CTensorBase* TopK(CTensorBase* inputTn, int axis, int k)=0;
   //virtual CTensorBase* Conv2D(CTensorBase* inputTn, CTensorBase* weightsTn, CTensorBase* biasesTn)=0;

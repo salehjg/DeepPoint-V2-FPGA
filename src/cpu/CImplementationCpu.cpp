@@ -946,3 +946,99 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+CTensorBasePtr CImplementationCpu::PadLastDim(CTensorBasePtr inputTn, unsigned lastDimPadded) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"lastDimPadded",lastDimPadded}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  ConditionCheck(
+      (lastDimPadded>=inputTn->GetShape().back()),
+      "lastDimPadded should be greater than shape[-1]."
+  );
+
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+
+  unsigned dim0, dim1, lcm, _gcd;
+  auto shape = pInputTn->GetShape();
+  const unsigned rank = pInputTn->GetRank();
+
+  if(rank!=1){
+    dim0=1;
+    for(int i=0; i<rank-1; i++){
+      dim0*=shape[i];
+    }
+    dim1=shape[rank-1];
+  }else{
+    dim0 = 1;
+    dim1 = shape[0];
+  }
+
+  if(shape[rank-1]<CONFIG_M_AXI_WIDTH){
+    //sub-vector padding
+    _gcd = std::__gcd(dim1, CONFIG_M_AXI_WIDTH);
+    lcm = (dim1*CONFIG_M_AXI_WIDTH)/(_gcd);
+  }else{
+    lcm=0;
+  }
+
+  shape[rank-1] = lastDimPadded;
+  CTensorPtr<float> rsltTn(new CTensor<float>(shape));
+
+  for(unsigned d0=0; d0<dim0; d0++){
+    for(unsigned d1=0; d1<lastDimPadded; d1++){
+      (*rsltTn)[d0*lastDimPadded+d1] = (d1<dim1) ? (*pInputTn)[d0*dim1+d1] : 0;
+    }
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}
+CTensorBasePtr CImplementationCpu::UnpadLastDim(CTensorBasePtr inputTn, unsigned lastDimUnpadded) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictIntPtr({{"lastDimUnpadded",lastDimUnpadded}}),
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
+  ConditionCheck(
+      (lastDimUnpadded<=inputTn->GetShape().back()),
+      "lastDimUnpadded should be less than shape[-1]."
+  );
+
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+
+  unsigned dim0, dim1;
+  auto shape = pInputTn->GetShape();
+  const unsigned rank = pInputTn->GetRank();
+
+  if(rank!=1){
+    dim0=1;
+    for(int i=0; i<rank-1; i++){
+      dim0*=shape[i];
+    }
+    dim1=shape[rank-1];
+  }else{
+    dim0 = 1;
+    dim1 = shape[0];
+  }
+
+  shape[rank-1] = lastDimUnpadded;
+  CTensorPtr<float> rsltTn(new CTensor<float>(shape));
+
+  for(unsigned d0=0; d0<dim0; d0++){
+    for(unsigned d1=0; d1<lastDimUnpadded; d1++){
+      (*rsltTn)[d0*lastDimUnpadded+d1] = (*pInputTn)[d0*dim1+d1];
+    }
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}
