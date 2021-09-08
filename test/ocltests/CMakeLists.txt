@@ -29,7 +29,8 @@ set(TEST_SOURCES
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layermean/test_layermean.cpp
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layervariance/test_layervariance.cpp
         #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwpadunpad/test_ckwpadunpad.cpp
-        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtopk/test_ckwtopk.cpp
+        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtopk/test_ckwtopk.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconv/test_ckwconv.cpp
         )
 
 

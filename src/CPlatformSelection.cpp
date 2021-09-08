@@ -331,6 +331,26 @@ CTensorBasePtr CPlatformSelection::TopK(PLATFORMS destPlatform, CTensorBasePtr i
   }
 }
 
+CTensorBasePtr CPlatformSelection::Conv2D(PLATFORMS destPlatform,
+                                          CTensorBasePtr inputTn,
+                                          CTensorBasePtr weightTn,
+                                          CTensorBasePtr biasTn) {
+  if(!inputTn->IsTypeFloat32() || !weightTn->IsTypeFloat32() || !biasTn->IsTypeFloat32()){
+    ThrowException("The layer only accepts types: float32.");
+  }
+  auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
+  auto qWeightTn = CrossThePlatformIfNeeded(destPlatform, weightTn);
+  auto qBiasTn = CrossThePlatformIfNeeded(destPlatform, biasTn);
+  if(destPlatform==PLATFORMS::CPU){
+    return m_ptrImplCpu->Conv2D(qInputTn,qWeightTn,qBiasTn);
+  }else if(destPlatform==PLATFORMS::XIL){
+    return m_ptrImplXil->Conv2D(qInputTn,qWeightTn,qBiasTn);
+  }else{
+    ThrowException("Undefined Platform.");
+  }
+}
+
+
 CImplementationXilinx *CPlatformSelection::GetClassPtrImplementationXilinx() {
   return m_ptrImplXil;
 }

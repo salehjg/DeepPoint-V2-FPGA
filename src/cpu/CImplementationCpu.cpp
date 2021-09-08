@@ -1084,3 +1084,54 @@ CTensorBasePtr CImplementationCpu::TopK(CTensorBasePtr inputTn, unsigned axis, u
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
+
+CTensorBasePtr CImplementationCpu::Conv2D(CTensorBasePtr inputTn, CTensorBasePtr weightTn, CTensorBasePtr biasTn){
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({
+        {"shape.i",inputTn->GetShape()},
+        {"shape.w",weightTn->GetShape()},
+        {"shape.b",biasTn->GetShape()},
+        }),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn,weightTn,biasTn}, PLATFORMS::CPU);
+
+  auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  auto pWeightTn = std::dynamic_pointer_cast<CTensor<float>>(weightTn);
+  auto pBias = std::dynamic_pointer_cast<CTensor<float>>(biasTn);
+
+  const auto shapeInput = pInputTn->GetShape();
+  unsigned indxS1,indxS2,indxD;
+
+  const auto B = shapeInput[0];
+  const auto N = shapeInput[1];
+  const auto K = shapeInput[2];
+  const auto D = shapeInput[3];
+  const auto ch_out = weightTn->GetShape().back();
+
+  CTensorPtr<float> rsltTn (new CTensor<float>({B,N,K,ch_out}));
+
+  for(unsigned b=0;b<B;b++){
+    for(unsigned n=0;n<N;n++){
+      for(unsigned k=0;k<K;k++){
+        indxS1 = b*N*K*D + n*K*D + k*D + 0;
+        for(unsigned ch=0;ch<ch_out;ch++){
+          float sum=0;
+          for(unsigned d=0;d<D;d++){
+            indxS2 = d*ch_out + ch;
+            sum += (*pInputTn)[indxS1+d] * (*pWeightTn)[indxS2];
+          }
+          indxD=b*N*K*ch_out+ n*K*ch_out+ k*ch_out+ ch;
+          (*rsltTn)[indxD] = sum + (*pBias)[ch];
+        }
+      }
+    }
+  }
+
+  m_ptrProfiler->FinishLayer();
+  return rsltTn;
+}

@@ -159,6 +159,14 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
       ConfigTaskTopK::MaxSliceLen,
       KERNEL_DIR, KERNEL_ENABLED,
       m_bOclProfileEnabled);
+  m_ptrKernelConv = std::make_unique<CKernelWrapperConv>(
+      "task_conv2_1x1_direct","conv2_1x1_direct.cpp",m_ptrXilInfo,
+      ConfigTaskConv2::BankIndex_inputTn,
+      ConfigTaskConv2::BankIndex_weightTn,
+      ConfigTaskConv2::BankIndex_biasTn,
+      ConfigTaskConv2::BankIndex_outputTn,
+      KERNEL_DIR, KERNEL_ENABLED,
+      m_bOclProfileEnabled);
 
 
 }
@@ -681,6 +689,84 @@ CTensorBasePtr CImplementationXilinx::TopK(CTensorBasePtr inputTn, unsigned axis
   CTensorBasePtr outputTn = m_ptrKernelTopK->EnqueueKernelLaunch(
       GetTheLastLayerId(), inputTn, axis, k);
 
+  m_ptrProfiler->FinishLayer();
+  return outputTn;
+}
+CTensorBasePtr CImplementationXilinx::Conv2D(CTensorBasePtr inputTn, CTensorBasePtr weightTn, CTensorBasePtr biasTn) {
+  m_ptrProfiler->StartLayer(
+      GetPlatform(),
+      GenerateLayerId(),
+      __func__,
+      new CProfiler::DictShapePtr({
+        {"shape.i",inputTn->GetShape()},
+        {"shape.w",weightTn->GetShape()},
+        {"shape.b",biasTn->GetShape()}
+        }),
+      nullptr,
+      nullptr);
+
+  ValidateTensorPlatforms({inputTn,weightTn,biasTn}, PLATFORMS::XIL);
+
+  const auto shapeInput = inputTn->GetShape();
+  const auto shapeWeight = weightTn->GetShape();
+
+  const unsigned B  = shapeInput[0];
+  const unsigned N  = shapeInput[1];
+  const unsigned K  = shapeInput[2];
+  const unsigned D1 = shapeInput[3];
+  const unsigned D2 = shapeWeight[3];
+  unsigned D1Padded=0;
+  unsigned D2Padded=0;
+
+  const unsigned int vecSizeTranspose = ConfigTaskConv2::kTransposeWidthBytes / CONFIG_DTYPE_SIZE;
+  SPDLOG_LOGGER_DEBUG(logger, "vecSizeTranspose: {}", vecSizeTranspose);
+
+  //-----------------------------------------------------------------
+  // Padding inputTn
+  // This block is disabled, as all the inputs are considered last dim padded already.(not in shape but in data layout)
+
+  //-----------------------------------------------------------------
+  // Padding weightTn
+  CTensorBasePtr _weightPadded;
+  if(D2%ConfigTaskConv2::kOuterTileSizeM!=0){
+    //Super-vec Padding( 64->128 )
+    D2Padded = DivCeil<unsigned>(D2, ConfigTaskConv2::kOuterTileSizeM)*ConfigTaskConv2::kOuterTileSizeM;
+    _weightPadded = PadLastDim(weightTn, D2Padded);
+
+    // The kernel is modified to not require the weight tensor to be
+    // padded in dimension-zero.
+    SPDLOG_LOGGER_DEBUG(logger, "Padding weightTn(super-vec padding):");
+    SPDLOG_LOGGER_DEBUG(logger, "D2: {}", D2);
+    SPDLOG_LOGGER_DEBUG(logger, "D2Padded: {}", D2Padded);
+
+  }else{
+    SPDLOG_LOGGER_DEBUG(logger, "Bypassing super-vec padding for weightTn");
+    _weightPadded = weightTn;
+    D2Padded = D2;
+  }
+
+  //-----------------------------------------------------------------
+  auto outputPaddedTn =
+  m_ptrKernelConv->EnqueueKernelLaunch(
+      GetTheLastLayerId(),
+      inputTn,
+      _weightPadded,
+      biasTn,
+      B, N, K, D1, D2Padded
+  );
+
+  //-----------------------------------------------------------------
+  // Unpadding outputPaddedTn
+  CTensorBasePtr outputTn;
+  if(D2%ConfigTaskConv2::kOuterTileSizeM!=0){
+    outputTn = UnpadLastDim(outputPaddedTn, D2); // Super-vec Unpadding( 128->64 )
+    SPDLOG_LOGGER_DEBUG(logger, "Unpadding the results (super-vec unpadding)");
+  }else{
+    outputTn = outputPaddedTn;
+    SPDLOG_LOGGER_DEBUG(logger, "Bypassing super-vec unpadding of the results");
+  }
+
+  //-----------------------------------------------------------------
   m_ptrProfiler->FinishLayer();
   return outputTn;
 }

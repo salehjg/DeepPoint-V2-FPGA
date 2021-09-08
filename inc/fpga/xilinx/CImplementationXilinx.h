@@ -15,6 +15,7 @@
 #include "fpga/xilinx/kernels/CKernelWrapperReduce.h"
 #include "fpga/xilinx/kernels/CKernelWrapperPadUnpad.h"
 #include "fpga/xilinx/kernels/CKernelWrapperTopK.h"
+#include "fpga/xilinx/kernels/CKernelWrapperConv.h"
 
 enum class RUN_MODE{
   SwEmu,
@@ -52,6 +53,7 @@ class CImplementationXilinx: public CImplementationBase {
   CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded) override ;
   CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded) override ;
   CTensorBasePtr TopK         (CTensorBasePtr inputTn, unsigned axis, unsigned k) override ;
+  CTensorBasePtr Conv2D       (CTensorBasePtr inputTn, CTensorBasePtr weightTn, CTensorBasePtr biasTn) override ;
 
  private:
   bool m_bOclProfileEnabled;
@@ -79,6 +81,7 @@ class CImplementationXilinx: public CImplementationBase {
   std::unique_ptr<CKernelWrapperReduce>         m_ptrKernelReduce;
   std::unique_ptr<CKernelWrapperPadUnpad>       m_ptrKernelPadUnpad;
   std::unique_ptr<CKernelWrapperTopK>           m_ptrKernelTopK;
+  std::unique_ptr<CKernelWrapperConv>           m_ptrKernelConv;
 };
 
 

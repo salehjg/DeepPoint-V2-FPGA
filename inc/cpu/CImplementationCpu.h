@@ -31,6 +31,7 @@ class CImplementationCpu: public CImplementationBase {
   CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded) override;
   CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded) override;
   CTensorBasePtr TopK         (CTensorBasePtr inputTn, unsigned axis, unsigned k) override;
+  CTensorBasePtr Conv2D       (CTensorBasePtr inputTn, CTensorBasePtr weightTn, CTensorBasePtr biasTn) override;
 
 
 

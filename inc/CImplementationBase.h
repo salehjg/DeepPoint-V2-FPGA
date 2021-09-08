@@ -23,8 +23,7 @@ class CImplementationBase {
   virtual CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded)=0;
   virtual CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded)=0;
   virtual CTensorBasePtr TopK         (CTensorBasePtr inputTn, unsigned axis, unsigned k)=0;
-
-  //virtual CTensorBase* Conv2D(CTensorBase* inputTn, CTensorBase* weightsTn, CTensorBase* biasesTn)=0;
+  virtual CTensorBasePtr Conv2D       (CTensorBasePtr inputTn, CTensorBasePtr weightTn, CTensorBasePtr biasTn)=0;
 
   //virtual void         DumpMatrix(std::string npyFilename, CTensorBase* inputTn, std::string npyDir)=0;
   //virtual bool         CompareTensors(CTensorBase* inputTn1, CTensorBase* inputTn2)=0;
