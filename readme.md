@@ -4,7 +4,7 @@
 This repository contains the second version of the code base for Xilinx SDAccel FPGA implementation of [Dynamic Graph CNN](https://github.com/WangYueFt/dgcnn) model.
 
 # Quick Refs
-- [Building The Project](docs/building.md)
+- [Building The Project](docs/compile.md)
 - [Debugging The Project](docs/debug.md)
 - [Deploying on AWS-F1](docs/aws.md)
 - [Tips & Tricks!](docs/tips.md)
