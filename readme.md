@@ -1,11 +1,13 @@
+![image](docs/cover.png)
+
 # DeepPoint-V2 Project
 This repository contains the second version of the code base for Xilinx SDAccel FPGA implementation of [Dynamic Graph CNN](https://github.com/WangYueFt/dgcnn) model.
 
-
-<p align="center">
-	<img width="75%" src="https://gitlab.com/salehjg/deeppoint-v1-fpga/-/raw/optimizing01_area_f1/cover_rc.png">
-</p>
-
+# Quick Refs
+- [Building The Project](docs/building.md)
+- [Debugging The Project](docs/debug.md)
+- [Deploying on AWS-F1](docs/aws.md)
+- [Tips & Tricks!](docs/tips.md)
 
 # Build System
 As easy as it is to use SDx GUI, it is recommended to use provided cmake scripts to run synthesis and build the binaries for both the selected FPGA platform and the host.
@@ -67,7 +69,6 @@ TBD.
 
 # References
 These repositories are used in this project:
-
 
 | Repo | Description | License |
 |-|-|-|
