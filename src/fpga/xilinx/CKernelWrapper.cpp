@@ -31,8 +31,9 @@ CKernelWrapper::~CKernelWrapper() {
     bankCrossingsLog += tag;
     bankCrossingsLog += " + ";
   }
-  SPDLOG_LOGGER_TRACE(logger, "Bank-crossing Logs For {}", m_strTaskName);
+  SPDLOG_LOGGER_TRACE(logger, "Dumping bank-crossing logs for {} ...", m_strTaskName);
   SPDLOG_LOGGER_TRACE(logger, bankCrossingsLog);
+  SPDLOG_LOGGER_TRACE(logger, "Dumping bank-crossing logs for {} has finished.", m_strTaskName);
 
   for(auto *p:m_vCallBackData){
     delete(p);
