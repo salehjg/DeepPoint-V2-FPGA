@@ -15,6 +15,7 @@ unsigned globalBatchsize;
 bool globalDumpTensors=false;
 bool globalDumpMemBankCrossings=false;
 bool globalProfileOclEnabled=true;
+bool globalCpuUsageSamplingEnabled=false;
 bool globalModelnet=true;
 bool globalShapenet=false;
 
@@ -92,6 +93,11 @@ void SetupModules(int argc, const char* argv[]){
   parser.add_argument()
       .names({"-m","--dumpbankgraph"})
       .description("Dump memory-bank crossings for the default computational graph (disabled by default). The results are used to optimize memory banks for the kernels. (no value is needed for this argument)")
+      .required(false);
+
+  parser.add_argument()
+      .names({"-c","--cpu"})
+      .description("Sample CPU usage on the kernel launches. (no value is needed for this argument)")
       .required(false);
 
 
@@ -181,6 +187,11 @@ void SetupModules(int argc, const char* argv[]){
   if(parser.exists("m")) {
     globalDumpMemBankCrossings = true;
     SPDLOG_LOGGER_INFO(logger,"The memory-bank crossings will be calculated and dumped for the default computational graph.");
+  }
+
+  if(parser.exists("c")) {
+    globalCpuUsageSamplingEnabled = true;
+    SPDLOG_LOGGER_INFO(logger,"The CPU usage is going to be sampled on every kernel launches.");
   }
 
   if(parser.exists("noprofileocl")) {

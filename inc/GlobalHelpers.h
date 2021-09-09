@@ -51,6 +51,7 @@ extern unsigned globalBatchsize;
 extern bool globalDumpTensors;
 extern bool globalDumpMemBankCrossings;
 extern bool globalProfileOclEnabled;
+extern bool globalCpuUsageSamplingEnabled;
 extern bool globalModelnet;
 extern bool globalShapenet;
 

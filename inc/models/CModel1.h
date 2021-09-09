@@ -10,27 +10,40 @@
 
 class CModel1 {
  public:
-  CModel1(unsigned datasetOffset, unsigned batchSize, unsigned pointsPerPointCloud, unsigned knnK);
+  CModel1(PLATFORMS targetPlatform,
+          unsigned datasetOffset,
+          unsigned batchSize,
+          unsigned pointsPerPointCloud,
+          unsigned knnK,
+          bool useShapeNetInstead,
+          bool enableOclProfiling,
+          bool enableMemBankCrossing,
+          bool enableCpuUtilization,
+          bool enableTensorDumps);
   void            SetDatasetData(std::string &pathNumpyData);
   void            SetDatasetLabels(std::string &pathNumpyLabels);
-  CTensorBase*    FullyConnectedForward(CTensorBase* inputTn, CTensorBase* weightsTn, CTensorBase* biasesTn);
-  CTensorBase*    BatchNormForward(CTensorBase* inputTn, CTensorBase* gammaTn, CTensorBase* betaTn, CTensorBase* emaAveTn, CTensorBase* emaVarTn);
-  CTensorBase*    GetEdgeFeatures(CTensorBase* inputTn, CTensorBase* knnTn);
-  CTensorBase*    PairwiseDistance(CTensorBase* inputTn);
-  CTensorBase*    TransformNet(CTensorBase* edgeFeaturesTn);
-  CTensor<float>* Execute();
-  CTensor<int>*   GetLabels();
+  CTensorBasePtr  FullyConnectedForward(CTensorBasePtr inputTn, CTensorBasePtr weightsTn, CTensorBasePtr biasesTn);
+  CTensorBasePtr  BatchNormForward(CTensorBasePtr inputTn, CTensorBasePtr gammaTn, CTensorBasePtr betaTn, CTensorBasePtr emaAveTn, CTensorBasePtr emaVarTn);
+  CTensorBasePtr  GetEdgeFeatures(CTensorBasePtr inputTn, CTensorBasePtr knnTn);
+  CTensorBasePtr  PairwiseDistance(CTensorBasePtr inputTn);
+  CTensorBasePtr  TransformNet(CTensorBasePtr edgeFeaturesTn);
+  CTensorBasePtr  Execute();
+  CTensorBasePtr  GetLabelTn();
+  CTensorBasePtr  GetDataTn();
   unsigned        GetBatchSize();
   unsigned        GetClassCount();
+  PLATFORMS       GetTargetPlatform();
 
  private:
+  unsigned m_uDatasetOffset=-1;
   unsigned m_uBatchSize=-1;
   unsigned m_uPointsPerCloud=-1;
   unsigned m_uKnnK=-1;
   unsigned m_uClassCount=-1;
-  CTensorBase* m_ptrDatasetDataTn;
-  CTensorBase* m_ptrDatasetLabelsTn;
-  unsigned m_uDatasetOffset=0;
+  bool m_bUseShapeNet;
+  PLATFORMS m_eTargetPlatform;
+  CTensorBasePtr m_ptrDatasetDataTn;
+  CTensorBasePtr m_ptrDatasetLabelsTn;
   cnpy::NpyArray m_oNumpyObjectData;
   cnpy::NpyArray m_oNumpyObjectLabels;
   CPlatformSelection* m_ptrPlatSelection;

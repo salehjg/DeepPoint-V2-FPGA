@@ -12,6 +12,7 @@ int main(int argc, char** argv){
   SetupModules(argc, (const char**)argv);
   platSelection = new CPlatformSelection(
       false,
+      false,
       globalProfileOclEnabled,
       globalDumpMemBankCrossings,
       false,

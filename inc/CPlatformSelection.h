@@ -12,6 +12,7 @@
 class CPlatformSelection {
  public:
   CPlatformSelection(
+      bool useShapeNetInstead,
       bool enableLoadingWeights,
       bool enableOclProfiling,
       bool enableMemBankCrossing,
@@ -44,6 +45,7 @@ class CPlatformSelection {
   CTensorBasePtr CrossThePlatformIfNeeded(PLATFORMS destPlatform, CTensorBasePtr srcTn);
   CImplementationXilinx* GetClassPtrImplementationXilinx();
   CProfiler* GetClassPtrProfiler();
+  CWeightLoader* GetClassPtrWeightLoader();
 
  private:
   template<typename T> CTensorXilPtr<T> CrossThePlatform(PLATFORMS destPlatform, CTensorPtr<T> srcTn);
@@ -54,7 +56,7 @@ class CPlatformSelection {
   CWeightLoader *m_ptrWeightsLoader;
   CProfiler *m_ptrProfiler;
   std::string m_strProfilerOutputPath;
-  bool m_bEnableOclProfiling, m_bLoadWeights, m_bLogMemBankCrossings, m_bEnableCpuUtilization, m_bEnableTensorDumps;
+  bool m_bEnableOclProfiling, m_bUseShapeNet, m_bLoadWeights, m_bLogMemBankCrossings, m_bEnableCpuUsageSampling, m_bEnableTensorDumps;
 
 };
 

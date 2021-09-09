@@ -5,10 +5,17 @@
 
 class CClassifierMultiPlatform {
  public:
-  CClassifierMultiPlatform();
+  CClassifierMultiPlatform(
+      bool useShapeNetInstead,
+      bool enableOclProfiling,
+      bool enableMemBankCrossing,
+      bool enableCpuUtilization,
+      bool enableTensorDumps);
   double GetTimestamp();
-  void CalculateAccuracy(CTensor<float>* scores, CTensor<int>* labels, unsigned batchSize, unsigned classCount);
 
  private:
+  void CalculateAccuracy(CTensorPtr<float> scores, CTensorPtr<unsigned> labels, unsigned batchSize, unsigned classCount);
+
   CModel1 *m_ptrClassifierModel;
+  bool m_bUseShapeNet;
 };

@@ -3,17 +3,18 @@
 #include "CPlatformSelection.h"
 
 CPlatformSelection::CPlatformSelection(
+    bool useShapeNetInstead,
     bool enableLoadingWeights,
     bool enableOclProfiling,
     bool enableMemBankCrossing,
-    bool enableCpuUtilization,
+    bool enableCpuUsageSampling,
     bool enableTensorDumps,
     std::string profilerOutputPath) {
-
+  m_bUseShapeNet = useShapeNetInstead;
   m_bLoadWeights = enableLoadingWeights;
   m_bEnableOclProfiling = enableOclProfiling;
   m_bLogMemBankCrossings = enableMemBankCrossing;
-  m_bEnableCpuUtilization = enableCpuUtilization;
+  m_bEnableCpuUsageSampling = enableCpuUsageSampling;
   m_bEnableTensorDumps = enableTensorDumps;
   m_strProfilerOutputPath = profilerOutputPath;
   m_ptrProfiler = new CProfiler(m_strProfilerOutputPath);
@@ -25,11 +26,22 @@ CPlatformSelection::CPlatformSelection(
 
   if(!m_bLoadWeights) SPDLOG_LOGGER_WARN(logger,"The weights are not going to be loaded into the device memory.");
   if(m_bLoadWeights){
-    std::string wDir = globalArgDataPath; wDir.append("/weights/");
-    std::string wFileList = globalArgDataPath; wFileList.append("/weights/filelist.txt");
-    SPDLOG_LOGGER_TRACE(logger,"Weights Dir: {}", wDir);
-    SPDLOG_LOGGER_TRACE(logger,"Weights File List Path: {}", wFileList);
-    m_ptrWeightsLoader->LoadWeightsFromDisk(wDir, wFileList);
+    if(!m_bUseShapeNet){
+      //ModelNet40
+      std::string wDir = globalArgDataPath; wDir.append("/modelnet40/weights/");
+      std::string wFileList = globalArgDataPath; wFileList.append("/modelnet40/weights/filelist.txt");
+      SPDLOG_LOGGER_TRACE(logger,"Weights Dir: {}", wDir);
+      SPDLOG_LOGGER_TRACE(logger,"Weights File List Path: {}", wFileList);
+      m_ptrWeightsLoader->LoadWeightsFromDisk(wDir, wFileList);
+    }else{
+      //ShapeNet V2
+      std::string wDir = globalArgDataPath; wDir.append("/shapenet2/weights/");
+      std::string wFileList = globalArgDataPath; wFileList.append("/shapenet2/weights/filelist.txt");
+      SPDLOG_LOGGER_TRACE(logger,"Weights Dir: {}", wDir);
+      SPDLOG_LOGGER_TRACE(logger,"Weights File List Path: {}", wFileList);
+      m_ptrWeightsLoader->LoadWeightsFromDisk(wDir, wFileList);
+    }
+
   }
 }
 
@@ -395,4 +407,8 @@ bool CPlatformSelection::CompareTensors(PLATFORMS destPlatform, CTensorBasePtr i
   }else{
     ThrowException("Undefined platform.");
   }
+}
+
+CWeightLoader *CPlatformSelection::GetClassPtrWeightLoader() {
+  return m_ptrWeightsLoader;
 }

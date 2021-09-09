@@ -39,7 +39,7 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
   m_bIsLoaded = true;
   txtFile.close();
 }
-CTensorBasePtr CWeightLoader::AccessWeights(PLATFORMS platform, std::string &name) {
+CTensorBasePtr CWeightLoader::AccessWeights(PLATFORMS platform, std::string &&name) {
   if(platform == PLATFORMS::CPU)
     return m_vWeightsCpu[m_mWeightNameToIndex[name]];
   else if (platform == PLATFORMS::XIL)

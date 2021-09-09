@@ -18,7 +18,7 @@ class CWeightLoader {
   void LoadWeightsFromDisk(
       std::string &weightsBaseDir,
       std::string &pathToTxtFnameList);
-  CTensorBasePtr AccessWeights(PLATFORMS platform, std::string &name);
+  CTensorBasePtr AccessWeights(PLATFORMS platform, std::string &&name);
 
  private:
   int ResolveMemoryBank(PLATFORMS platform, std::string &name);
