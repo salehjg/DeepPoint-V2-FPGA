@@ -17,14 +17,16 @@ class CKernelWrapperConcat: public CKernelWrapper{
       unsigned bankOutputTn,
       std::string path,
       bool isDisabled,
-      bool profileOcl
+      bool profileOcl,
+      bool logMemBankCrossings
       ):CKernelWrapper(
       taskName,
       fileName,
       xilInfo,
       path,
       isDisabled,
-      profileOcl){
+      profileOcl,
+      logMemBankCrossings){
 
     m_uBankInputTn1=bankInputTn1;
     m_uBankInputTn2=bankInputTn2;
@@ -46,6 +48,8 @@ class CKernelWrapperConcat: public CKernelWrapper{
     auto pInputTn2 = std::static_pointer_cast<CTensorXil<float>>(inputTn2);
     auto xInputTn1 = pInputTn1->CloneIfNeededToBank(m_uBankInputTn1);
     auto xInputTn2 = pInputTn2->CloneIfNeededToBank(m_uBankInputTn2);
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pInputTn1)->GetTensorTag() +"-concat_in1)");
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pInputTn2)->GetTensorTag() +"-concat_in2)");
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Kernel Launch
@@ -111,6 +115,7 @@ class CKernelWrapperConcat: public CKernelWrapper{
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Returning Part
+    if(m_bLogMemBankCrossings) outputTn->SetTensorTag("concat_out");
     return std::dynamic_pointer_cast<CTensorBase>(outputTn);
   }
 

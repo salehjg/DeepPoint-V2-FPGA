@@ -30,6 +30,7 @@ class CTensorXil: public CTensorBase, public std::enable_shared_from_this<CTenso
   std::shared_ptr<CTensorXil<T>> CloneIfNeededToBank(const unsigned destBank);
   std::string GetTensorTag() const;
   CXilinxInfo *GetXilInfo() const;
+  void SetTensorTag(std::string &&tag);
   void SetTensorTag(std::string &tag);
   int GetDramBank() const;
   int GetAxiWidth() const;
@@ -267,6 +268,10 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
 template<typename T>
 int CTensorXil<T>::GetDramBank() const {
   return m_iDramBank;
+}
+template<typename T>
+void CTensorXil<T>::SetTensorTag(std::string &&tag) {
+  m_strTensorTag = std::move(tag);
 }
 template<typename T>
 void CTensorXil<T>::SetTensorTag(std::string &tag) {

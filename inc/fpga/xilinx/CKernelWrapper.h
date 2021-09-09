@@ -18,7 +18,8 @@ class CKernelWrapper {
       CXilinxInfo *xilInfo,
       std::string path,
       bool isDisabled,
-      bool profileOcl);
+      bool profileOcl,
+      bool logMemBankCrossings);
   virtual ~CKernelWrapper();
 
   cl::Kernel* GetKernel() const;
@@ -42,6 +43,8 @@ class CKernelWrapper {
 
   std::vector<CallbackData*> m_vCallBackData;
   std::vector<std::vector<CTensorBasePtr>> m_vBookKeeper;
+  std::vector<std::string> m_vMemBankCrossings;
+  bool m_bLogMemBankCrossings;
 
  private:
   std::string m_strTaskName, m_strKernelName, m_strKernelPath;

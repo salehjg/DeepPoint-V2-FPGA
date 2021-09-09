@@ -8,3 +8,5 @@
     - Depending on the kernel, the output tensor is squeezed `diff` times.
 * The enqueue member function returns the output tensor.
 * Make sure that the final output tensor's event is set by the last enqueueTask.
+* Make sure that the tensor tag is set to the final output tensor of the enqueue kernel launch.
+* Make sure that the tensor tags are read from the actual inputs and not their cross-banked versions.

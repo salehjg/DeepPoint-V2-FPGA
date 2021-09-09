@@ -13,7 +13,7 @@
 
 class CImplementationCpu: public CImplementationBase {
  public:
-  CImplementationCpu(CProfiler *profiler);
+  CImplementationCpu(CProfiler *profiler, bool enableTensorDumps);
 
   CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
   CTensorBasePtr MatMul       (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;

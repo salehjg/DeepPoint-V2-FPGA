@@ -35,4 +35,6 @@ class CImplementationBase {
   std::atomic_uint m_uAtomicCounter;
   PLATFORMS m_ePlatform;
   CProfiler *m_ptrProfiler;
+
+  bool m_bEnableTensorDumps;
 };

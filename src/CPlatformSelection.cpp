@@ -2,14 +2,24 @@
 
 #include "CPlatformSelection.h"
 
-CPlatformSelection::CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath) {
-  m_bLoadWeights = loadWeights;
-  m_bOclProfiling = oclProfiling;
+CPlatformSelection::CPlatformSelection(
+    bool enableLoadingWeights,
+    bool enableOclProfiling,
+    bool enableMemBankCrossing,
+    bool enableCpuUtilization,
+    bool enableTensorDumps,
+    std::string profilerOutputPath) {
+
+  m_bLoadWeights = enableLoadingWeights;
+  m_bEnableOclProfiling = enableOclProfiling;
+  m_bLogMemBankCrossings = enableMemBankCrossing;
+  m_bEnableCpuUtilization = enableCpuUtilization;
+  m_bEnableTensorDumps = enableTensorDumps;
   m_strProfilerOutputPath = profilerOutputPath;
   m_ptrProfiler = new CProfiler(m_strProfilerOutputPath);
 
-  m_ptrImplCpu = new CImplementationCpu(m_ptrProfiler);
-  m_ptrImplXil = new CImplementationXilinx(m_bOclProfiling, m_ptrProfiler);
+  m_ptrImplCpu = new CImplementationCpu(m_ptrProfiler, m_bEnableTensorDumps);
+  m_ptrImplXil = new CImplementationXilinx(m_ptrProfiler, m_bEnableOclProfiling, m_bLogMemBankCrossings);
   m_ptrWeightsLoader = new CWeightLoader(m_ptrImplXil->GetXilInfo());
 
 

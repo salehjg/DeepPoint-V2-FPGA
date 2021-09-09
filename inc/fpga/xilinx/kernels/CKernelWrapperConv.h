@@ -18,14 +18,16 @@ class CKernelWrapperConv: public CKernelWrapper{
       unsigned bankOutputTn,
       std::string path,
       bool isDisabled,
-      bool profileOcl
+      bool profileOcl,
+      bool logMemBankCrossings
   ):CKernelWrapper(
       taskName,
       fileName,
       xilInfo,
       path,
       isDisabled,
-      profileOcl){
+      profileOcl,
+      logMemBankCrossings){
 
     m_uBankInputTn=bankInputTn;
     m_uBankWeightTn=bankWeightTn;
@@ -52,12 +54,15 @@ class CKernelWrapperConv: public CKernelWrapper{
     // #. Pointer Castings And Memory Bank Crossings
     auto pInputTn = std::static_pointer_cast<CTensorXil<float>>(inputTn);
     auto xInputTn = pInputTn->CloneIfNeededToBank(m_uBankInputTn);
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pInputTn)->GetTensorTag() +"-conv_in)");
 
     auto pWeightTn = std::static_pointer_cast<CTensorXil<float>>(weightTn);
     auto xWeightTn = pWeightTn->CloneIfNeededToBank(m_uBankWeightTn);
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pWeightTn)->GetTensorTag() +"-conv_w)");
 
     auto pBiasTn = std::static_pointer_cast<CTensorXil<float>>(biasTn);
     auto xBiasTn = pBiasTn->CloneIfNeededToBank(m_uBankBiasTn);
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pBiasTn)->GetTensorTag() +"-conv_b)");
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Kernel Launch
@@ -110,6 +115,7 @@ class CKernelWrapperConv: public CKernelWrapper{
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Returning Part
+    if(m_bLogMemBankCrossings) outputTn->SetTensorTag("conv_out");
     return std::dynamic_pointer_cast<CTensorBase>(outputTn);
   }
 

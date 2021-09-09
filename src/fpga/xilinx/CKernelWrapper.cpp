@@ -7,13 +7,15 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
                                CXilinxInfo *xilInfo,
                                std::string path,
                                bool isEnabled,
-                               bool profileOcl) {
+                               bool profileOcl,
+                               bool logMemBankCrossings) {
   m_iArgCounter = 0;
   m_strTaskName = taskName;
   m_strKernelName = fileName;
   m_strKernelPath = path;
   m_bIsEnabled = isEnabled;
   m_bProfileOcl = profileOcl;
+  m_bLogMemBankCrossings = logMemBankCrossings;
   m_oXilInfo = xilInfo;
   ResetBookKeeper();
 
@@ -24,6 +26,14 @@ CKernelWrapper::CKernelWrapper(std::string taskName,
 }
 
 CKernelWrapper::~CKernelWrapper() {
+  std::string bankCrossingsLog;
+  for(std::string &tag:m_vMemBankCrossings){
+    bankCrossingsLog += tag;
+    bankCrossingsLog += " + ";
+  }
+  SPDLOG_LOGGER_TRACE(logger, "Bank-crossing Logs For {}", m_strTaskName);
+  SPDLOG_LOGGER_TRACE(logger, bankCrossingsLog);
+
   for(auto *p:m_vCallBackData){
     delete(p);
   }

@@ -10,7 +10,13 @@ CPlatformSelection *platSelection;
 
 int main(int argc, char** argv){
   SetupModules(argc, (const char**)argv);
-  platSelection = new CPlatformSelection(false, globalProfileOclEnabled);
+  platSelection = new CPlatformSelection(
+      false,
+      globalProfileOclEnabled,
+      globalDumpMemBankCrossings,
+      false,
+      globalDumpTensors
+  );
   ::testing::InitGoogleTest(&argc, argv);
   auto exitCode = RUN_ALL_TESTS();
 

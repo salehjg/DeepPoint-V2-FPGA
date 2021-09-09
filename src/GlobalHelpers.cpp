@@ -13,6 +13,7 @@ string globalArgXclBin;
 string globalArgDataPath;
 unsigned globalBatchsize;
 bool globalDumpTensors=false;
+bool globalDumpMemBankCrossings=false;
 bool globalProfileOclEnabled=true;
 bool globalModelnet=true;
 bool globalShapenet=false;
@@ -88,6 +89,13 @@ void SetupModules(int argc, const char* argv[]){
       .description("Disable OpenCL profiling to increase performance. (Enabled by default)(no value is needed for this argument)")
       .required(false);
 
+  parser.add_argument()
+      .names({"-m","--dumpbankgraph"})
+      .description("Dump memory-bank crossings for the default computational graph (disabled by default). The results are used to optimize memory banks for the kernels. (no value is needed for this argument)")
+      .required(false);
+
+
+
   parser.enable_help();
   auto err = parser.parse(argc, argv);
   if(err){
@@ -155,13 +163,6 @@ void SetupModules(int argc, const char* argv[]){
       SPDLOG_LOGGER_ERROR(logger,"Can not set env var XCL_MODE.");
     }
   }
-
-  if(parser.exists("x") && parser.exists("y")) {
-    std::cerr <<"Both datasets cannot be used at the same time!"<<std::endl;
-    SPDLOG_LOGGER_ERROR(logger,"Both datasets cannot be used at the same time!");
-    exit(EXIT_FAILURE);
-  }
-
   if(parser.exists("y")) {
     SPDLOG_LOGGER_INFO(logger,"The selected dataset is ShapeNetV2.");
     globalModelnet=false;
@@ -175,6 +176,11 @@ void SetupModules(int argc, const char* argv[]){
   if(parser.exists("dumptensors")) {
     globalDumpTensors = true;
     SPDLOG_LOGGER_INFO(logger,"Tensors will be dumped into separate numpy files in the data directory.");
+  }
+
+  if(parser.exists("m")) {
+    globalDumpMemBankCrossings = true;
+    SPDLOG_LOGGER_INFO(logger,"The memory-bank crossings will be calculated and dumped for the default computational graph.");
   }
 
   if(parser.exists("noprofileocl")) {

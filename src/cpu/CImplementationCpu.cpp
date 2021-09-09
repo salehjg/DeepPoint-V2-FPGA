@@ -1,14 +1,15 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 #include "cpu/CImplementationCpu.h"
-CImplementationCpu::CImplementationCpu(CProfiler *profiler) {
+CImplementationCpu::CImplementationCpu(CProfiler *profiler, bool enableTensorDumps) {
   m_ePlatform = PLATFORMS::CPU;
   m_ptrProfiler = profiler;
+  m_bEnableTensorDumps = enableTensorDumps;
   ResetLayerIdCounter(100000);
 }
 void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir) {
   // The template member functions of a non-template class should be declared and defined in the header file ONLY.
-  if(globalDumpTensors){
+  if(m_bEnableTensorDumps){
     ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
     auto inputFloatTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
     auto inputUintTn = std::dynamic_pointer_cast<CTensor<unsigned>>(inputTn);

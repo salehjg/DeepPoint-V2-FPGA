@@ -30,7 +30,7 @@ enum class RUN_MODE{
 class CImplementationXilinx: public CImplementationBase {
  public:
 
-  CImplementationXilinx(bool profileOcl, CProfiler *profiler);
+  CImplementationXilinx(CProfiler *profiler, bool enableOclProfiling, bool logMemBankCrossings);
   ~CImplementationXilinx();
   CXilinxInfo* GetXilInfo();
   int SetModeEnvVar(RUN_MODE &mode);
@@ -56,7 +56,7 @@ class CImplementationXilinx: public CImplementationBase {
   CTensorBasePtr Conv2D       (CTensorBasePtr inputTn, CTensorBasePtr weightTn, CTensorBasePtr biasTn) override ;
 
  private:
-  bool m_bOclProfileEnabled;
+  bool m_bEnableOclProfiling, m_bLogMemBankCrossings;
   CXilinxInfo *m_ptrXilInfo;
   cl_int m_iStatus;
   const std::string KERNEL_DIR = REPO_DIR "src/fpga/xilinx/kernels";

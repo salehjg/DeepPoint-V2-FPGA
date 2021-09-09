@@ -17,14 +17,16 @@ class CKernelWrapperTopK: public CKernelWrapper{
       unsigned maxSliceLen,
       std::string path,
       bool isDisabled,
-      bool profileOcl
+      bool profileOcl,
+      bool logMemBankCrossings
   ):CKernelWrapper(
       taskName,
       fileName,
       xilInfo,
       path,
       isDisabled,
-      profileOcl){
+      profileOcl,
+      logMemBankCrossings){
 
     m_uBankInputTn=bankInputTn;
     m_uBankOutputTn=bankOutputTn;
@@ -47,6 +49,7 @@ class CKernelWrapperTopK: public CKernelWrapper{
     // #. Pointer Castings And Memory Bank Crossings
     auto pInputTn = std::static_pointer_cast<CTensorXil<float>>(inputTn);
     auto xInputTn = pInputTn->CloneIfNeededToBank(m_uBankInputTn);
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pInputTn)->GetTensorTag() +"-topk_in)");
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Kernel Launch
@@ -95,6 +98,7 @@ class CKernelWrapperTopK: public CKernelWrapper{
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Returning Part
+    if(m_bLogMemBankCrossings) outputTn->SetTensorTag("topk_out");
     return std::dynamic_pointer_cast<CTensorBase>(outputTn);
   }
 

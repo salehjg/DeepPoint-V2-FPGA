@@ -17,14 +17,16 @@ class CKernelWrapperGather: public CKernelWrapper{
       unsigned bankOutputTn,
       std::string path,
       bool isDisabled,
-      bool profileOcl
+      bool profileOcl,
+      bool logMemBankCrossings
   ):CKernelWrapper(
       taskName,
       fileName,
       xilInfo,
       path,
       isDisabled,
-      profileOcl){
+      profileOcl,
+      logMemBankCrossings){
 
     m_uBankInputTn=bankInputTn;
     m_uBankIndicesTn=bankIndicesTn;
@@ -46,6 +48,8 @@ class CKernelWrapperGather: public CKernelWrapper{
     auto pIndicesTn = std::static_pointer_cast<CTensorXil<unsigned>>(indicesTn);
     auto xInputTn = pInputTn->CloneIfNeededToBank(m_uBankInputTn);
     auto xIndicesTn = pIndicesTn->CloneIfNeededToBank(m_uBankIndicesTn);
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pInputTn)->GetTensorTag() +"-gather_in1)");
+    if(m_bLogMemBankCrossings) m_vMemBankCrossings.push_back("abs("+ (pIndicesTn)->GetTensorTag() +"-gather_in2)");
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Kernel Launch
@@ -98,6 +102,7 @@ class CKernelWrapperGather: public CKernelWrapper{
 
     // -----------------------------------------------------------------------------------------------------------------
     // #. Returning Part
+    if(m_bLogMemBankCrossings) outputTn->SetTensorTag("gather_out");
     return std::dynamic_pointer_cast<CTensorBase>(outputTn);
   }
 

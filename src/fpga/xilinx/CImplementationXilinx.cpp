@@ -7,12 +7,19 @@
 
 using namespace std;
 
-CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profiler) {
-  m_bOclProfileEnabled = profileOcl;
+CImplementationXilinx::CImplementationXilinx(
+    CProfiler *profiler,
+    bool enableOclProfiling,
+    bool logMemBankCrossings){
+
+  m_iStatus = 0;
   m_ePlatform = PLATFORMS::XIL;
   m_ptrProfiler = profiler;
+  m_bEnableOclProfiling = enableOclProfiling;
+  m_bLogMemBankCrossings = logMemBankCrossings;
   ResetLayerIdCounter(0);
-//======================================================================================================================
+
+  //======================================================================================================================
   {
     const RUN_MODE mode = GetModeEnvVar();
     if(mode==RUN_MODE::Unknown){
@@ -44,8 +51,8 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
         m_ptrQueue = new cl::CommandQueue(
             *m_ptrContext,
             m_oDevice,
-            (m_bOclProfileEnabled?(CL_QUEUE_PROFILING_ENABLE|CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE):
-                                      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE),
+            (m_bEnableOclProfiling ? (CL_QUEUE_PROFILING_ENABLE|CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) :
+             CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE),
             &m_iStatus)
     );
     m_strDeviceName = m_oDevice.getInfo<CL_DEVICE_NAME>();
@@ -63,7 +70,7 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
             &m_iStatus)
     );
 
-    m_ptrXilInfo = new CXilinxInfo(m_ptrProgram,m_ptrContext,m_ptrQueue, m_bOclProfileEnabled);
+    m_ptrXilInfo = new CXilinxInfo(m_ptrProgram, m_ptrContext, m_ptrQueue, m_bEnableOclProfiling);
     m_ptrDataMoverProfiledDataVec = new vector<ProfiledLaunchData>();
     m_ptrXilInfo->SetAccumulatedProfiledKernelLaunchDataVecPtr(m_ptrDataMoverProfiledDataVec);
 #ifdef USEMEMORYBANK0
@@ -95,78 +102,89 @@ CImplementationXilinx::CImplementationXilinx(bool profileOcl, CProfiler *profile
 
   //======================================================================================================================
   m_ptrKernelConcat = std::make_unique<CKernelWrapperConcat>(
-      "task_concat","concat.cpp",m_ptrXilInfo,
+      "task_concat", "concat.cpp", m_ptrXilInfo,
       ConfigTaskConcat::BankIndex_inputTn1,
       ConfigTaskConcat::BankIndex_inputTn2,
       ConfigTaskConcat::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelMatmul = std::make_unique<CKernelWrapperMatmul>(
-      "task_matmul","matmul.cpp",m_ptrXilInfo,
+      "task_matmul", "matmul.cpp", m_ptrXilInfo,
       ConfigTaskMatMul::BankIndex_inputTn1,
       ConfigTaskMatMul::BankIndex_inputTn2,
       ConfigTaskMatMul::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelRss = std::make_unique<CKernelWrapperReluSqrtSquare>(
-      "task_relu_sqrt_square","relu_sqrt_square.cpp",m_ptrXilInfo,
+      "task_relu_sqrt_square", "relu_sqrt_square.cpp", m_ptrXilInfo,
       ConfigTaskReluSqrtSquare::BankIndex_inputTn,
       ConfigTaskReluSqrtSquare::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelBasicOps = std::make_unique<CKernelWrapperBasicOps>(
-      "task_basicops","basicops.cpp",m_ptrXilInfo,
+      "task_basicops", "basicops.cpp", m_ptrXilInfo,
       ConfigTaskBasicOps::BankIndex_inputTn1,
       ConfigTaskBasicOps::BankIndex_inputTn2,
       ConfigTaskBasicOps::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelTile = std::make_unique<CKernelWrapperTile>(
-      "task_tile","tile.cpp",m_ptrXilInfo,
+      "task_tile", "tile.cpp", m_ptrXilInfo,
       ConfigTaskTile::BankIndex_inputTn,
       ConfigTaskTile::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelTranspose = std::make_unique<CKernelWrapperTranspose>(
-      "task_transpose","transpose.cpp",m_ptrXilInfo,
+      "task_transpose", "transpose.cpp", m_ptrXilInfo,
       ConfigTaskTranspose::BankIndex_inputTn,
       ConfigTaskTranspose::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelGather = std::make_unique<CKernelWrapperGather>(
-      "task_gather","gather.cpp",m_ptrXilInfo,
+      "task_gather", "gather.cpp", m_ptrXilInfo,
       ConfigTaskGather::BankIndex_inputTn,
       ConfigTaskGather::BankIndex_indicesTn,
       ConfigTaskGather::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelReduce = std::make_unique<CKernelWrapperReduce>(
-      "task_reduce","reduce.cpp",m_ptrXilInfo,
+      "task_reduce", "reduce.cpp", m_ptrXilInfo,
       ConfigTaskReduce::BankIndex_inputTn,
       ConfigTaskReduce::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelPadUnpad = std::make_unique<CKernelWrapperPadUnpad>(
-      "task_pad_unpad","pad_unpad.cpp",m_ptrXilInfo,
+      "task_pad_unpad", "pad_unpad.cpp", m_ptrXilInfo,
       ConfigTaskPadUnpad::BankIndex_inputTn,
       ConfigTaskPadUnpad::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelTopK = std::make_unique<CKernelWrapperTopK>(
-      "task_topk","topk_mergesoftdf_pe.cpp",m_ptrXilInfo,
+      "task_topk", "topk_mergesoftdf_pe.cpp", m_ptrXilInfo,
       ConfigTaskTopK::BankIndex_inputTn,
       ConfigTaskTopK::BankIndex_indicesSplitedTn,
       ConfigTaskTopK::MaxSliceLen,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
   m_ptrKernelConv = std::make_unique<CKernelWrapperConv>(
-      "task_conv2_1x1_direct","conv2_1x1_direct.cpp",m_ptrXilInfo,
+      "task_conv2_1x1_direct", "conv2_1x1_direct.cpp", m_ptrXilInfo,
       ConfigTaskConv2::BankIndex_inputTn,
       ConfigTaskConv2::BankIndex_weightTn,
       ConfigTaskConv2::BankIndex_biasTn,
       ConfigTaskConv2::BankIndex_outputTn,
       KERNEL_DIR, KERNEL_ENABLED,
-      m_bOclProfileEnabled);
+      m_bEnableOclProfiling,
+      m_bLogMemBankCrossings);
 
 
 }

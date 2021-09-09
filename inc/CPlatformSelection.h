@@ -11,7 +11,13 @@
 
 class CPlatformSelection {
  public:
-  CPlatformSelection(bool loadWeights, bool oclProfiling, std::string profilerOutputPath="profiler.json");
+  CPlatformSelection(
+      bool enableLoadingWeights,
+      bool enableOclProfiling,
+      bool enableMemBankCrossing,
+      bool enableCpuUtilization,
+      bool enableTensorDumps,
+      std::string profilerOutputPath="profiler.json");
   ~CPlatformSelection();
 
   CTensorBasePtr Concat2      (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
@@ -48,7 +54,7 @@ class CPlatformSelection {
   CWeightLoader *m_ptrWeightsLoader;
   CProfiler *m_ptrProfiler;
   std::string m_strProfilerOutputPath;
-  bool m_bOclProfiling, m_bLoadWeights;
+  bool m_bEnableOclProfiling, m_bLoadWeights, m_bLogMemBankCrossings, m_bEnableCpuUtilization, m_bEnableTensorDumps;
 
 };
 

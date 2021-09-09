@@ -46,8 +46,10 @@ struct ProfiledLaunchData{
 extern spdlog::logger *logger;
 extern std::string globalArgXclBin;
 extern std::string globalArgDataPath;
+
 extern unsigned globalBatchsize;
 extern bool globalDumpTensors;
+extern bool globalDumpMemBankCrossings;
 extern bool globalProfileOclEnabled;
 extern bool globalModelnet;
 extern bool globalShapenet;
