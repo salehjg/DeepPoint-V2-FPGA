@@ -56,7 +56,7 @@ void CModel1::SetDatasetLabels(std::string &pathNumpyLabels) {
   ConditionCheck(rawNpyRank==2 && rawNpyShape[1]==1, "The input numpy files for the dataset labels do not have a rank of 2 with shape[1]=1.");
   ConditionCheck(m_uDatasetOffset+m_uBatchSize<=rawNpyShape[0], "The input numpy files for the dataset labels are too small for the current dataset offset.");
   unsigned offset = m_uDatasetOffset;
-  auto *_ptrBuff = m_oNumpyObjectData.data<int>() + offset;
+  auto *_ptrBuff = m_oNumpyObjectLabels.data<int>() + offset;
   auto *ptrBuff = reinterpret_cast<unsigned*>(_ptrBuff);
   m_ptrDatasetLabelsTn = CTensorBasePtr(
       new CTensor<unsigned>({m_uBatchSize}, ptrBuff));

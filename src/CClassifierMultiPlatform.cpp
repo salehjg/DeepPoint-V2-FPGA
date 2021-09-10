@@ -27,16 +27,16 @@ CClassifierMultiPlatform::CClassifierMultiPlatform(
       enableCpuUtilization,
       enableTensorDumps);
   if(!m_bUseShapeNet){
-    string pclPath = globalArgDataPath; pclPath.append("/modelnet40/dataset/dataset_B2048_pcl.npy");
-    string labelPath = globalArgDataPath; labelPath.append("/modelnet40/dataset/dataset_B2048_labels_int32.npy");
+    string pclPath = globalArgDataPath; pclPath.append("/modelnet40/dataset/dataset_B5_pcl.npy");
+    string labelPath = globalArgDataPath; labelPath.append("/modelnet40/dataset/dataset_B5_labels_int32.npy");
     SPDLOG_LOGGER_INFO(logger,"PCL NPY PATH: {}", pclPath);
     SPDLOG_LOGGER_INFO(logger,"LBL NPY PATH: {}", labelPath);
 
     m_ptrClassifierModel->SetDatasetData(pclPath);
     m_ptrClassifierModel->SetDatasetLabels(labelPath);
   }else{
-    string pclPath = globalArgDataPath; pclPath.append("/shapenet2/dataset/dataset_B2048_pcl.npy");
-    string labelPath = globalArgDataPath; labelPath.append("/shapenet2/dataset/dataset_B2048_labels_int32.npy");
+    string pclPath = globalArgDataPath; pclPath.append("/shapenet2/dataset/dataset_B5_pcl.npy");
+    string labelPath = globalArgDataPath; labelPath.append("/shapenet2/dataset/dataset_B5_labels_int32.npy");
     SPDLOG_LOGGER_INFO(logger,"PCL NPY PATH: {}", pclPath);
     SPDLOG_LOGGER_INFO(logger,"LBL NPY PATH: {}", labelPath);
 
@@ -90,7 +90,7 @@ void CClassifierMultiPlatform::CalculateAccuracy(CTensorPtr<float> scoresTn,
     }
 
     for(unsigned b=0;b<batchSize;b++){
-      if(a1[b]==(int)(*labelsTn)[b]){
+      if(a1[b]==(*labelsTn)[b]){
         correct[b]=true;
       }
       else{
