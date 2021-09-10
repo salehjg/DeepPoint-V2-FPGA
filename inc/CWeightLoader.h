@@ -13,7 +13,7 @@
 
 class CWeightLoader {
  public:
-  CWeightLoader(CXilinxInfo *xilInfo);
+  CWeightLoader(CXilinxInfo *xilInfo, PLATFORMS targetPlatform);
   ~CWeightLoader();
   void LoadWeightsFromDisk(
       std::string &weightsBaseDir,
@@ -25,7 +25,7 @@ class CWeightLoader {
   int _ResolveMemoryBankOclXilinx(std::string &name);
   std::string _ResolveTensorTagOclXilinx(std::string &name);
 
-  bool m_bIsLoaded;
+  bool m_bIsLoaded, m_bLoadXil, m_bLoadCpu;
   CXilinxInfo *m_ptrXilInfo;
   unsigned m_uWeightCount;
   std::vector<CTensorBasePtr> m_vWeightsCpu;

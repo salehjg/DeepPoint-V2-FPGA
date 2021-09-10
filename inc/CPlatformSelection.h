@@ -12,6 +12,7 @@
 class CPlatformSelection {
  public:
   CPlatformSelection(
+      PLATFORMS targetPlatform,
       bool useShapeNetInstead,
       bool enableLoadingWeights,
       bool enableOclProfiling,
@@ -31,9 +32,9 @@ class CPlatformSelection {
   CTensorBasePtr Tile         (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount);
   CTensorBasePtr Transpose    (PLATFORMS destPlatform, CTensorBasePtr inputTn);
   CTensorBasePtr Gather       (PLATFORMS destPlatform, CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis);
-  CTensorBasePtr Reduce       (PLATFORMS destPlatform, CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3);
-  CTensorBasePtr Mean         (PLATFORMS destPlatform, CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3);
-  CTensorBasePtr Variance     (PLATFORMS destPlatform, CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3);
+  CTensorBasePtr Reduce       (PLATFORMS destPlatform, CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, const std::vector<unsigned> &combination);
+  CTensorBasePtr Mean         (PLATFORMS destPlatform, CTensorBasePtr inputTn, const std::vector<unsigned> &combination);
+  CTensorBasePtr Variance     (PLATFORMS destPlatform, CTensorBasePtr inputTn, const std::vector<unsigned> &combination);
   CTensorBasePtr PadLastDim   (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned lastDimPadded);
   CTensorBasePtr UnpadLastDim (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned lastDimUnpadded);
   CTensorBasePtr TopK         (PLATFORMS destPlatform, CTensorBasePtr inputTn, unsigned axis, unsigned k);

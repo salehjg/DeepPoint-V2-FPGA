@@ -22,6 +22,7 @@ CModel1::CModel1(
   m_uKnnK = knnK;
   m_eTargetPlatform = targetPlatform;
   m_ptrPlatSelection = new CPlatformSelection(
+      targetPlatform,
       m_bUseShapeNet,
       true,
       enableOclProfiling,
@@ -29,9 +30,6 @@ CModel1::CModel1(
       enableCpuUtilization,
       enableTensorDumps
   );
-
-
-
 }
 
 void CModel1::SetDatasetData(std::string &pathNumpyData) {
@@ -55,7 +53,7 @@ void CModel1::SetDatasetLabels(std::string &pathNumpyLabels) {
   m_oNumpyObjectLabels = cnpy::npy_load(pathNumpyLabels);
   auto rawNpyShape = m_oNumpyObjectLabels.shape;
   auto rawNpyRank = rawNpyShape.size();
-  ConditionCheck(rawNpyRank==1, "The input numpy files for the dataset labels do not have a rank of 1.");
+  ConditionCheck(rawNpyRank==2 && rawNpyShape[1]==1, "The input numpy files for the dataset labels do not have a rank of 2 with shape[1]=1.");
   ConditionCheck(m_uDatasetOffset+m_uBatchSize<=rawNpyShape[0], "The input numpy files for the dataset labels are too small for the current dataset offset.");
   unsigned offset = m_uDatasetOffset;
   auto *_ptrBuff = m_oNumpyObjectData.data<int>() + offset;
@@ -103,8 +101,8 @@ CTensorBasePtr CModel1::BatchNormForward(CTensorBasePtr inputTn,
   
   if(rank==4){
     //mu and var is of shape (dim3)
-    mu = m_ptrPlatSelection->Mean(GetTargetPlatform(), inputTn, true, true, true, false);
-    var = m_ptrPlatSelection->Variance(GetTargetPlatform(), inputTn, true, true, true, false);
+    mu = m_ptrPlatSelection->Mean(GetTargetPlatform(), inputTn, {1,1,1,0});
+    var = m_ptrPlatSelection->Variance(GetTargetPlatform(), inputTn, {1,1,1,0});
 
     // Exponential Moving Average for mu and var
     CTensorBasePtr update_delta_ave, update_delta_var;
@@ -127,8 +125,8 @@ CTensorBasePtr CModel1::BatchNormForward(CTensorBasePtr inputTn,
     return rsltTn;
   } else if(rank==2){
     //mu and var is of shape (dim1)
-    mu = m_ptrPlatSelection->Mean(GetTargetPlatform(), inputTn, true, false, false, false);
-    var = m_ptrPlatSelection->Variance(GetTargetPlatform(), inputTn, true, false, false, false);
+    mu = m_ptrPlatSelection->Mean(GetTargetPlatform(), inputTn, {1,0});
+    var = m_ptrPlatSelection->Variance(GetTargetPlatform(), inputTn, {1,0});
 
     // Exponential Moving Average for mu and var
     CTensorBasePtr update_delta_ave, update_delta_var;
@@ -179,7 +177,7 @@ CTensorBasePtr CModel1::PairwiseDistance(CTensorBasePtr inputTn) {
 
   ///TODO: REDUCE LAYER IS CHANGED, CHECK IT.
   //auto point_cloud_sum = m_ptrPlatSelection->ReduceSum(GetTargetPlatform(),point_cloud_inner2p2,false,false,true);
-  auto point_cloud_sum = m_ptrPlatSelection->Reduce(GetTargetPlatform(),point_cloud_inner2p2,REDUCTION_OPS::SUM,1,false,false,true,false);
+  auto point_cloud_sum = m_ptrPlatSelection->Reduce(GetTargetPlatform(),point_cloud_inner2p2,REDUCTION_OPS::SUM,1,{0,0,1});
 
   auto point_cloud_sum_tiled =  m_ptrPlatSelection->Tile(GetTargetPlatform(),point_cloud_sum,2,m_uPointsPerCloud); //The result is BxNxK for k=N
   auto point_cloud_sum_transpose_tiled =  m_ptrPlatSelection->Tile(GetTargetPlatform(),point_cloud_sum,1,m_uPointsPerCloud); //The result is BxkxN for k=N
@@ -263,7 +261,7 @@ CTensorBasePtr CModel1::TransformNet(CTensorBasePtr edgeFeaturesTn) {
   {
     ///TODO: CHECK THIS. REDUCE LAYER HAS BEEN CHANGED.
     //auto net1 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net,2);
-    auto net1 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net,REDUCTION_OPS::MAX,1,false,false,true,false);
+    auto net1 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net,REDUCTION_OPS::MAX,1,{0,0,1,0});
 
     net1->ExpandDims(2);
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"A07_tnet_pool.npy",net1);
@@ -307,7 +305,7 @@ CTensorBasePtr CModel1::TransformNet(CTensorBasePtr edgeFeaturesTn) {
   {
     ///TODO: CHECK THIS, REDUCE LAYER HAS BEEN CHANGED.
     //auto net1 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net,1);
-    auto net1 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net,REDUCTION_OPS::MAX,1,false,true,false,false);
+    auto net1 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net,REDUCTION_OPS::MAX,1,{0,1,0,0});
 
     net1->SqueezeDims();
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"A11_tnet_pool.npy",net1);
@@ -416,9 +414,6 @@ CTensorBasePtr CModel1::Execute() {
 
   CTensorBasePtr endpoint_0, endpoint_1, endpoint_2, endpoint_3;
 
-  bool *correct = new bool[m_uBatchSize];
-  float accu =0;
-
   //----------------------------------------------------------------------------------------
   SPDLOG_LOGGER_INFO(logger,"Starting Process...");
   SPDLOG_LOGGER_INFO(logger,"Batch Size: {}", m_uBatchSize);
@@ -479,7 +474,7 @@ CTensorBasePtr CModel1::Execute() {
 
     ///TODO: CHECK THIS! REDUCE LAYER HAS BEEN CHANGED!
     //auto net4 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net3,2);
-    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,false,false,true,false);
+    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,{0,0,1,0});
 
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"B05_dg1_pool.npy",net4);
 
@@ -517,7 +512,7 @@ CTensorBasePtr CModel1::Execute() {
 
     ///TODO: CHECK THIS, REDUCE LAYER HAS BEEN CHANGED!
     //auto net4 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net3,2);
-    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,false,false,true,false);
+    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,{0,0,1,0});
 
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"B06_dg2_pool.npy",net4);
 
@@ -555,7 +550,7 @@ CTensorBasePtr CModel1::Execute() {
 
     ///TODO: CHECK THIS, REDUCE LAYER HAS BEEN CHANGED!
     //auto net4 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net3,2);
-    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,false,false,true,false);
+    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,{0,0,1,0});
 
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"B07_dg3_pool.npy",net4);
 
@@ -593,7 +588,7 @@ CTensorBasePtr CModel1::Execute() {
 
     ///TODO: CHECK THIS, REDUCE LAYER HAS BEEN CHANGED.
     //auto net4 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net3,2);
-    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,false,false,true,false);
+    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,{0,0,1,0});
 
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"B08_dg4_pool.npy",net4);
 
@@ -641,7 +636,7 @@ CTensorBasePtr CModel1::Execute() {
 
     ///TODO: CHECK THIS, REDUCE LAYER HAS BEEN CHANGED.
     //auto net4 = m_ptrPlatSelection->ReduceMax(GetTargetPlatform(),net3,1);
-    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,false,true,false,false);
+    auto net4 = m_ptrPlatSelection->Reduce(GetTargetPlatform(),net3,REDUCTION_OPS::MAX,1,{0,1,0,0});
 
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"B12_agg_pool.npy",net4);
 

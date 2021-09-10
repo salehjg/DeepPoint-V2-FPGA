@@ -10,6 +10,7 @@ CImplementationCpu::CImplementationCpu(CProfiler *profiler, bool enableTensorDum
 void CImplementationCpu::DumpToNumpyFile(std::string npyFileName, CTensorBasePtr inputTn, std::string npyDumpDir) {
   // The template member functions of a non-template class should be declared and defined in the header file ONLY.
   if(m_bEnableTensorDumps){
+    SPDLOG_LOGGER_TRACE(logger, "DumpToNumpyFile is not async meaning that it is blocking and will cause the ocl queue to be flushed.");
     ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
     auto inputFloatTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
     auto inputUintTn = std::dynamic_pointer_cast<CTensor<unsigned>>(inputTn);
@@ -197,6 +198,7 @@ CTensorBasePtr CImplementationCpu::MatMul(CTensorBasePtr inputTn1, CTensorBasePt
 
   pInputTn1->SqueezeDimZeroTimesTry(diff);
   pInputTn2->SqueezeDimZeroTimesTry(diff);
+  rsltTn->SqueezeDimZeroTimesTry(diff);
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
@@ -560,15 +562,15 @@ CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr
 CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
                                           REDUCTION_OPS mode,
                                           unsigned powY,
-                                          bool overAxis0,
-                                          bool overAxis1,
-                                          bool overAxis2,
-                                          bool overAxis3) {
+                                          const std::vector<unsigned> &combination) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({
+                                    {"shape",inputTn->GetShape()},
+                                    {"combination",combination}
+      }),
       new CProfiler::DictIntPtr({
                                     {"reduction_op",
                                      mode==REDUCTION_OPS::SUM?0:
@@ -576,21 +578,23 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
                                      -1
                                     },
                                     {"powY",powY},
-                                    {"rank",inputTn->GetRank()},
-                                    {"overAxis0",overAxis0},
-                                    {"overAxis1",overAxis1},
-                                    {"overAxis2",overAxis2},
-                                    {"overAxis3",overAxis3}
+                                    {"rank",inputTn->GetRank()}
                                 }),
       nullptr);
 
   ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
   ConditionCheck(pInputTn->GetRank()<=4, "The CPU implementation of reduce only supports tensors of rank 4 and less.");
+  ConditionCheck(combination.size()==inputTn->GetRank(), "The combination's size should be equal to the input tensor's rank.");
+
+  auto localComb = combination; // the local copy of the combination
 
   unsigned diff = 0;
   if(pInputTn->GetRank()<3) {
     diff = pInputTn->ExpandDimZeroToRank(3);
+    for(unsigned d=0; d<diff; d++){
+      localComb.insert(localComb.begin(), 0);
+    }
   }
   unsigned rank = pInputTn->GetRank();
   auto shape = pInputTn->GetShape();
@@ -600,7 +604,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
   if(mode==REDUCTION_OPS::SUM && rank==3){
     //rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K, D}));
 
-    if(overAxis0&&overAxis1&&overAxis2){ //TTT
+    if(localComb[0]&&localComb[1]&&localComb[2]){ //TTT
       rsltTn = CTensorPtr<float>(new CTensor<float>({1}));
       float sum = 0;
       unsigned limit = pInputTn->GetLen();
@@ -609,7 +613,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
         sum += (*pInputTn)[b];
       }
       (*rsltTn)[0] = sum;
-    } else if(overAxis0&&!overAxis1&&!overAxis2){ //TFF
+    } else if(localComb[0]&&!localComb[1]&&!localComb[2]){ //TFF
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim1,dim2}));
       float sum=0;
@@ -625,7 +629,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           (*rsltTn)[indxD] = sum;
         }
       }
-    }else if(!overAxis0&&overAxis1&&!overAxis2) { //FTF
+    }else if(!localComb[0]&&localComb[1]&&!localComb[2]) { //FTF
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0,dim2}));
       float sum=0;
@@ -641,7 +645,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           (*rsltTn)[indxD] = sum;
         }
       }
-    }else if(!overAxis0&&!overAxis1&&overAxis2) { //FFT
+    }else if(!localComb[0]&&!localComb[1]&&localComb[2]) { //FFT
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0,dim1}));
       float sum=0;
@@ -662,7 +666,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
     }
   }else if(mode==REDUCTION_OPS::SUM && rank==4) {
     // Sum4 TTTF
-    if(overAxis0 && overAxis1 && overAxis2 && !overAxis3) {
+    if(localComb[0] && localComb[1] && localComb[2] && !localComb[3]) {
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim3}));
 
@@ -690,7 +694,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
     }
   }else if(mode==REDUCTION_OPS::MAX && rank==4){
     // Max4 FTFF
-    if(!overAxis0 && !overAxis1 && !overAxis2 && overAxis3){ //over dim 3
+    if(!localComb[0] && !localComb[1] && !localComb[2] && localComb[3]){ //over dim 3
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim1, dim2}));
 
@@ -717,7 +721,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           }
         }
       }
-    }else if(!overAxis0 && !overAxis1 && overAxis2 && !overAxis3) { //over dim 2
+    }else if(!localComb[0] && !localComb[1] && localComb[2] && !localComb[3]) { //over dim 2
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim1, dim3}));
 
@@ -745,7 +749,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           }
         }
       }
-    }else if(!overAxis0 && overAxis1 && !overAxis2 && !overAxis3) { //over dim 1
+    }else if(!localComb[0] && localComb[1] && !localComb[2] && !localComb[3]) { //over dim 1
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim2, dim3}));
 
@@ -782,33 +786,32 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
   }
 
   pInputTn->SqueezeDimZeroTimesTry(diff);
+  rsltTn->SqueezeDimZeroTimesTry(diff); // like if the tensor is rank2 and we are asking r.sum FTF then we dont want output shape{1,nnn} we want {nnn}.
   m_ptrProfiler->FinishLayer();
   return rsltTn;
 }
 CTensorBasePtr CImplementationCpu::Mean(CTensorBasePtr inputTn,
-                                        bool overAxis0,
-                                        bool overAxis1,
-                                        bool overAxis2,
-                                        bool overAxis3) {
+                                        const std::vector<unsigned> &combination) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({
+                                    {"shape",inputTn->GetShape()},
+                                    {"combination",combination},
+                                }),
       new CProfiler::DictIntPtr({
-                                    {"rank",inputTn->GetRank()},
-                                    {"overAxis0",overAxis0},
-                                    {"overAxis1",overAxis1},
-                                    {"overAxis2",overAxis2},
-                                    {"overAxis3",overAxis3}
+                                    {"rank",inputTn->GetRank()}
                                 }),
       nullptr);
 
   ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  ConditionCheck(combination.size()==inputTn->GetRank(), "The combination's size must be equal to the input tensor's rank.");
+  auto &localCombination = combination; // not gonna be modified, so make a ref
 
   auto shape = pInputTn->GetShape();
-  unsigned
+  unsigned  ///TODO: FIX THIS, RANK2 TENSORS DONT HAVE shape[2, and 3] !!!
       dim0 = shape[0],
       dim1 = shape[1],
       dim2 = shape[2],
@@ -818,8 +821,8 @@ CTensorBasePtr CImplementationCpu::Mean(CTensorBasePtr inputTn,
   CTensorPtr<float> rsltTn;
 
   if(rank==4){
-    if(!overAxis3 && overAxis0 && overAxis1 && overAxis2){
-      CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, overAxis0, overAxis1, overAxis2, overAxis3);
+    if(!localCombination[3] && localCombination[0] && localCombination[1] && localCombination[2]){
+      CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, localCombination);
       CTensorPtr<float> pReduced = std::dynamic_pointer_cast<CTensor<float>>(reduced);
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim3}));
       const auto l = (float)(dim0*dim1*dim2);
@@ -830,15 +833,16 @@ CTensorBasePtr CImplementationCpu::Mean(CTensorBasePtr inputTn,
   }
 
   if(rank==2) { //dim0 is batch, dim1 is fc layer output, ex.: for B=1 --> output=[1,256]
-    if (!overAxis1 && overAxis0) {
-      CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, false, true, false, false);
+    if (!localCombination[1] && localCombination[0]) {
+      /// TODO: !!!!!! OverDim Args WERE WRONG!
+      CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, localCombination);
       auto meanTn = BasicOps(reduced, 1.0f/(float)dim0,BASIC_OPS::MUL_ELEMENTWISE);
       rsltTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
     }
   }
 
-  if(rank==1){
-    CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, true, true, true, false);
+  if(rank==1 && localCombination[0]){
+    CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, localCombination);
     CTensorBasePtr meanTn = BasicOps(reduced, 1.0f/(float)dim0,BASIC_OPS::MUL_ELEMENTWISE);
     rsltTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
   }
@@ -847,26 +851,23 @@ CTensorBasePtr CImplementationCpu::Mean(CTensorBasePtr inputTn,
   return rsltTn;
 }
 CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
-                                            bool overAxis0,
-                                            bool overAxis1,
-                                            bool overAxis2,
-                                            bool overAxis3) {
+                                            const std::vector<unsigned> &combination) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({
+                                    {"shape",inputTn->GetShape()},
+                                    {"combination",combination}
+                                }),
       new CProfiler::DictIntPtr({
-                                    {"rank",inputTn->GetRank()},
-                                    {"overAxis0",overAxis0},
-                                    {"overAxis1",overAxis1},
-                                    {"overAxis2",overAxis2},
-                                    {"overAxis3",overAxis3}
+                                    {"rank",inputTn->GetRank()}
                                 }),
       nullptr);
 
   ValidateTensorPlatforms({inputTn}, PLATFORMS::CPU);
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
+  auto &localCombination = combination;
 
   auto shape = pInputTn->GetShape();
   unsigned
@@ -879,8 +880,8 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
   CTensorPtr<float> rsltTn;
 
   if(rank==4){
-    if(!overAxis3 && overAxis0 && overAxis1 && overAxis2) {
-      CTensorBasePtr meanTn = Mean(inputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+    if(!localCombination[3] && localCombination[0] && localCombination[1] && localCombination[2]) {
+      CTensorBasePtr meanTn = Mean(inputTn, localCombination);
       CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
       CTensorPtr<float> varianceTn(new CTensor<float>({dim3}));
       unsigned indxS1;
@@ -909,8 +910,8 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
   }
 
   if(rank==2) { //dim0 is batch, dim1 is fc layer output, ex.: for B=1 --> output=[1,256]
-    if(!overAxis1 && overAxis0) {
-      CTensorBasePtr meanTn = Mean(inputTn, true, false, false, false);
+    if(!localCombination[1] && localCombination[0]) {
+      CTensorBasePtr meanTn = Mean(inputTn, localCombination);
       CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
       CTensorPtr<float> varianceTn(new CTensor<float>({dim1}));
 
@@ -930,8 +931,8 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
     }
   }
 
-  if(rank==1){
-    CTensorBasePtr meanTn = Mean(inputTn, true, true, true, true);
+  if(rank==1 && localCombination[0]){
+    CTensorBasePtr meanTn = Mean(inputTn, localCombination);
     CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
     CTensorPtr<float> varianceTn(new CTensor<float>({1}));
 
@@ -1115,6 +1116,10 @@ CTensorBasePtr CImplementationCpu::Conv2D(CTensorBasePtr inputTn, CTensorBasePtr
   const auto ch_out = weightTn->GetShape().back();
 
   CTensorPtr<float> rsltTn (new CTensor<float>({B,N,K,ch_out}));
+  float *pBuffInputTn = pInputTn->Get();
+  float *pBuffWeightTn = pWeightTn->Get();
+  float *pBuffBiasTn = pBias->Get();
+  float *pBuffRsltTnTn = rsltTn->Get();
 
   for(unsigned b=0;b<B;b++){
     for(unsigned n=0;n<N;n++){
@@ -1124,10 +1129,10 @@ CTensorBasePtr CImplementationCpu::Conv2D(CTensorBasePtr inputTn, CTensorBasePtr
           float sum=0;
           for(unsigned d=0;d<D;d++){
             indxS2 = d*ch_out + ch;
-            sum += (*pInputTn)[indxS1+d] * (*pWeightTn)[indxS2];
+            sum += pBuffInputTn[indxS1+d] * pBuffWeightTn[indxS2];
           }
           indxD=b*N*K*ch_out+ n*K*ch_out+ k*ch_out+ ch;
-          (*rsltTn)[indxD] = sum + (*pBias)[ch];
+          pBuffRsltTnTn[indxD] = sum + pBuffBiasTn[ch];
         }
       }
     }

@@ -111,6 +111,7 @@ class CKernelWrapperMatmul: public CKernelWrapper{
     // #. Returning Part
     xInputTn1->SqueezeDimZeroTimesTry(diff);
     xInputTn2->SqueezeDimZeroTimesTry(diff);
+    outputTn->SqueezeDimZeroTimesTry(diff);
     if(m_bLogMemBankCrossings) outputTn->SetTensorTag("matmul_out");
     return std::dynamic_pointer_cast<CTensorBase>(outputTn);
   }

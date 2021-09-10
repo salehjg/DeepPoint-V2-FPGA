@@ -36,27 +36,27 @@ class CKernelWrapperReduce: public CKernelWrapper{
       CTensorBasePtr inputTn,
       REDUCTION_OPS mode,
       unsigned powY,
-      bool overAxis0,
-      bool overAxis1,
-      bool overAxis2,
-      bool overAxis3){
+      const std::vector<unsigned> &combination){
 
     //-----------------------------------------------------------------------------------------------------------------
     // #. Requirement Checks
     unsigned rank = inputTn->GetRank();
+
+    ConditionCheck(rank==combination.size(), "The combination's size must be equal to the input tensor's rank");
+
     if(mode == REDUCTION_OPS::SUM){
       ConditionCheck(rank==3 || rank==4, "For REDUCTION_OPS::SUM, only tensors of ranks 3 and 4 are supported.");
       if(rank==3){
         // ReduceSum3D FFT
         ConditionCheck(
-             (!overAxis0 && !overAxis1 && overAxis2),
+             (!combination[0] && !combination[1] && combination[2]),
             "For REDUCTION_OPS::SUM and rank 3 tensor, only axis 2 reduction is supported."
         );
       }
       if(rank==4) {
         // ReduceSum4D TTTF
         ConditionCheck(
-            (overAxis0 && overAxis1 && overAxis2 && !overAxis3),
+            (combination[0] && combination[1] && combination[2] && !combination[3]),
             "For REDUCTION_OPS::SUM and rank 4 tensors, only axes 0,1, and 2 reduction is supported."
         );
       }
@@ -67,8 +67,8 @@ class CKernelWrapperReduce: public CKernelWrapper{
       // ReduceMax4D TTFT
       ConditionCheck(
           rank==4 && (
-              ((!overAxis0 && overAxis1 && !overAxis2 && !overAxis3) && inputTn->GetShape()[2]==1) ||
-              (!overAxis0 && !overAxis1 && overAxis2 && !overAxis3)
+              ((!combination[0] && combination[1] && !combination[2] && !combination[3]) && inputTn->GetShape()[2]==1) ||
+              (!combination[0] && !combination[1] && combination[2] && !combination[3])
           ),
           "For REDUCTION_OPS::MAX and rank 4 tensors, only FTFF with shape[2]=1 and FFTF combs are supported."
       );
@@ -88,7 +88,7 @@ class CKernelWrapperReduce: public CKernelWrapper{
     CTensorXilPtr<float> outputTn;
 
     if(mode == REDUCTION_OPS::SUM){
-      if(rank==3 && (!overAxis0 && !overAxis1 && overAxis2)){
+      if(rank==3 && (!combination[0] && !combination[1] && combination[2])){
         // ReduceSum3D FFT
         dim0 = shape[0];
         dim1 = shape[1];
@@ -100,7 +100,7 @@ class CKernelWrapperReduce: public CKernelWrapper{
             false,
             m_uBankOutputTn)
         );
-      }else if(rank==4 && (overAxis0 && overAxis1 && overAxis2 && !overAxis3)){
+      }else if(rank==4 && (combination[0] && combination[1] && combination[2] && !combination[3])){
         // ReduceSum4D TTTF
         dim0 = shape[0];
         dim1 = shape[1];
@@ -115,7 +115,7 @@ class CKernelWrapperReduce: public CKernelWrapper{
         );
       }
     } else if (mode == REDUCTION_OPS::MAX){
-      if(rank==4 && ((!overAxis0 && overAxis1 && !overAxis2 && !overAxis3) && pInputTn->GetShape()[2]==1)){
+      if(rank==4 && ((!combination[0] && combination[1] && !combination[2] && !combination[3]) && pInputTn->GetShape()[2]==1)){
         // ReduceMax4D FTFF && shape[2]==1
         // Uses the kernel for reduce max TFT
         dim0 = shape[0];
@@ -129,7 +129,7 @@ class CKernelWrapperReduce: public CKernelWrapper{
         );
         kernelMode = 3;
 
-      }else if(rank==4 && (!overAxis0 && !overAxis1 && overAxis2 && !overAxis3)){
+      }else if(rank==4 && (!combination[0] && !combination[1] && combination[2] && !combination[3])){
         // ReduceMax4D FFTF
         dim0 = shape[0]*shape[1];
         dim1 = shape[2];

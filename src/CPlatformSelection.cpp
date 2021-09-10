@@ -3,6 +3,7 @@
 #include "CPlatformSelection.h"
 
 CPlatformSelection::CPlatformSelection(
+    PLATFORMS targetPlatform,
     bool useShapeNetInstead,
     bool enableLoadingWeights,
     bool enableOclProfiling,
@@ -21,7 +22,7 @@ CPlatformSelection::CPlatformSelection(
 
   m_ptrImplCpu = new CImplementationCpu(m_ptrProfiler, m_bEnableTensorDumps);
   m_ptrImplXil = new CImplementationXilinx(m_ptrProfiler, m_bEnableOclProfiling, m_bLogMemBankCrossings);
-  m_ptrWeightsLoader = new CWeightLoader(m_ptrImplXil->GetXilInfo());
+  m_ptrWeightsLoader = new CWeightLoader(m_ptrImplXil->GetXilInfo(), targetPlatform);
 
 
   if(!m_bLoadWeights) SPDLOG_LOGGER_WARN(logger,"The weights are not going to be loaded into the device memory.");
@@ -254,18 +255,15 @@ CTensorBasePtr CPlatformSelection::Reduce(PLATFORMS destPlatform,
                                           CTensorBasePtr inputTn,
                                           REDUCTION_OPS mode,
                                           unsigned powY,
-                                          bool overAxis0,
-                                          bool overAxis1,
-                                          bool overAxis2,
-                                          bool overAxis3) {
+                                          const std::vector<unsigned> &combination) {
   if(!inputTn->IsTypeFloat32()){
     ThrowException("The layer only accepts types: float32.");
   }
   auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
   if(destPlatform==PLATFORMS::CPU){
-    return m_ptrImplCpu->Reduce(qInputTn, mode, powY, overAxis0, overAxis1, overAxis2, overAxis3);
+    return m_ptrImplCpu->Reduce(qInputTn, mode, powY, combination);
   }else if(destPlatform==PLATFORMS::XIL){
-    return m_ptrImplXil->Reduce(qInputTn, mode, powY, overAxis0, overAxis1, overAxis2, overAxis3);
+    return m_ptrImplXil->Reduce(qInputTn, mode, powY, combination);
   }else{
     ThrowException("Undefined Platform.");
   }
@@ -273,18 +271,15 @@ CTensorBasePtr CPlatformSelection::Reduce(PLATFORMS destPlatform,
 
 CTensorBasePtr CPlatformSelection::Mean(PLATFORMS destPlatform,
                                         CTensorBasePtr inputTn,
-                                        bool overAxis0,
-                                        bool overAxis1,
-                                        bool overAxis2,
-                                        bool overAxis3) {
+                                        const std::vector<unsigned> &combination) {
   if(!inputTn->IsTypeFloat32()){
     ThrowException("The layer only accepts types: float32.");
   }
   auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
   if(destPlatform==PLATFORMS::CPU){
-    return m_ptrImplCpu->Mean(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+    return m_ptrImplCpu->Mean(qInputTn, combination);
   }else if(destPlatform==PLATFORMS::XIL){
-    return m_ptrImplXil->Mean(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+    return m_ptrImplXil->Mean(qInputTn, combination);
   }else{
     ThrowException("Undefined Platform.");
   }
@@ -292,18 +287,15 @@ CTensorBasePtr CPlatformSelection::Mean(PLATFORMS destPlatform,
 
 CTensorBasePtr CPlatformSelection::Variance(PLATFORMS destPlatform,
                                             CTensorBasePtr inputTn,
-                                            bool overAxis0,
-                                            bool overAxis1,
-                                            bool overAxis2,
-                                            bool overAxis3){
+                                            const std::vector<unsigned> &combination){
   if(!inputTn->IsTypeFloat32()){
     ThrowException("The layer only accepts types: float32.");
   }
   auto qInputTn = CrossThePlatformIfNeeded(destPlatform, inputTn);
   if(destPlatform==PLATFORMS::CPU){
-    return m_ptrImplCpu->Variance(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+    return m_ptrImplCpu->Variance(qInputTn, combination);
   }else if(destPlatform==PLATFORMS::XIL){
-    return m_ptrImplXil->Variance(qInputTn, overAxis0, overAxis1, overAxis2, overAxis3);
+    return m_ptrImplXil->Variance(qInputTn, combination);
   }else{
     ThrowException("Undefined Platform.");
   }
@@ -387,7 +379,6 @@ void CPlatformSelection::DumpToNumpyFile(PLATFORMS destPlatform,
                                          std::string npyDumpDir) {
   auto qInputCpuTn = CrossThePlatformIfNeeded(PLATFORMS::CPU, inputTn);
   if(destPlatform==PLATFORMS::CPU){
-    SPDLOG_LOGGER_TRACE(logger, "DumpToNumpyFile is not async meaning that it is blocking and will cause the ocl queue to be flushed.");
     return m_ptrImplCpu->DumpToNumpyFile(npyFileName,qInputCpuTn,npyDumpDir);
   }else if(destPlatform==PLATFORMS::XIL){
     ThrowException("NYI.");

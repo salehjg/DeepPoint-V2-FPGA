@@ -1,7 +1,9 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 #include "CWeightLoader.h"
-CWeightLoader::CWeightLoader(CXilinxInfo *xilInfo) {
+CWeightLoader::CWeightLoader(CXilinxInfo *xilInfo, PLATFORMS targetPlatform) {
+  m_bLoadCpu = targetPlatform == PLATFORMS::CPU;
+  m_bLoadXil = targetPlatform == PLATFORMS::XIL;
   m_ptrXilInfo = xilInfo;
   m_uWeightCount = 0;
   m_bIsLoaded = false;
@@ -9,7 +11,7 @@ CWeightLoader::CWeightLoader(CXilinxInfo *xilInfo) {
 void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
                                         std::string &pathToTxtFnameList) {
   std::string line;
-  int idx=-1;
+  int idx=0;
 
   std::ifstream inFile(pathToTxtFnameList);
   m_uWeightCount = std::count(std::istreambuf_iterator<char>(inFile), std::istreambuf_iterator<char>(), '\n');
@@ -20,21 +22,34 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
     return;
   }
 
+  if(m_bLoadCpu) {
+    SPDLOG_LOGGER_TRACE(logger, "Loading weights for PLATFORMS::CPU");
+  }
+  if(m_bLoadXil) {
+    SPDLOG_LOGGER_TRACE(logger, "Loading weights for PLATFORMS::XIL");
+  }
   while (std::getline(txtFile, line)) {
-    idx++;
     std::string weight_npy_path = weightsBaseDir + line;
-    m_mWeightNameToIndex.insert(std::make_pair(line, idx) );
     m_vNumpyBuff.push_back(cnpy::npy_load(weight_npy_path));
     std::vector<unsigned> __shape(m_vNumpyBuff.back().shape.begin(), m_vNumpyBuff.back().shape.end());
     if(__shape.size()==1 && __shape[0]==0){
       SPDLOG_LOGGER_TRACE(logger, "LoadWeightsFromDisk: An ill-shaped weight is found at index {}, skipping...", idx);
       continue;
+    }else {
+      m_mWeightNameToIndex.insert(std::make_pair(line, idx++) );
+      if (m_bLoadCpu) {
+        m_vWeightsCpu.push_back(CTensorBasePtr(new CTensor<float>(__shape, m_vNumpyBuff.back().data<float>())));
+      }
+      if (m_bLoadXil) {
+        int bank = ResolveMemoryBank(PLATFORMS::XIL, line);
+        m_vWeightsXil.push_back(CTensorBasePtr(new CTensorXil<float>(m_ptrXilInfo,
+                                                                     __shape,
+                                                                     m_vNumpyBuff.back().data<float>(),
+                                                                     bank)));
+        auto tag = _ResolveTensorTagOclXilinx(line);
+        std::dynamic_pointer_cast<CTensorXil<float>>(m_vWeightsXil[idx])->SetTensorTag(tag);
+      }
     }
-    m_vWeightsCpu.push_back(CTensorBasePtr(new CTensor<float>(__shape,m_vNumpyBuff.back().data<float>())));
-    int bank = ResolveMemoryBank(PLATFORMS::XIL, line);
-    m_vWeightsXil.push_back(CTensorBasePtr(new CTensorXil<float>(m_ptrXilInfo, __shape, m_vNumpyBuff.back().data<float>(), bank)));
-    auto tag = _ResolveTensorTagOclXilinx(line);
-    std::dynamic_pointer_cast<CTensorXil<float>>(m_vWeightsXil[idx])->SetTensorTag(tag);
   }
   m_bIsLoaded = true;
   txtFile.close();

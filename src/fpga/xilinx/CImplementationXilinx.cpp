@@ -514,15 +514,15 @@ CTensorBasePtr CImplementationXilinx::Gather(CTensorBasePtr inputTn, CTensorBase
 CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
                                              REDUCTION_OPS mode,
                                              unsigned powY,
-                                             bool overAxis,
-                                             bool overAxis1,
-                                             bool overAxis2,
-                                             bool overAxis3) {
+                                             const std::vector<unsigned> &combination) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({
+        {"shape",inputTn->GetShape()},
+        {"combination",combination},
+        }),
       new CProfiler::DictIntPtr({
         {"reduction_op",
          mode==REDUCTION_OPS::SUM?0:
@@ -531,10 +531,6 @@ CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
         },
         {"powY",powY},
         {"rank",inputTn->GetRank()},
-        {"overAxis",overAxis},
-        {"overAxis1",overAxis1},
-        {"overAxis2",overAxis2},
-        {"overAxis3",overAxis3}
       }),
       nullptr);
 
@@ -545,57 +541,51 @@ CTensorBasePtr CImplementationXilinx::Reduce(CTensorBasePtr inputTn,
       inputTn,
       mode,
       powY,
-      overAxis,
-      overAxis1,
-      overAxis2,
-      overAxis3
+      combination
   );
 
   m_ptrProfiler->FinishLayer();
   return outputTn;
 }
 CTensorBasePtr CImplementationXilinx::Mean(CTensorBasePtr inputTn,
-                                           bool overAxis,
-                                           bool overAxis1,
-                                           bool overAxis2,
-                                           bool overAxis3) {
+                                           const std::vector<unsigned> &combination) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({
+        {"shape",inputTn->GetShape()},
+        {"combination",combination},
+      }),
       new CProfiler::DictIntPtr({
-                                    {"rank",inputTn->GetRank()},
-                                    {"overAxis",overAxis},
-                                    {"overAxis1",overAxis1},
-                                    {"overAxis2",overAxis2},
-                                    {"overAxis3",overAxis3}
+                                    {"rank",inputTn->GetRank()}
       }),
       nullptr);
 
   ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
   ConditionCheck(inputTn->GetRank()==2 || inputTn->GetRank()==4, "Only tensors of ranks 2 and 4 are supported.");
-  ConditionCheck(
-      (overAxis && overAxis1 && overAxis2 && !overAxis3 && inputTn->GetRank()==4) ||
-      (overAxis && !overAxis1 && !overAxis2 && !overAxis3 && inputTn->GetRank()==2),
-      "Unsupported combination for the input tensor."
-  );
-  
-  unsigned diff = inputTn->ExpandDimZeroToRank(4);
-  bool _mean_axis0, _mean_axis1, _mean_axis2, _mean_axis3;
+  ConditionCheck(inputTn->GetRank()==combination.size(), "The combination's size must be equal to the input tensor's rank.");
+
   if(inputTn->GetRank()==4){
-    _mean_axis0 = overAxis;
-    _mean_axis1 = overAxis1;
-    _mean_axis2 = overAxis2;
-    _mean_axis3 = overAxis3;
-  }else if (inputTn->GetRank()==2){
-    _mean_axis0 = true;
-    _mean_axis1 = true;
-    _mean_axis2 = true;
-    _mean_axis3 = false;
+    ConditionCheck(
+        (combination[0] && combination[1] && combination[2] && !combination[3]),
+        "Unsupported combination for the input tensor."
+    );
+  }
+  if(inputTn->GetRank()==2){
+    ConditionCheck(
+        (combination[0] && !combination[1]),
+        "Unsupported combination for the input tensor."
+    );
   }
 
-  CTensorBasePtr reducedTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _mean_axis0, _mean_axis1, _mean_axis2, _mean_axis3);
+  auto localCombination = combination;
+  unsigned diff = inputTn->ExpandDimZeroToRank(4);
+  for(unsigned d=0; d<diff; d++){
+    localCombination.insert(localCombination.begin(),1); // we dont insert 0 here as we want to use the TTTF reduction kernel.
+  }
+
+  CTensorBasePtr reducedTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, localCombination);
   float coef = (float)inputTn->GetLen() / (float)reducedTn->GetLen(); // dim0xdim1xdim2 (for TTTF)
   CTensorBasePtr outputTn = BasicOps(reducedTn, coef, BASIC_OPS::DIV_ELEMENTWISE);
 
@@ -604,48 +594,44 @@ CTensorBasePtr CImplementationXilinx::Mean(CTensorBasePtr inputTn,
   return outputTn;
 }
 CTensorBasePtr CImplementationXilinx::Variance(CTensorBasePtr inputTn,
-                                               bool overAxis0,
-                                               bool overAxis1,
-                                               bool overAxis2,
-                                               bool overAxis3) {
+                                               const std::vector<unsigned> &combination) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({
+                                  {"shape",inputTn->GetShape()},
+                                  {"combination",combination}
+                                }),
       new CProfiler::DictIntPtr({
-                                    {"rank",inputTn->GetRank()},
-                                    {"overAxis",overAxis0},
-                                    {"overAxis1",overAxis1},
-                                    {"overAxis2",overAxis2},
-                                    {"overAxis3",overAxis3}
+                                    {"rank",inputTn->GetRank()}
                                 }),
       nullptr);
 
   ValidateTensorPlatforms({inputTn}, PLATFORMS::XIL);
   ConditionCheck(inputTn->GetRank()==2 || inputTn->GetRank()==4, "Only tensors of ranks 2 and 4 are supported.");
-  ConditionCheck(
-      (overAxis0 && overAxis1 && overAxis2 && !overAxis3 && inputTn->GetRank()==4) ||
-          (overAxis0 && !overAxis1 && !overAxis2 && !overAxis3 && inputTn->GetRank()==2),
-      "Unsupported combination for the input tensor."
-  );
+  ConditionCheck(combination.size()==inputTn->GetRank(), "The combination's size must be equal to the input tensor's rank.");
+  if(inputTn->GetRank()==4){
+    ConditionCheck(
+        (combination[0] && combination[1] && combination[2] && !combination[3]),
+        "Unsupported combination for the input tensor."
+    );
+  }
+  if(inputTn->GetRank()==2){
+    ConditionCheck(
+        (combination[0] && !combination[1]),
+        "Unsupported combination for the input tensor."
+    );
+  }
+  auto localCombination = combination;
 
   unsigned diff = inputTn->ExpandDimZeroToRank(4);
-  bool _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3;
-  if(inputTn->GetRank()==4){
-    _variance_axis0 = overAxis0;
-    _variance_axis1 = overAxis1;
-    _variance_axis2 = overAxis2;
-    _variance_axis3 = overAxis3;
-  }else if (inputTn->GetRank()==2){
-    _variance_axis0 = true;
-    _variance_axis1 = true;
-    _variance_axis2 = true;
-    _variance_axis3 = false;
+  for(unsigned d=0; d<diff; d++){
+    localCombination.insert(localCombination.begin(),1); // we do not insert 0 here as we want to use the TTTF reduction kernel.
   }
 
-  CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
-  CTensorBasePtr varianceXi2Tn = Reduce(inputTn, REDUCTION_OPS::SUM, 2, _variance_axis0, _variance_axis1, _variance_axis2, _variance_axis3);
+  CTensorBasePtr tmpTn = Reduce(inputTn, REDUCTION_OPS::SUM, 1, localCombination);
+  CTensorBasePtr varianceXi2Tn = Reduce(inputTn, REDUCTION_OPS::SUM, 2, localCombination);
   float coef = (float)inputTn->GetLen() / (float)tmpTn->GetLen();
   CTensorBasePtr meanTn = BasicOps(tmpTn, coef, BASIC_OPS::DIV_ELEMENTWISE);
   CTensorBasePtr tmp2Tn = BasicOps(varianceXi2Tn, coef, BASIC_OPS::DIV_ELEMENTWISE);

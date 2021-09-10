@@ -17,9 +17,9 @@ class CImplementationBase {
   virtual CTensorBasePtr Tile         (CTensorBasePtr inputTn, unsigned tileAxis, unsigned tileCount)=0;
   virtual CTensorBasePtr Transpose    (CTensorBasePtr inputTn)=0;
   virtual CTensorBasePtr Gather       (CTensorBasePtr inputTn, CTensorBasePtr indicesTn, unsigned indicesOfAxis)=0;
-  virtual CTensorBasePtr Reduce       (CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
-  virtual CTensorBasePtr Mean         (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
-  virtual CTensorBasePtr Variance     (CTensorBasePtr inputTn, bool overAxis0, bool overAxis1, bool overAxis2, bool overAxis3)=0;
+  virtual CTensorBasePtr Reduce       (CTensorBasePtr inputTn, REDUCTION_OPS mode, unsigned powY, const std::vector<unsigned> &combination)=0;
+  virtual CTensorBasePtr Mean         (CTensorBasePtr inputTn, const std::vector<unsigned> &combination)=0;
+  virtual CTensorBasePtr Variance     (CTensorBasePtr inputTn, const std::vector<unsigned> &combination)=0;
   virtual CTensorBasePtr PadLastDim   (CTensorBasePtr inputTn, unsigned lastDimPadded)=0;
   virtual CTensorBasePtr UnpadLastDim (CTensorBasePtr inputTn, unsigned lastDimUnpadded)=0;
   virtual CTensorBasePtr TopK         (CTensorBasePtr inputTn, unsigned axis, unsigned k)=0;

@@ -85,7 +85,7 @@ inline void OclCheckOLD(cl_int status, T command){
 
 #define ConditionCheck(condition,msgIfFalse) \
     if(!(condition)){\
-    std::string _msg = CStringFormatter()<<__FILE__<<":"<<__LINE__<<": "<<msgIfFalse;\
+    std::string _msg = CStringFormatter()<<__FILE__<<":"<<__LINE__<<": Failed "<< #condition <<": "<<msgIfFalse;\
     throw std::runtime_error(_msg); \
     SPDLOG_LOGGER_ERROR(logger,_msg);\
     exit(EXIT_FAILURE);\
