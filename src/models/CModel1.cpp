@@ -32,6 +32,10 @@ CModel1::CModel1(
   );
 }
 
+CModel1::~CModel1() {
+  delete(m_ptrPlatSelection);
+}
+
 void CModel1::SetDatasetData(std::string &pathNumpyData) {
   m_oNumpyObjectData = cnpy::npy_load(pathNumpyData);
   auto rawNpyShape = m_oNumpyObjectData.shape;

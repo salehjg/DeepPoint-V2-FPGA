@@ -94,6 +94,7 @@ void CTensor<T>::CloneFrom(const CTensor<T> &other) {
 
 template<typename T>
 T &CTensor<T>::operator[](size_t flattenedRowMajorIndex) {
+  //ConditionCheck(flattenedRowMajorIndex<GetLen(), "Out of bound index.");
   return m_pHostBuffAligned[flattenedRowMajorIndex];
 }
 

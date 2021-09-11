@@ -11,6 +11,7 @@ class CClassifierMultiPlatform {
       bool enableMemBankCrossing,
       bool enableCpuUtilization,
       bool enableTensorDumps);
+  ~CClassifierMultiPlatform();
   double GetTimestamp();
 
  private:

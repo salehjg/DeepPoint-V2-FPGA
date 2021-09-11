@@ -55,6 +55,7 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
   txtFile.close();
 }
 CTensorBasePtr CWeightLoader::AccessWeights(PLATFORMS platform, std::string &&name) {
+  ConditionCheck(m_mWeightNameToIndex.count(name)>0, "The given key for the weight does not exist.");
   if(platform == PLATFORMS::CPU)
     return m_vWeightsCpu[m_mWeightNameToIndex[name]];
   else if (platform == PLATFORMS::XIL)

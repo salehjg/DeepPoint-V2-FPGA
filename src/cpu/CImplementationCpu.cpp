@@ -1102,6 +1102,8 @@ CTensorBasePtr CImplementationCpu::Conv2D(CTensorBasePtr inputTn, CTensorBasePtr
 
   ValidateTensorPlatforms({inputTn,weightTn,biasTn}, PLATFORMS::CPU);
 
+  ConditionCheck(weightTn->GetShape().back()==biasTn->GetShape().back(), "Incompatible weight and bias tensors.");
+
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
   auto pWeightTn = std::dynamic_pointer_cast<CTensor<float>>(weightTn);
   auto pBias = std::dynamic_pointer_cast<CTensor<float>>(biasTn);

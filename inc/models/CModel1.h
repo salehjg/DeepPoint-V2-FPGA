@@ -20,6 +20,7 @@ class CModel1 {
           bool enableMemBankCrossing,
           bool enableCpuUtilization,
           bool enableTensorDumps);
+  ~CModel1();
   void            SetDatasetData(std::string &pathNumpyData);
   void            SetDatasetLabels(std::string &pathNumpyLabels);
   CTensorBasePtr  FullyConnectedForward(CTensorBasePtr inputTn, CTensorBasePtr weightsTn, CTensorBasePtr biasesTn);

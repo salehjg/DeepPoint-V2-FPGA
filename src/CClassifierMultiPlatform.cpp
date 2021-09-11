@@ -27,16 +27,16 @@ CClassifierMultiPlatform::CClassifierMultiPlatform(
       enableCpuUtilization,
       enableTensorDumps);
   if(!m_bUseShapeNet){
-    string pclPath = globalArgDataPath; pclPath.append("/modelnet40/dataset/dataset_B5_pcl.npy");
-    string labelPath = globalArgDataPath; labelPath.append("/modelnet40/dataset/dataset_B5_labels_int32.npy");
+    string pclPath = globalArgDataPath; pclPath.append("/modelnet40/dataset/dataset_B2048_pcl.npy");
+    string labelPath = globalArgDataPath; labelPath.append("/modelnet40/dataset/dataset_B2048_labels_int32.npy");
     SPDLOG_LOGGER_INFO(logger,"PCL NPY PATH: {}", pclPath);
     SPDLOG_LOGGER_INFO(logger,"LBL NPY PATH: {}", labelPath);
 
     m_ptrClassifierModel->SetDatasetData(pclPath);
     m_ptrClassifierModel->SetDatasetLabels(labelPath);
   }else{
-    string pclPath = globalArgDataPath; pclPath.append("/shapenet2/dataset/dataset_B5_pcl.npy");
-    string labelPath = globalArgDataPath; labelPath.append("/shapenet2/dataset/dataset_B5_labels_int32.npy");
+    string pclPath = globalArgDataPath; pclPath.append("/shapenet2/dataset/dataset_B2048_pcl.npy");
+    string labelPath = globalArgDataPath; labelPath.append("/shapenet2/dataset/dataset_B2048_labels_int32.npy");
     SPDLOG_LOGGER_INFO(logger,"PCL NPY PATH: {}", pclPath);
     SPDLOG_LOGGER_INFO(logger,"LBL NPY PATH: {}", labelPath);
 
@@ -50,7 +50,7 @@ CClassifierMultiPlatform::CClassifierMultiPlatform(
 
   CTensorPtr<float> pClassScoresTn = std::dynamic_pointer_cast<CTensor<float>>(classScoresTn);
   CTensorPtr<unsigned> pLabelsTn = std::dynamic_pointer_cast<CTensor<unsigned>>(m_ptrClassifierModel->GetLabelTn());
-  CalculateAccuracy(pClassScoresTn, pLabelsTn, m_ptrClassifierModel->GetBatchSize(), 40);
+  CalculateAccuracy(pClassScoresTn, pLabelsTn, m_ptrClassifierModel->GetBatchSize(), m_bUseShapeNet?55:40);
 }
 double CClassifierMultiPlatform::GetTimestamp() {
   struct timeval tp;
@@ -112,4 +112,7 @@ void CClassifierMultiPlatform::CalculateAccuracy(CTensorPtr<float> scoresTn,
     SPDLOG_LOGGER_INFO(logger,"Correct Count: {}", correct_cnt);
     SPDLOG_LOGGER_INFO(logger,"Accuracy: {}", accu);
   }
+}
+CClassifierMultiPlatform::~CClassifierMultiPlatform() {
+  delete(m_ptrClassifierModel);
 }
