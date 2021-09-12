@@ -4,11 +4,17 @@
 This repository contains the second version of the code base for Xilinx SDAccel FPGA implementation of [Dynamic Graph CNN](https://github.com/WangYueFt/dgcnn) model.
 
 # Quick Refs
+**Basics:**
 - [Building The Project](docs/compile.md)
-- [Debugging The Project](docs/debug.md)
+- [Sample Data and Datasets](docs/datasets.md)
 - [Deploying on AWS-F1](docs/aws.md)
-- [Tips & Tricks!](docs/tips.md)
 - [Results](docs/results.md)
+
+**Misc:**
+- [Debugging The Project](docs/debug.md)
+- [DDR Bank Assignment](docs/banks.md)
+- [Tips & Tricks!](docs/tips.md)
+
 
 # Build System
 As easy as it is to use SDx GUI, it is recommended to use provided cmake scripts to run synthesis and build the binaries for both the selected FPGA platform and the host.
