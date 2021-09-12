@@ -29,7 +29,7 @@ bool ConvTest1(
 
 TEST(test_ckwconv, mixed1) {
   std::vector<bool> results = {
-      ConvTest1<float>({1,256,1,6},{1,1,6,16},{128}),
+      ConvTest1<float>({1,256,1,6},{1,1,6,16},{16}),
   };
 
   for(auto r:results){

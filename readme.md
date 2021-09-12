@@ -8,6 +8,7 @@ This repository contains the second version of the code base for Xilinx SDAccel 
 - [Debugging The Project](docs/debug.md)
 - [Deploying on AWS-F1](docs/aws.md)
 - [Tips & Tricks!](docs/tips.md)
+- [Results](docs/results.md)
 
 # Build System
 As easy as it is to use SDx GUI, it is recommended to use provided cmake scripts to run synthesis and build the binaries for both the selected FPGA platform and the host.
@@ -18,7 +19,7 @@ This project relies on these software/libraries(These should be installed on the
 Xilinx SDAccel 2019.1(Tested), 2018.3 2018.2 2017.4(Not Tested)
 Xilinx XRT
 python3(Symlinked as `python3`)
-CMake3 (>3.10, Do **not** use default CMake package available on AWS-F1)
+CMake3 (>3.10, Do **not** use the default CMake package available on AWS-F1)
 Bash (>4.0, Dash and others are not tested)
 devtoolset-7 (>7.0, For C++14 support)
 ```
