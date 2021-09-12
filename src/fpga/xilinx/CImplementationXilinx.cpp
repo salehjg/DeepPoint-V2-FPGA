@@ -325,7 +325,7 @@ CImplementationXilinx::~CImplementationXilinx() {
 
   SPDLOG_LOGGER_TRACE(logger, "Destroyed CImplementationXilinx().");
 }
-CTensorBasePtr CImplementationXilinx::Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) {
+CTensorBasePtr CImplementationXilinx::Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatAxis) {
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),

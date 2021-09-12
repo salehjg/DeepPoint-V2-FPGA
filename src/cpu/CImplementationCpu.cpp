@@ -38,7 +38,7 @@ bool CImplementationCpu::CompareTensors(CTensorBasePtr inputTn1, CTensorBasePtr 
     ThrowException("Unsupported tensor types.");
   }
 }
-CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis){
+CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatAxis){
   m_ptrProfiler->StartLayer(
       GetPlatform(),
       GenerateLayerId(),
@@ -103,7 +103,11 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
     }
 
     rsltTn = CTensorPtr<float>(new CTensor<float>({dimR0,dimR1,dimR2,dimR3}));
-    unsigned indxS1, indxS2, indxD;
+    size_t indxS1, indxS2, indxD;
+
+    float *ptrBuffInputTn1 = pInputTn1->Get();
+    float *ptrBuffInputTn2 = pInputTn2->Get();
+    float *ptrBuffRsltTn = rsltTn->Get();
 
     for (unsigned d0 = 0; d0 < dimA0; d0++) {
       for (unsigned d1 = 0; d1 < dimA1; d1++) {
@@ -117,7 +121,7 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
                 (d1) * dimR2 * dimR3 +
                 (d2) * dimR3 +
                 (d3);
-            (*rsltTn)[indxD] = (*pInputTn1)[indxS1];
+            ptrBuffRsltTn[indxD] = ptrBuffInputTn1[indxS1];
           }
         }
       }
@@ -135,7 +139,7 @@ CTensorBasePtr CImplementationCpu::Concat2(CTensorBasePtr inputTn1, CTensorBaseP
                 (d1 + mat2_offset_dim1) * dimR2 * dimR3 +
                 (d2 + mat2_offset_dim2) * dimR3 +
                 (d3 + mat2_offset_dim3);
-            (*rsltTn)[indxD] = (*pInputTn2)[indxS2];
+            ptrBuffRsltTn[indxD] = ptrBuffInputTn2[indxS2];
           }
         }
       }
@@ -175,6 +179,9 @@ CTensorBasePtr CImplementationCpu::MatMul(CTensorBasePtr inputTn1, CTensorBasePt
   CTensorPtr<float> rsltTn(new CTensor<float>({batchSize,matrixH1,matrixW2}));
 
   size_t indxS1,indxS2,indxD;
+  float *ptrBuffInputTn1 = pInputTn1->Get();
+  float *ptrBuffInputTn2 = pInputTn2->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
 
   for(unsigned b=0;b<batchSize;b++) {
     // for element of output of matrixH1 x matrixW2
@@ -187,11 +194,11 @@ CTensorBasePtr CImplementationCpu::MatMul(CTensorBasePtr inputTn1, CTensorBasePt
         {
           indxS1 = b*matrixH1*matrixW1 + j*matrixW1 + mat1_x;
           indxS2 = b*matrixH2*matrixW2 + mat1_x*matrixW2 + i;
-          sum += (*pInputTn1)[indxS1] * (*pInputTn2)[indxS2];
+          sum += ptrBuffInputTn1[indxS1] * ptrBuffInputTn2[indxS2];
         }
         // for element of output of matrixH1 x matrixW2
         indxD = b*matrixH1*matrixW2 + j*matrixW2 + i;
-        (*rsltTn)[indxD] = sum;
+        ptrBuffRsltTn[indxD] = sum;
       }
     }
   }
@@ -215,8 +222,10 @@ CTensorBasePtr CImplementationCpu::ReLU(CTensorBasePtr inputTn) {
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
   CTensorPtr<float> rsltTn(new CTensor<float>(inputTn->GetShape()));
   const size_t len = inputTn->GetLen();
+  float *ptrBuffInputTn = pInputTn->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
   for(size_t i=0;i<len;i++){
-    (*rsltTn)[i] = ((*pInputTn)[i]>0) ? (*pInputTn)[i] : 0;
+    ptrBuffRsltTn[i] = (ptrBuffInputTn[i]>0) ? ptrBuffInputTn[i] : 0;
   }
   m_ptrProfiler->FinishLayer();
   return rsltTn;
@@ -234,8 +243,10 @@ CTensorBasePtr CImplementationCpu::Sqrt(CTensorBasePtr inputTn) {
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
   CTensorPtr<float> rsltTn(new CTensor<float>(inputTn->GetShape()));
   const size_t len = inputTn->GetLen();
+  float *ptrBuffInputTn = pInputTn->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
   for(size_t i=0;i<len;i++){
-    (*rsltTn)[i] = sqrt((*pInputTn)[i]);
+    ptrBuffRsltTn[i] = sqrt(ptrBuffInputTn[i]);
   }
   m_ptrProfiler->FinishLayer();
   return rsltTn;
@@ -253,8 +264,10 @@ CTensorBasePtr CImplementationCpu::Square(CTensorBasePtr inputTn) {
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
   CTensorPtr<float> rsltTn(new CTensor<float>(inputTn->GetShape()));
   const size_t len = inputTn->GetLen();
+  float *ptrBuffInputTn = pInputTn->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
   for(size_t i=0;i<len;i++){
-    (*rsltTn)[i] = ((*pInputTn)[i])*((*pInputTn)[i]);
+    ptrBuffRsltTn[i] = (ptrBuffInputTn[i])*(ptrBuffInputTn[i]);
   }
   m_ptrProfiler->FinishLayer();
   return rsltTn;
@@ -278,8 +291,7 @@ CTensorBasePtr CImplementationCpu::BasicOps(CTensorBasePtr inputTn1, CTensorBase
   unsigned diff = pInputTn1->ExpandDimZeroToRank(4);
   CTensorPtr<float> rsltTn(new CTensor<float>(pInputTn1->GetShape()));
   {
-    unsigned indxS1;
-    unsigned indxS2;
+    size_t indxS1, indxS2;
     unsigned dim0, dim1, dim2, dim3;
     unsigned dim0B, dim1B, dim2B, dim3B;
     int dim0B_IsNotZero, dim1B_IsNotZero, dim2B_IsNotZero, dim3B_IsNotZero;
@@ -332,6 +344,10 @@ CTensorBasePtr CImplementationCpu::BasicOps(CTensorBasePtr inputTn1, CTensorBase
       dim3B_IsNotZero=0; //force it to be zero, so in the kernel, indxS2 would be zero;
     }
 
+    float *ptrBuffInputTn1 = pInputTn1->Get();
+    float *ptrBuffInputTn2 = pInputTn2->Get();
+    float *ptrBuffRsltTn = rsltTn->Get();
+
     for(unsigned d0=0;d0<dim0;d0++){
       for(unsigned d1=0;d1<dim1;d1++) {
         for(unsigned d2=0;d2<dim2;d2++) {
@@ -346,13 +362,13 @@ CTensorBasePtr CImplementationCpu::BasicOps(CTensorBasePtr inputTn1, CTensorBase
                 d3 * dim3B_IsNotZero;
 
             if(mode==BASIC_OPS::ADD)                      //Add
-              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] + (*pInputTn2)[indxS2];
+              ptrBuffRsltTn[indxS1] = ptrBuffInputTn1[indxS1] + ptrBuffInputTn2[indxS2];
             else if(mode==BASIC_OPS::SUB)                 //Sub
-              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] - (*pInputTn2)[indxS2];
+              ptrBuffRsltTn[indxS1] = ptrBuffInputTn1[indxS1] - ptrBuffInputTn2[indxS2];
             else if(mode==BASIC_OPS::MUL_ELEMENTWISE)     //Mul (element wise)
-              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] * (*pInputTn2)[indxS2];
+              ptrBuffRsltTn[indxS1] = ptrBuffInputTn1[indxS1] * ptrBuffInputTn2[indxS2];
             else if(mode==BASIC_OPS::DIV_ELEMENTWISE)     //Div (element wise)
-              (*rsltTn)[indxS1] = (*pInputTn1)[indxS1] / (*pInputTn2)[indxS2];
+              ptrBuffRsltTn[indxS1] = ptrBuffInputTn1[indxS1] / ptrBuffInputTn2[indxS2];
           }
         }
       }
@@ -403,7 +419,8 @@ CTensorBasePtr CImplementationCpu::Tile(CTensorBasePtr inputTn, unsigned tileAxi
   const unsigned rank = pInputTn->GetRank();
   auto shape = pInputTn->GetShape();
   CTensorPtr<float> rsltTn;
-  unsigned indxS1, indxD;
+  size_t indxS1, indxD;
+  float *ptrBuffInputTn = pInputTn->Get();
 
   if(rank==3 && tileAxis==2) {
     unsigned B,N,K,D;
@@ -414,15 +431,16 @@ CTensorBasePtr CImplementationCpu::Tile(CTensorBasePtr inputTn, unsigned tileAxi
 
     // Tile input of shape BxNxD into BxNxKxD.
     rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K, D}));
+    float *ptrBuffRsltTn = rsltTn->Get();
 
     for (unsigned b = 0; b < B; b++) {
       for (unsigned n = 0; n < N; n++) {
         indxS1 = b * N * D + n * D + 0; //beginning of dim2 of input
         for (unsigned k = 0; k < K; k++) {
           indxD = b * N * K * D + n * K * D + k * D + 0;
-          std::copy(pInputTn->Get() + indxS1,
-                    pInputTn->Get() + indxS1 + D,
-                    rsltTn->Get() + indxD);
+          std::copy(ptrBuffInputTn + indxS1,
+                    ptrBuffInputTn + indxS1 + D,
+                    ptrBuffRsltTn + indxD);
         }
       }
     }
@@ -437,13 +455,14 @@ CTensorBasePtr CImplementationCpu::Tile(CTensorBasePtr inputTn, unsigned tileAxi
 
     // Tile input of shape BxN or BxNx1 into BxNxK.
     rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K}));
+    float *ptrBuffRsltTn = rsltTn->Get();
 
     for (unsigned b = 0; b < B; b++) {
       for (unsigned n = 0; n < N; n++) {
         indxS1 = b*N + n;
         for(unsigned k=0;k<K;k++){
           indxD = b*N*K + n*K + k;
-          (*rsltTn)[indxD] = (*pInputTn)[indxS1];
+          ptrBuffRsltTn[indxD] = ptrBuffInputTn[indxS1];
         }
       }
     }
@@ -458,13 +477,14 @@ CTensorBasePtr CImplementationCpu::Tile(CTensorBasePtr inputTn, unsigned tileAxi
 
     // Tile input of shape BxN or Bx1xN into BxKxN.
     rsltTn = CTensorPtr<float>(new CTensor<float>({B, K, N}));
+    float *ptrBuffRsltTn = rsltTn->Get();
 
     for(unsigned b = 0; b < B; b++) {
       for(unsigned k=0; k<K; k++){
         for(unsigned n = 0; n < N; n++) {
           indxD  = b*K*N + k*N + n;
           indxS1 = b*1*N + n;
-          (*rsltTn)[indxD] = (*pInputTn)[indxS1];
+          ptrBuffRsltTn[indxD] = ptrBuffInputTn[indxS1];
         }
       }
     }
@@ -492,14 +512,16 @@ CTensorBasePtr CImplementationCpu::Transpose(CTensorBasePtr inputTn) {
   auto dim1 = shape[1];
   auto dim2 = shape[2];
   CTensorPtr<float> rsltTn(new CTensor<float>({dim0, dim2, dim1}));
-  unsigned indxS, indxD;
+  size_t indxS, indxD;
+  float *ptrBuffInputTn = pInputTn->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
 
   for(unsigned b=0; b<dim0; b++){
     for(unsigned j = 0; j < dim1; j++) {
       for(unsigned i = 0; i < dim2 ; i++) {
         indxS = b * dim1 * dim2 + j * dim2 + i;
         indxD = b * dim1 * dim2 + i * dim1 + j;
-        (*rsltTn)[indxD] = (*pInputTn)[indxS];
+        ptrBuffRsltTn[indxD] = ptrBuffInputTn[indxS];
       }
     }
   }
@@ -534,7 +556,7 @@ CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr
   //indices_axis  is considered to be 1 (the dimension that is equal to 'N')
 
   //Gather knn's indices from input array.
-  unsigned indxS1, indxS2, indxD;
+  size_t indxS1, indxS2, indxD;
   auto shape = pInputTn->GetShape();
   unsigned
       B = shape[0],
@@ -542,6 +564,9 @@ CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr
       K = pIndices->GetShape()[2],
       D = shape[2];
   CTensorPtr<float> rsltTn(new CTensor<float>({B, N, K, D}));
+  float *ptrBuffInputTn = pInputTn->Get();
+  unsigned *ptrBuffIndicesTn = pIndices->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
 
   for(unsigned b=0;b<B;b++){
     for(unsigned n=0;n<N;n++){
@@ -549,8 +574,8 @@ CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr
         indxS1 = b*N*K + n*K + k;
         for(unsigned d=0;d<D;d++){
           indxD = b*N*K*D + n*K*D + k*D + d;
-          indxS2 = b*N*D + (*pIndices)[indxS1]*D + d;
-          (*rsltTn)[indxD] = (*pInputTn)[indxS2];
+          indxS2 = b*N*D + ptrBuffIndicesTn[indxS1]*D + d;
+          ptrBuffRsltTn[indxD] = ptrBuffInputTn[indxS2];
         }
       }
     }
@@ -599,23 +624,26 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
   unsigned rank = pInputTn->GetRank();
   auto shape = pInputTn->GetShape();
   CTensorPtr<float> rsltTn;
-  unsigned indxD, indxS;
+  size_t indxD, indxS;
+  float *ptrBuffInputTn = pInputTn->Get();
 
   if(mode==REDUCTION_OPS::SUM && rank==3){
     //rsltTn = CTensorPtr<float>(new CTensor<float>({B, N, K, D}));
 
     if(localComb[0]&&localComb[1]&&localComb[2]){ //TTT
       rsltTn = CTensorPtr<float>(new CTensor<float>({1}));
+      float *ptrBuffRsltTn = rsltTn->Get();
       float sum = 0;
       unsigned limit = pInputTn->GetLen();
 
       for(unsigned b=0;b<limit;b++) {
-        sum += (*pInputTn)[b];
+        sum += ptrBuffInputTn[b];
       }
-      (*rsltTn)[0] = sum;
+      ptrBuffRsltTn[0] = sum;
     } else if(localComb[0]&&!localComb[1]&&!localComb[2]){ //TFF
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim1,dim2}));
+      float *ptrBuffRsltTn = rsltTn->Get();
       float sum=0;
 
       for(unsigned d1=0; d1<dim1; d1++){
@@ -624,14 +652,15 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           indxD = d1 * dim2 + d2;
           for(unsigned dx=0;dx<dim0;dx++){
             indxS = dx * dim1*dim2 + d1 * dim2 + d2;
-            sum += (*pInputTn)[indxS] ;
+            sum += ptrBuffInputTn[indxS] ;
           }
-          (*rsltTn)[indxD] = sum;
+          ptrBuffRsltTn[indxD] = sum;
         }
       }
     }else if(!localComb[0]&&localComb[1]&&!localComb[2]) { //FTF
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0,dim2}));
+      float *ptrBuffRsltTn = rsltTn->Get();
       float sum=0;
 
       for(unsigned d0=0; d0<dim0;d0++){
@@ -640,14 +669,15 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           indxD = d0 *dim2 + d2;
           for(unsigned dx=0;dx<dim1;dx++){
             indxS = d0 * dim1*dim2 + dx * dim2 + d2;
-            sum+=(*pInputTn)[indxS] ;
+            sum+=ptrBuffInputTn[indxS] ;
           }
-          (*rsltTn)[indxD] = sum;
+          ptrBuffRsltTn[indxD] = sum;
         }
       }
     }else if(!localComb[0]&&!localComb[1]&&localComb[2]) { //FFT
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0,dim1}));
+      float *ptrBuffRsltTn = rsltTn->Get();
       float sum=0;
 
       for(unsigned d0=0; d0<dim0;d0++){
@@ -656,9 +686,9 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
           indxD = d0 * dim1 + d1;
           for(unsigned dx=0;dx<dim2;dx++){
             indxS = d0 * dim1*dim2 + d1 * dim2 + dx;
-            sum+=(*pInputTn)[indxS] ;
+            sum+=ptrBuffInputTn[indxS] ;
           }
-          (*rsltTn)[indxD] = sum;
+          ptrBuffRsltTn[indxD] = sum;
         }
       }
     }else{
@@ -669,6 +699,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
     if(localComb[0] && localComb[1] && localComb[2] && !localComb[3]) {
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim3}));
+      float *ptrBuffRsltTn = rsltTn->Get();
 
       float sum = 0;
       for (unsigned d3 = 0; d3 < dim3; d3++) {
@@ -683,11 +714,11 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
                   d2 * dim3 +
                   d3;
 
-              sum += (*pInputTn)[indxS];
+              sum += ptrBuffInputTn[indxS];
             }
           }
         }
-        (*rsltTn)[indxD] = sum;
+        ptrBuffRsltTn[indxD] = sum;
       }
     }else{
       ConditionCheck(false, "Unimplemented reduce sum 4 combination.");
@@ -697,6 +728,7 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
     if(!localComb[0] && !localComb[1] && !localComb[2] && localComb[3]){ //over dim 3
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim1, dim2}));
+      float *ptrBuffRsltTn = rsltTn->Get();
 
       const float max_cte= -std::numeric_limits<float>::max();
       float max= -std::numeric_limits<float>::max();
@@ -713,17 +745,18 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
                   d1*dim2*dim3+
                   d2*dim3+
                   d3;
-              if(max<(*pInputTn)[indxS]){
-                max = (*pInputTn)[indxS];
+              if(max<ptrBuffInputTn[indxS]){
+                max = ptrBuffInputTn[indxS];
               }
             }
-            (*rsltTn)[indxD]=max;
+            ptrBuffRsltTn[indxD]=max;
           }
         }
       }
     }else if(!localComb[0] && !localComb[1] && localComb[2] && !localComb[3]) { //over dim 2
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim1, dim3}));
+      float *ptrBuffRsltTn = rsltTn->Get();
 
       const float max_cte= -std::numeric_limits<float>::max();
       float max= 0;
@@ -741,17 +774,18 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
                   d1*dim2*dim3+
                   d2*dim3+
                   d3;
-              if(max<(*pInputTn)[indxS]){
-                max = (*pInputTn)[indxS];
+              if(max<ptrBuffInputTn[indxS]){
+                max = ptrBuffInputTn[indxS];
               }
             }
-            (*rsltTn)[indxD]=max;
+            ptrBuffRsltTn[indxD]=max;
           }
         }
       }
     }else if(!localComb[0] && localComb[1] && !localComb[2] && !localComb[3]) { //over dim 1
       const unsigned dim0 = shape[0], dim1 = shape[1], dim2 = shape[2], dim3 = shape[3];
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim0, dim2, dim3}));
+      float *ptrBuffRsltTn = rsltTn->Get();
 
       const float max_cte= -std::numeric_limits<float>::max();
       float max= 0;
@@ -769,11 +803,11 @@ CTensorBasePtr CImplementationCpu::Reduce(CTensorBasePtr inputTn,
                   d1*dim2*dim3+
                   d2*dim3+
                   d3;
-              if(max<(*pInputTn)[indxS]){
-                max = (*pInputTn)[indxS];
+              if(max<ptrBuffInputTn[indxS]){
+                max = ptrBuffInputTn[indxS];
               }
             }
-            (*rsltTn)[indxD]=max;
+            ptrBuffRsltTn[indxD]=max;
           }
         }
       }
@@ -820,14 +854,19 @@ CTensorBasePtr CImplementationCpu::Mean(CTensorBasePtr inputTn,
 
   CTensorPtr<float> rsltTn;
 
+
   if(rank==4){
     if(!localCombination[3] && localCombination[0] && localCombination[1] && localCombination[2]){
       CTensorBasePtr reduced = Reduce(inputTn, REDUCTION_OPS::SUM, 1, localCombination);
       CTensorPtr<float> pReduced = std::dynamic_pointer_cast<CTensor<float>>(reduced);
       rsltTn = CTensorPtr<float>(new CTensor<float>({dim3}));
+
+      float *ptrBuffRsltTn = rsltTn->Get();
+      float *ptrBuffReducedTn = pReduced->Get();
+
       const auto l = (float)(dim0*dim1*dim2);
       for(unsigned d3=0;d3<dim3;d3++){
-        (*rsltTn)[d3] = ((*pReduced)[d3])/l;
+        ptrBuffRsltTn[d3] = (ptrBuffReducedTn[d3])/l;
       }
     }
   }
@@ -878,16 +917,20 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
       rank = pInputTn->GetRank();
 
   CTensorPtr<float> rsltTn;
+  float *ptrBuffInputTn = pInputTn->Get();
 
   if(rank==4){
     if(!localCombination[3] && localCombination[0] && localCombination[1] && localCombination[2]) {
       CTensorBasePtr meanTn = Mean(inputTn, localCombination);
       CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
       CTensorPtr<float> varianceTn(new CTensor<float>({dim3}));
-      unsigned indxS1;
-      for (unsigned d3 = 0; d3 < dim3; d3++) { //over the last-dim
-        (*varianceTn)[d3]=0;
 
+      float *ptrBuffMeanTn = pMeanTn->Get();
+      float *ptrBuffVarianceTn = varianceTn->Get();
+
+      size_t indxS1;
+      for (unsigned d3 = 0; d3 < dim3; d3++) { //over the last-dim
+        ptrBuffVarianceTn[d3]=0;
 
         for (unsigned d0 = 0; d0 < dim0; d0++) {
           for (unsigned d1 = 0; d1 < dim1; d1++) {
@@ -897,8 +940,8 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
                   d2*dim3+
                   d3;
 
-              float delta = ((*pInputTn)[indxS1] - (*pMeanTn)[d3]);
-              (*varianceTn)[d3] += delta*delta;
+              float delta = (ptrBuffInputTn[indxS1] - ptrBuffMeanTn[d3]);
+              ptrBuffVarianceTn[d3] += delta*delta;
             }
           }
         }
@@ -914,16 +957,18 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
       CTensorBasePtr meanTn = Mean(inputTn, localCombination);
       CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
       CTensorPtr<float> varianceTn(new CTensor<float>({dim1}));
+      float *ptrBuffMeanTn = pMeanTn->Get();
+      float *ptrBuffVarianceTn = varianceTn->Get();
 
-      unsigned indxS1;
+      size_t indxS1;
       for(unsigned d1 = 0; d1 < dim1; d1++) { //over the last-dim
-        (*varianceTn)[d1]=0;
+        ptrBuffVarianceTn[d1]=0;
 
         for (unsigned d0 = 0; d0 < dim0; d0++) {
           indxS1 = d0*dim1 + d1;
 
-          float delta = ((*pInputTn)[indxS1]-(*pMeanTn)[d1]);
-          (*varianceTn)[d1] += delta*delta;
+          float delta = (ptrBuffInputTn[indxS1]-ptrBuffMeanTn[d1]);
+          ptrBuffVarianceTn[d1] += delta*delta;
         }
       }
       auto varianceFinalTn = BasicOps(varianceTn,(float)(1.0f/(float)(dim0)),BASIC_OPS::MUL_ELEMENTWISE);
@@ -935,13 +980,14 @@ CTensorBasePtr CImplementationCpu::Variance(CTensorBasePtr inputTn,
     CTensorBasePtr meanTn = Mean(inputTn, localCombination);
     CTensorPtr<float> pMeanTn = std::dynamic_pointer_cast<CTensor<float>>(meanTn);
     CTensorPtr<float> varianceTn(new CTensor<float>({1}));
+    float *ptrBuffMeanTn = pMeanTn->Get();
+    float *ptrBuffVarianceTn = varianceTn->Get();
 
-    unsigned indxS1;
-    for (int d0 = 0; d0 < dim0; d0++) {
-      float delta = ((*pInputTn)[d0] - (*pMeanTn)[0]);
-      (*varianceTn)[0] += delta*delta;
+    for (unsigned d0 = 0; d0 < dim0; d0++) {
+      float delta = (ptrBuffInputTn[d0] - ptrBuffMeanTn[0]);
+      ptrBuffVarianceTn[0] += delta*delta;
     }
-    (*varianceTn)[0] = (*varianceTn)[0]/(float)dim0;
+    ptrBuffVarianceTn[0] = ptrBuffVarianceTn[0]/(float)dim0;
     rsltTn = std::dynamic_pointer_cast<CTensor<float>>(varianceTn);
   }
 
@@ -971,7 +1017,7 @@ CTensorBasePtr CImplementationCpu::PadLastDim(CTensorBasePtr inputTn, unsigned l
 
   if(rank!=1){
     dim0=1;
-    for(int i=0; i<rank-1; i++){
+    for(unsigned i=0; i<rank-1; i++){
       dim0*=shape[i];
     }
     dim1=shape[rank-1];
@@ -990,10 +1036,12 @@ CTensorBasePtr CImplementationCpu::PadLastDim(CTensorBasePtr inputTn, unsigned l
 
   shape[rank-1] = lastDimPadded;
   CTensorPtr<float> rsltTn(new CTensor<float>(shape));
+  float *ptrBuffInputTn = pInputTn->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
 
   for(unsigned d0=0; d0<dim0; d0++){
     for(unsigned d1=0; d1<lastDimPadded; d1++){
-      (*rsltTn)[d0*lastDimPadded+d1] = (d1<dim1) ? (*pInputTn)[d0*dim1+d1] : 0;
+      ptrBuffRsltTn[d0*lastDimPadded+d1] = (d1<dim1) ? ptrBuffInputTn[d0*dim1+d1] : 0;
     }
   }
 
@@ -1023,7 +1071,7 @@ CTensorBasePtr CImplementationCpu::UnpadLastDim(CTensorBasePtr inputTn, unsigned
 
   if(rank!=1){
     dim0=1;
-    for(int i=0; i<rank-1; i++){
+    for(unsigned i=0; i<rank-1; i++){
       dim0*=shape[i];
     }
     dim1=shape[rank-1];
@@ -1034,10 +1082,12 @@ CTensorBasePtr CImplementationCpu::UnpadLastDim(CTensorBasePtr inputTn, unsigned
 
   shape[rank-1] = lastDimUnpadded;
   CTensorPtr<float> rsltTn(new CTensor<float>(shape));
+  float *ptrBuffInputTn = pInputTn->Get();
+  float *ptrBuffRsltTn = rsltTn->Get();
 
   for(unsigned d0=0; d0<dim0; d0++){
     for(unsigned d1=0; d1<lastDimUnpadded; d1++){
-      (*rsltTn)[d0*lastDimUnpadded+d1] = (*pInputTn)[d0*dim1+d1];
+      ptrBuffRsltTn[d0*lastDimUnpadded+d1] = ptrBuffInputTn[d0*dim1+d1];
     }
   }
 
@@ -1064,9 +1114,12 @@ CTensorBasePtr CImplementationCpu::TopK(CTensorBasePtr inputTn, unsigned axis, u
   auto pInputTn = std::dynamic_pointer_cast<CTensor<float>>(inputTn);
   const auto shape = pInputTn->GetShape();
 
-  unsigned indxS = 0;
+  size_t indxS = 0;
   const unsigned B = shape[0], N2 = shape[1], N = shape[2], K = (unsigned)k;
   CTensorPtr<unsigned> rsltTn(new CTensor<unsigned>({B,N2,K}));
+  float *ptrBuffInputTn = pInputTn->Get();
+  unsigned *ptrBuffRsltTn = rsltTn->Get();
+
   float tmp_array[N];
   unsigned indices[N];
 
@@ -1075,12 +1128,12 @@ CTensorBasePtr CImplementationCpu::TopK(CTensorBasePtr inputTn, unsigned axis, u
       indices[i]=i;
     }
     indxS = b*N + 0;
-    std::copy(pInputTn->Get() +indxS, pInputTn->Get()+indxS+N, tmp_array);
+    std::copy(ptrBuffInputTn+indxS, ptrBuffInputTn+indxS+N, tmp_array);
     std::sort(  indices,
                 indices+N,
                 [&](int i1, int i2) { return tmp_array[i1] < tmp_array[i2]; } );
 
-    std::copy(indices, indices+K, rsltTn->Get()+(b*K));
+    std::copy(indices, indices+K, ptrBuffRsltTn+(b*K));
   }
 
   m_ptrProfiler->FinishLayer();
@@ -1109,7 +1162,7 @@ CTensorBasePtr CImplementationCpu::Conv2D(CTensorBasePtr inputTn, CTensorBasePtr
   auto pBias = std::dynamic_pointer_cast<CTensor<float>>(biasTn);
 
   const auto shapeInput = pInputTn->GetShape();
-  unsigned indxS1,indxS2,indxD;
+  size_t indxS1,indxS2,indxD;
 
   const auto B = shapeInput[0];
   const auto N = shapeInput[1];

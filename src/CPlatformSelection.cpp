@@ -95,7 +95,7 @@ CTensorBasePtr CPlatformSelection::CrossThePlatformIfNeeded(PLATFORMS destPlatfo
 
 }
 
-CTensorBasePtr CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) {
+CTensorBasePtr CPlatformSelection::Concat2(PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatAxis) {
   if(!inputTn1->IsTypeFloat32() || !inputTn2->IsTypeFloat32()){
     ThrowException("The layer only accepts types: float32.");
   }

@@ -22,7 +22,7 @@ class CPlatformSelection {
       std::string profilerOutputPath="profiler.json");
   ~CPlatformSelection();
 
-  CTensorBasePtr Concat2      (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis);
+  CTensorBasePtr Concat2      (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatAxis);
   CTensorBasePtr MatMul       (PLATFORMS destPlatform, CTensorBasePtr inputTn1, CTensorBasePtr inputTn2);
   CTensorBasePtr ReLU         (PLATFORMS destPlatform, CTensorBasePtr inputTn);
   CTensorBasePtr Sqrt         (PLATFORMS destPlatform, CTensorBasePtr inputTn);

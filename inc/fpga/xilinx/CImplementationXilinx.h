@@ -37,7 +37,7 @@ class CImplementationXilinx: public CImplementationBase {
   RUN_MODE GetModeEnvVar() const;
   const std::string GetOclErrorMessage(cl_int error) const;
 
-  CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis) override;
+  CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatAxis) override;
   CTensorBasePtr MatMul       (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2) override;
   CTensorBasePtr ReLU         (CTensorBasePtr inputTn) override;
   CTensorBasePtr Sqrt         (CTensorBasePtr inputTn) override;

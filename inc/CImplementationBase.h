@@ -7,7 +7,7 @@
 
 class CImplementationBase {
  public:
-  virtual CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, int concatAxis)=0;
+  virtual CTensorBasePtr Concat2      (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2, unsigned concatAxis)=0;
   virtual CTensorBasePtr MatMul       (CTensorBasePtr inputTn1, CTensorBasePtr inputTn2)=0;
   virtual CTensorBasePtr ReLU         (CTensorBasePtr inputTn)=0;
   virtual CTensorBasePtr Sqrt         (CTensorBasePtr inputTn)=0;
