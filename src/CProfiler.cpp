@@ -22,6 +22,19 @@ CProfiler::CProfiler(const std::string &fnameJson) {
   m_ptrWriter->Key("trace");
   m_ptrWriter->StartArray();
 
+
+  SPDLOG_LOGGER_TRACE(logger, "Spinning CProfiler's thread to poll the CPU usage.");
+  m_bStopThread = false;
+  FILE* file = fopen("/proc/stat", "r");
+  fscanf(file, "cpu %llu %llu %llu %llu",
+      &m_lLastTotalUser,
+      &m_lLastTotalUserLow,
+      &m_lLastTotalSys,
+      &m_lLastTotalIdle);
+  fclose(file);
+  std::thread th(&CProfiler::CpuUsageThread, this);
+  swap(th, m_oThread);
+  SPDLOG_LOGGER_TRACE(logger, "Done.");
 }
 
 CProfiler::~CProfiler() {
@@ -30,6 +43,12 @@ CProfiler::~CProfiler() {
   m_ptrWriter->EndObject(); // main json end.
   *m_ptrFileStream<<m_oStrBuffer.GetString();
   m_ptrFileStream->close();
+
+  SPDLOG_LOGGER_TRACE(logger, "Stopping CProfiler's CPU usage polling thread.");
+  m_bStopThread = true;
+  m_oThread.join();
+  SPDLOG_LOGGER_TRACE(logger, "Done.");
+
   delete m_ptrFileStream;
   delete m_ptrWriter;
 }
@@ -80,6 +99,8 @@ void CProfiler::StartLayer(PLATFORMS platform,
   m_ptrWriter->EndObject();
   m_ptrWriter->Key("time.start");
   m_ptrWriter->Uint64(GetTimestampMicroseconds());
+  m_ptrWriter->Key("cpu.usage");
+  m_ptrWriter->Double(GetLastCpuUsage());
   m_ptrWriter->Key("nested");
   m_ptrWriter->StartArray();
 }
@@ -118,4 +139,53 @@ long CProfiler::GetTimestampMicroseconds() {
   auto epoch = now_ms.time_since_epoch();
   auto value = std::chrono::duration_cast<std::chrono::microseconds>(epoch);
   return value.count();
+}
+
+float CProfiler::_GetCpuUsage() {
+  float percent;
+  FILE* file;
+  unsigned long long totalUser, totalUserLow, totalSys, totalIdle, total;
+
+  file = fopen("/proc/stat", "r");
+  fscanf(file, "cpu %llu %llu %llu %llu",
+      &totalUser,
+      &totalUserLow,
+      &totalSys,
+      &totalIdle);
+  fclose(file);
+
+  if( totalUser < m_lLastTotalUser ||
+      totalUserLow < m_lLastTotalUserLow ||
+      totalSys < m_lLastTotalSys ||
+      totalIdle < m_lLastTotalIdle){
+    //Overflow detection. Just skip this value.
+    percent = -1.0f;
+  }else{
+    total =
+        (totalUser - m_lLastTotalUser) +
+        (totalUserLow - m_lLastTotalUserLow) +
+        (totalSys - m_lLastTotalSys);
+    percent = (float)total;
+    total += (totalIdle - m_lLastTotalIdle);
+    percent /= (float)total;
+    percent *= 100.0f;
+  }
+
+  m_lLastTotalUser = totalUser;
+  m_lLastTotalUserLow = totalUserLow;
+  m_lLastTotalSys = totalSys;
+  m_lLastTotalIdle = totalIdle;
+
+  return percent;
+}
+
+void CProfiler::CpuUsageThread() {
+  while (!m_bStopThread) {
+    m_fCpuUsage = _GetCpuUsage();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+}
+
+float CProfiler::GetLastCpuUsage(){
+  return m_fCpuUsage;
 }

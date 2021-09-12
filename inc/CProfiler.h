@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <thread>
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
@@ -36,13 +37,20 @@ class CProfiler{
                    const unsigned long durationNanoSeconds);
 
   void FinishKernel();
-
+  float GetLastCpuUsage();
 
  private:
   long GetTimestampMicroseconds();
+  float _GetCpuUsage();
+  void CpuUsageThread();
+
   rapidjson::StringBuffer m_oStrBuffer;
   rapidjson::Writer<rapidjson::StringBuffer> *m_ptrWriter;
   std::ofstream *m_ptrFileStream;
   std::string m_strFileName;
 
+  std::atomic<float> m_fCpuUsage;
+  std::atomic<bool> m_bStopThread;
+  std::thread m_oThread;
+  unsigned long long m_lLastTotalUser, m_lLastTotalUserLow, m_lLastTotalSys, m_lLastTotalIdle;
 };
