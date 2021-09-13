@@ -303,7 +303,17 @@ CImplementationXilinx::~CImplementationXilinx() {
 
   std::vector<std::vector<ProfiledLaunchData>> accumulatedProfiledKernelsData = {
       *m_ptrDataMoverProfiledDataVec,
-      m_ptrKernelConcat->GetAccumulatedProfiledKernelLaunchData()
+      m_ptrKernelConcat->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelMatmul->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelRss->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelBasicOps->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelTile->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelTranspose->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelGather->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelReduce->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelPadUnpad->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelTopK->GetAccumulatedProfiledKernelLaunchData(),
+      m_ptrKernelConv->GetAccumulatedProfiledKernelLaunchData()
   };
 
   for(auto &vecData:accumulatedProfiledKernelsData){
