@@ -319,8 +319,13 @@ CImplementationXilinx::~CImplementationXilinx() {
   for(auto &vecData:accumulatedProfiledKernelsData){
     if(vecData.size()!=0) {
       for (auto &data:vecData) {
-        m_ptrProfiler->StartKernel(PLATFORMS::XIL, data.parentLayerId, data.taskName, data.durationOcl);
-        m_ptrProfiler->FinishKernel();
+        if(data.parentLayerId == DATAMOVER_ID){
+          m_ptrProfiler->StartKernelDatamover(PLATFORMS::XIL, data.parentLayerId, data.optionalValue, data.taskName, data.durationOcl);
+          m_ptrProfiler->FinishKernel();
+        }else{
+          m_ptrProfiler->StartKernel(PLATFORMS::XIL, data.parentLayerId, data.taskName, data.durationOcl);
+          m_ptrProfiler->FinishKernel();
+        }
       }
     }
   }

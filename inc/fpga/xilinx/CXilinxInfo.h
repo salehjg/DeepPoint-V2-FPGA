@@ -54,11 +54,12 @@ class CXilinxInfo{
     m_ptrDataMoverProfiledDataVec = vec;
   }
 
-  void AddProfiledDataMoverLaunchDetails(std::string taskName, unsigned parentLayerId, cl_ulong durationNanoSecOcl){
+  void AddProfiledDataMoverLaunchDetails(std::string taskName, unsigned parentLayerId, unsigned vecCountPadded, cl_ulong durationNanoSecOcl){
     ProfiledLaunchData data;
     data.taskName = taskName;
     data.parentLayerId = parentLayerId;
     data.durationOcl = durationNanoSecOcl;
+    data.optionalValue = vecCountPadded;
     m_ptrDataMoverProfiledDataVec->push_back(data);
   }
 

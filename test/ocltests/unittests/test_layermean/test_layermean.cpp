@@ -23,6 +23,7 @@ TEST(test_layermean, mean4_TTTF1) {
     EXPECT_TRUE(r);
   }
 }
+
 TEST(test_layermean, mean4_TTTF2) {
   std::vector<bool> results = {
       MeanTest<float>({2,2,2,17},{1,1,1,0}),
@@ -42,6 +43,7 @@ TEST(test_layermean, mean2_TF1) {
     EXPECT_TRUE(r);
   }
 }
+
 TEST(test_layermean, mean2_TF2) {
   std::vector<bool> results = {
       MeanTest<float>({2,17},{1,0}),

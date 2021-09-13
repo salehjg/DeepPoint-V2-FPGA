@@ -129,6 +129,26 @@ void CProfiler::StartKernel(PLATFORMS platform,
   m_ptrWriter->Uint64(durationNanoSeconds);
 }
 
+void CProfiler::StartKernelDatamover(PLATFORMS platform,
+                            const unsigned parentLayerId,
+                            const unsigned vecCountPadded,
+                            const std::string &name,
+                            const unsigned long durationNanoSeconds) {
+  m_ptrWriter->StartObject();
+  m_ptrWriter->Key("type");
+  m_ptrWriter->String("kernel");
+  m_ptrWriter->Key("name");
+  m_ptrWriter->String(name.c_str());
+  m_ptrWriter->Key("platform");
+  m_ptrWriter->String(platform==PLATFORMS::CPU? "cpu": (platform==PLATFORMS::XIL? "xil": "undef"));
+  m_ptrWriter->Key("id");
+  m_ptrWriter->Uint(parentLayerId);
+  m_ptrWriter->Key("bytes");
+  m_ptrWriter->Uint(vecCountPadded*CONFIG_M_AXI_WIDTH*CONFIG_DTYPE_SIZE);
+  m_ptrWriter->Key("duration");
+  m_ptrWriter->Uint64(durationNanoSeconds);
+}
+
 void CProfiler::FinishKernel() {
   m_ptrWriter->EndObject();
 }

@@ -35,13 +35,17 @@ struct CallbackData{
   unsigned parentLayerId;
   unsigned kernelBookKeeperId;
   bool profileKernel;
+  unsigned optionalValue;
 };
 
 struct ProfiledLaunchData{
   unsigned parentLayerId;
   std::string taskName;
+  unsigned optionalValue;
   cl_ulong durationOcl;
 };
+
+constexpr unsigned DATAMOVER_ID = 4294967295;
 
 extern spdlog::logger *logger;
 extern std::string globalArgXclBin;

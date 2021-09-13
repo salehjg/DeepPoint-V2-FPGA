@@ -11,7 +11,7 @@ void CImplementationBase::ResetLayerIdCounter(unsigned offset) {
   m_uAtomicCounter.store(offset);
 }
 unsigned CImplementationBase::GetTheLastLayerId() {
-  return m_uAtomicCounter;
+  return m_uAtomicCounter -1;
 }
 void CImplementationBase::ValidateTensorPlatforms(const std::vector<CTensorBasePtr> &tensors, PLATFORMS requiredPlatform) {
   for(auto &tn:tensors){

@@ -118,7 +118,7 @@ void CTensorXil<T>::EventCallback(cl_event event, cl_int execStatus, void *userD
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
     std::cout<<"DATAMOVER: ns:"<<durationNanoSeconds<<std::endl;
     auto *classPtr = static_cast<CXilinxInfo*>(((CallbackData *)userData)->classPtr);
-    classPtr->AddProfiledDataMoverLaunchDetails("task_datamover", ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
+    classPtr->AddProfiledDataMoverLaunchDetails("task_datamover", ((CallbackData *) userData)->parentLayerId, ((CallbackData *) userData)->optionalValue, durationNanoSeconds);
   }
 }
 
@@ -599,8 +599,9 @@ CTensorXilPtr<T> CTensorXil<T>::CloneIfNeededToBank(const unsigned destBank) {
   );
 
   m_ptrCallBackData.get()->profileKernel = m_ptrXilInfo->GetProfileOclEnabled();
-  m_ptrCallBackData.get()->parentLayerId = 4294967295;
-  m_ptrCallBackData.get()->kernelBookKeeperId = 4294967295;
+  m_ptrCallBackData.get()->parentLayerId = DATAMOVER_ID;
+  m_ptrCallBackData.get()->kernelBookKeeperId = DATAMOVER_ID;
+  m_ptrCallBackData.get()->optionalValue = vecCountPadded;
   m_ptrCallBackData.get()->classPtr = m_ptrXilInfo;
   newTensor->GetEventPtr()->setCallback(CL_COMPLETE, &EventCallback, m_ptrCallBackData.get());
 

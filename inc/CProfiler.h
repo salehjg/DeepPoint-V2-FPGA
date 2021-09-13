@@ -36,6 +36,12 @@ class CProfiler{
                    const std::string &name,
                    const unsigned long durationNanoSeconds);
 
+  void StartKernelDatamover(PLATFORMS platform,
+                   const unsigned parentLayerId,
+                   const unsigned vecCountPadded,
+                   const std::string &name,
+                   const unsigned long durationNanoSeconds);
+
   void FinishKernel();
   float GetLastCpuUsage();
 
