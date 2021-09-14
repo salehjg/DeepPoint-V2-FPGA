@@ -7,6 +7,7 @@ This repository contains the second version of the code base for Xilinx SDAccel 
 **Basics:**
 - [Building The Project](docs/compile.md)
 - [Sample Data and Datasets](docs/datasets.md)
+- [Analyzing Profiled Runs](docs/analyze.md)
 - [Deploying on AWS-F1](docs/aws.md)
 - [Results](docs/results.md)
 
