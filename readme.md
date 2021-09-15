@@ -1,7 +1,7 @@
 ![image](docs/cover.png)
 
 # DeepPoint-V2 Project
-This repository contains the second version of the code base for Xilinx SDAccel FPGA implementation of [Dynamic Graph CNN](https://github.com/WangYueFt/dgcnn) model.
+This repository contains the second version of the code base for Xilinx SDAccel FPGA implementation of [Dynamic Graph CNN](https://github.com/WangYueFt/dgcnn).
 
 # Quick Refs
 **Basics:**
@@ -39,9 +39,9 @@ Also please note that various Vivado directives for different steps are used to 
 ## Platforms
 Refer to the table below.
 
-Name | Supported Platform | Implementation | Notes
+Name | Supported Platform | Implementation | Datasets
 ---  | ---                | --- | ---
-NYI | NYI         | NYI | NYI
+CModel1 | Cpu, Xil         | CImplementationCpu, CImplementationXil | ShapeNet, ModelNet
 
 
 ## Tests
