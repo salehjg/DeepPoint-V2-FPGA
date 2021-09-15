@@ -63,7 +63,36 @@ sh LaunchOclTests.sh
 
 # Project Structure
 ## Classes
-///TODO
+* Tensors
+    - CTensor\<T\> : CTensorBase
+    - CTensorXil\<T\> : CTensorBase
+* Implementations
+    - CPlatformSelection
+    - CImplementationCpu : CImplementationBase
+    - CImplementationXil : CImplementationBase
+* Kernels
+    - CKernelWrapperBasicOps       : CKernelWrapper
+    - CKernelWrapperConcat         : CKernelWrapper
+    - CKernelWrapperConv           : CKernelWrapper
+    - CKernelWrapperGather         : CKernelWrapper
+    - CKernelWrapperMatmul         : CKernelWrapper
+    - CKernelWrapperPadUnpad       : CKernelWrapper
+    - CKernelWrapperReduce         : CKernelWrapper
+    - CKernelWrapperReluSqrtSquare : CKernelWrapper
+    - CKernelWrapperTile           : CKernelWrapper
+    - CKernelWrapperTopK           : CKernelWrapper
+    - CKernelWrapperTranspose      : CKernelWrapper
+* Models
+    - CClassifierMultiPlatform
+    - CModel1
+    
+* Misc
+    - CWeightLoader
+    - CProfiler
+    - CXilInfo
+    - CStringFormatter
+
+
  
 ## Branches
 This repository contains multiple branches as described below:
