@@ -29,7 +29,7 @@ set(PASTEBIN_USERNAME "" CACHE STRING "PasteBin Account's Username")
 set(PASTEBIN_PASSWORD "" CACHE STRING "PasteBin Account's Password")
 set(PASTEBIN_API_KEY  "" CACHE STRING "PasteBin Account's API Key")
 
-
+enable_testing()
 
 
 set(CMAKE_CXX_STANDARD 14)

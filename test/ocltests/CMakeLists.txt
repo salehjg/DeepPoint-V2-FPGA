@@ -57,5 +57,4 @@ add_executable(OclTestsMain
         ${SOURCES}
         )
 
-add_test(NAME OclTestsMain COMMAND OclTestsMain)
 target_link_libraries(OclTestsMain gtest ${SDAccel_LIBRARIES} ${SDAccel_FLOATING_POINT_LIBRARY} z stdc++fs spdlog)
