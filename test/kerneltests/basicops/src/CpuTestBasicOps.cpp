@@ -12,7 +12,7 @@
 #include "GoldBasicOps.h"
 
 using namespace std;
-using namespace ConfigTaskMatOps;
+using namespace ConfigTaskBasicOps;
 
 extern "C"
 void task_basicops(
@@ -26,7 +26,7 @@ void task_basicops(
         const unsigned dim0B,
         const unsigned dim1B,
         const unsigned dim2B,
-        const unsigned dim3B, 
+        const unsigned dim3B,
         const int rankA,
         const int rankB,
         const int mode,
@@ -165,7 +165,7 @@ int TestBasicOps(
     }
 
     //if(isConstantB){std::printf("***cte:%f\n",deviceInputTnB[0][0]);}//DBG ONLY
-    task_matops(
+    task_basicops(
             deviceInputTnA.data(),
             deviceInputTnB.data(),
             deviceOutputTn.data(),
@@ -179,7 +179,8 @@ int TestBasicOps(
             _dim3B,
             rankA,
             rankB,
-            mode);
+            mode,
+            isConstantB? deviceInputTnB[0][0] : 0);
     GoldBasicOps<CONFIG_DTYPE>(
             hostInputTnA.data(),
             hostInputTnB.data(),
