@@ -9,7 +9,7 @@
 * Build the project on a powerful compute instance with FPGA AMI.
 * Copy the build directory from the build server into a free tier t2.micro server.
 * Convert the `*.xclbin` file into `*.awsxclbin`
-* Zip the whole modified build directory. 
+* Zip the whole modified build directory.
 * Copy the zip file into the F1.2xLarge instance and run the host program with the first argument pointing to the `*.awsxclbin` file's path.
 
 # General Server Setup(Any instance type with FPGA Development AMI)
@@ -46,11 +46,11 @@ source ~/.bashrc
 # Cloning Deeppoint
 ```
 cd /mnt/mydrive/00_workspace
-git clone --recursive https://gitlab.com/salehjg/deeppoint-v1-fpga.git
-cd deeppoint-v1-fpga
-git checkout origin/axi512
-git checkout axi512
-git submodule update --init --recursive
+git clone --recursive https://github.com/salehjg/DeepPoint-V2-FPGA.git
+cd DeepPoint-V2-FPGA
+#git checkout origin/axi512
+#git checkout axi512
+#git submodule update --init --recursive
 mkdir build
 cd build
 ```
@@ -61,7 +61,7 @@ cd build
 
 # use screen command to run the building script in the background in case of ssh disconnection.
 # This command opens up a new subterminal
-screen -S buildrun01 
+screen -S buildrun01
 
 scl enable devtoolset-7 bash
 cmake3 ..
@@ -84,8 +84,8 @@ First copy the build folder from your build server into the free tier server wit
 1. Configure secret keys:
 ```
 $ aws configure
-AWS Access Key ID [None]: CSV Access key we just downloaded 
-AWS Secret Access Key [None]: CSV Access Key we just downloaded 
+AWS Access Key ID [None]: CSV Access key we just downloaded
+AWS Secret Access Key [None]: CSV Access Key we just downloaded
 Default region name [None]: us-east-1
 Default output format [None]: json
 ```
