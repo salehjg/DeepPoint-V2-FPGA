@@ -96,8 +96,8 @@ void SetupModules(int argc, const char* argv[]){
       .required(false);
 
   parser.add_argument()
-      .names({"-c","--cpu"})
-      .description("Sample CPU usage on the kernel launches. (no value is needed for this argument)")
+      .names({"--nocpuusage"})
+      .description("Disable CPU usage sampling on the kernel launches. (no value is needed for this argument)")
       .required(false);
 
 
@@ -189,9 +189,11 @@ void SetupModules(int argc, const char* argv[]){
     SPDLOG_LOGGER_INFO(logger,"The memory-bank crossings will be calculated and dumped for the default computational graph.");
   }
 
-  if(parser.exists("c")) {
+  if(parser.exists("nocpuusage")) {
+    globalCpuUsageSamplingEnabled = false;
+    SPDLOG_LOGGER_INFO(logger,"The CPU usage is NOT going to be sampled on every kernel launches.");
+  }else{
     globalCpuUsageSamplingEnabled = true;
-    SPDLOG_LOGGER_INFO(logger,"The CPU usage is going to be sampled on every kernel launches.");
   }
 
   if(parser.exists("noprofileocl")) {

@@ -3,8 +3,9 @@
 #include "CProfiler.h"
 #include <chrono>
 
-CProfiler::CProfiler(const std::string &fnameJson) {
+CProfiler::CProfiler(const std::string &fnameJson, bool enableCpuUsageSampling) {
   m_strFileName = fnameJson;
+  m_bEnableCpuUsageSampling = enableCpuUsageSampling;
   m_ptrWriter = new rapidjson::Writer<rapidjson::StringBuffer>(m_oStrBuffer);
   m_ptrFileStream = new std::ofstream(m_strFileName);
   m_ptrWriter->StartObject();
@@ -22,19 +23,23 @@ CProfiler::CProfiler(const std::string &fnameJson) {
   m_ptrWriter->Key("trace");
   m_ptrWriter->StartArray();
 
-
-  SPDLOG_LOGGER_TRACE(logger, "Spinning CProfiler's thread to poll the CPU usage.");
-  m_bStopThread = false;
-  FILE* file = fopen("/proc/stat", "r");
-  fscanf(file, "cpu %llu %llu %llu %llu",
-      &m_lLastTotalUser,
-      &m_lLastTotalUserLow,
-      &m_lLastTotalSys,
-      &m_lLastTotalIdle);
-  fclose(file);
-  std::thread th(&CProfiler::CpuUsageThread, this);
-  swap(th, m_oThread);
-  SPDLOG_LOGGER_TRACE(logger, "Done.");
+  if(m_bEnableCpuUsageSampling) {
+    SPDLOG_LOGGER_TRACE(logger, "Spinning CProfiler's thread to poll the CPU usage.");
+    m_bStopThread = false;
+    FILE *file = fopen("/proc/stat", "r");
+    fscanf(file, "cpu %llu %llu %llu %llu",
+           &m_lLastTotalUser,
+           &m_lLastTotalUserLow,
+           &m_lLastTotalSys,
+           &m_lLastTotalIdle);
+    fclose(file);
+    std::thread th(&CProfiler::CpuUsageThread, this);
+    swap(th, m_oThread);
+    SPDLOG_LOGGER_TRACE(logger, "Done.");
+  }else{
+    SPDLOG_LOGGER_TRACE(logger, "The CPU usage sampling is disabled.");
+    m_bStopThread = true;
+  }
 }
 
 CProfiler::~CProfiler() {
@@ -207,5 +212,5 @@ void CProfiler::CpuUsageThread() {
 }
 
 float CProfiler::GetLastCpuUsage(){
-  return m_fCpuUsage;
+  return m_bEnableCpuUsageSampling ? (float)m_fCpuUsage : -1.0f;
 }

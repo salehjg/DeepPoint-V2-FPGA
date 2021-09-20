@@ -18,7 +18,7 @@ CPlatformSelection::CPlatformSelection(
   m_bEnableCpuUsageSampling = enableCpuUsageSampling;
   m_bEnableTensorDumps = enableTensorDumps;
   m_strProfilerOutputPath = profilerOutputPath;
-  m_ptrProfiler = new CProfiler(m_strProfilerOutputPath);
+  m_ptrProfiler = new CProfiler(m_strProfilerOutputPath, m_bEnableCpuUsageSampling);
 
   m_ptrImplCpu = new CImplementationCpu(m_ptrProfiler, m_bEnableTensorDumps);
   m_ptrImplXil = new CImplementationXilinx(m_ptrProfiler, m_bEnableOclProfiling, m_bLogMemBankCrossings);

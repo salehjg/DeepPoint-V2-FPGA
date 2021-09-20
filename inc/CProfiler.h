@@ -18,7 +18,7 @@ class CProfiler{
   using DictIntPtr = std::unordered_map<std::string, int>;
   using DictFloatPtr = std::unordered_map<std::string, float>;
 
-  CProfiler(const std::string &fnameJson);
+  CProfiler(const std::string &fnameJson, bool enableCpuUsageSampling);
 
   ~CProfiler();
 
@@ -54,6 +54,7 @@ class CProfiler{
   rapidjson::Writer<rapidjson::StringBuffer> *m_ptrWriter;
   std::ofstream *m_ptrFileStream;
   std::string m_strFileName;
+  bool m_bEnableCpuUsageSampling;
 
   std::atomic<float> m_fCpuUsage;
   std::atomic<bool> m_bStopThread;

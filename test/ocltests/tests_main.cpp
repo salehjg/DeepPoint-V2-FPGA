@@ -16,7 +16,7 @@ int main(int argc, char** argv){
       false,
       globalProfileOclEnabled,
       globalDumpMemBankCrossings,
-      false,
+      globalCpuUsageSamplingEnabled,
       globalDumpTensors
   );
   ::testing::InitGoogleTest(&argc, argv);
