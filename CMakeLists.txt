@@ -7,7 +7,7 @@ message("CMake Version: ${CMAKE_VERSION}")
 set(HostExecutableName DeepPointV2FPGA)
 project(DeepPointV2FPGA)
 
-set(BuildRelease OFF CACHE BOOL "Build the host application and CpuTests with release mode.")
+set(BuildRelease ON CACHE BOOL "Build the host application and CpuTests with release mode.")
 set(DSA_NAME "$ENV{AWS_PLATFORM}" CACHE STRING "Known SDAccel platform name or xpfm file path")
 set(SYNTH_PART_NAME "xcvu9p-flga2104-2-e" CACHE STRING "Part name for synthesis only.")
 set(SYNTH_FLAGS "-DKERNEL_LOGS -DHLSLIB_SYNTHESIS -DHLSLIB_XILINX -std=c++11 -I${CMAKE_SOURCE_DIR}/inc/fpga/xilinx -I${CMAKE_SOURCE_DIR}/config/output -I${CMAKE_SOURCE_DIR}/submodules/hlslib/include" CACHE STRING "CFlags for synthesis only.")
