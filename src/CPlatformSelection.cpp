@@ -377,13 +377,15 @@ void CPlatformSelection::DumpToNumpyFile(PLATFORMS destPlatform,
                                          std::string npyFileName,
                                          CTensorBasePtr inputTn,
                                          std::string npyDumpDir) {
-  auto qInputCpuTn = CrossThePlatformIfNeeded(PLATFORMS::CPU, inputTn);
-  if(destPlatform==PLATFORMS::CPU){
-    return m_ptrImplCpu->DumpToNumpyFile(npyFileName,qInputCpuTn,npyDumpDir);
-  }else if(destPlatform==PLATFORMS::XIL){
-    ThrowException("NYI.");
-  }else{
-    ThrowException("Undefined platform.");
+  if(m_bEnableTensorDumps){
+    auto qInputCpuTn = CrossThePlatformIfNeeded(PLATFORMS::CPU, inputTn);
+    if(destPlatform==PLATFORMS::CPU){
+      return m_ptrImplCpu->DumpToNumpyFile(npyFileName,qInputCpuTn,npyDumpDir);
+    }else if(destPlatform==PLATFORMS::XIL){
+      ThrowException("NYI.");
+    }else{
+      ThrowException("Undefined platform.");
+    }
   }
 }
 
