@@ -18,7 +18,8 @@ TEST(test_ckwtranspose, mixed1) {
   std::vector<bool> results = {
       TransposeTest<float>({2,32,32}),
       TransposeTest<float>({64,64}),
-      TransposeTest<float>({1,64,64})
+      TransposeTest<float>({1,64,64}),
+      TransposeTest<float>({2,32,3})
   };
 
   for(auto r:results){

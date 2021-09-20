@@ -47,7 +47,7 @@ void CWeightLoader::LoadWeightsFromDisk(std::string &weightsBaseDir,
                                                                      m_vNumpyBuff.back().data<float>(),
                                                                      bank)));
         auto tag = _ResolveTensorTagOclXilinx(line);
-        std::dynamic_pointer_cast<CTensorXil<float>>(m_vWeightsXil[idx])->SetTensorTag(tag);
+        std::dynamic_pointer_cast<CTensorXil<float>>(m_vWeightsXil[idx-1])->SetTensorTag(tag);
       }
     }
   }

@@ -51,8 +51,8 @@ class CKernelWrapperTranspose: public CKernelWrapper{
     auto dim1 = shape[1];
     auto dim2 = shape[2];
 
-    ConditionCheck(dim1%(ConfigTaskTranspose::PipeDepth1)==0, "Incompatible dim1 for ConfigTaskTranspose::PipeDepth1");
-    ConditionCheck(dim2%(ConfigTaskTranspose::PipeDepth2)==0, "Incompatible dim2 for ConfigTaskTranspose::PipeDepth2");
+    //ConditionCheck(dim1%(ConfigTaskTranspose::PipeDepth1)==0, "Incompatible dim1 for ConfigTaskTranspose::PipeDepth1");
+    //ConditionCheck(dim2%(ConfigTaskTranspose::PipeDepth2)==0, "Incompatible dim2 for ConfigTaskTranspose::PipeDepth2");
 
     CTensorXilPtr<float> outputTn(new CTensorXil<float>(GetXilInfo(), {dim0,dim2,dim1}, false, m_uBankOutputTn));
 

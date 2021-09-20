@@ -261,7 +261,7 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
                           int axiWidth) {
   SetPlatform(PLATFORMS::XIL);
   T *paddedHostBuff = PadHostBuffer(shape,hostBuff,axiWidth);
-  CloneFrom(xilInfo,GetShape(),paddedHostBuff,bank,axiWidth,CL_BLOCKING);
+  CloneFrom(xilInfo,shape,paddedHostBuff,bank,axiWidth,CL_BLOCKING);
   delete[](paddedHostBuff);
 }
 
