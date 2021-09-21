@@ -16,7 +16,7 @@ CClassifierMultiPlatform::CClassifierMultiPlatform(
 
   m_bUseShapeNet = useShapeNetInstead;
   m_ptrClassifierModel = new CModel1(
-      PLATFORMS::CPU,
+      PLATFORMS::XIL,
       0,
       globalBatchsize,
       1024,
