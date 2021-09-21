@@ -13,10 +13,39 @@ CProfiler::CProfiler(const std::string &fnameJson, bool enableCpuUsageSampling) 
   m_ptrWriter->Key("info");
   m_ptrWriter->StartObject();
   {
+    /// TODO: add args for the used global vars in the constructor.
     m_ptrWriter->Key("commit.host");
     m_ptrWriter->String(REPO_HASH_MAIN);
+
     m_ptrWriter->Key("commit.config");
     m_ptrWriter->String(REPO_HASH_CONFIG);
+
+    m_ptrWriter->Key("globalArgXclBin");
+    m_ptrWriter->String(globalArgXclBin.c_str());
+
+    m_ptrWriter->Key("globalArgDataPath");
+    m_ptrWriter->String(globalArgDataPath.c_str());
+
+    m_ptrWriter->Key("globalBatchsize");
+    m_ptrWriter->Uint(globalBatchsize);
+
+    m_ptrWriter->Key("globalCpuUsageSamplingEnabled");
+    m_ptrWriter->Bool(m_bEnableCpuUsageSampling);
+
+    m_ptrWriter->Key("globalDumpTensors");
+    m_ptrWriter->Bool(globalDumpTensors);
+
+    m_ptrWriter->Key("globalDumpMemBankCrossings");
+    m_ptrWriter->Bool(globalDumpMemBankCrossings);
+
+    m_ptrWriter->Key("globalProfileOclEnabled");
+    m_ptrWriter->Bool(globalProfileOclEnabled);
+
+    m_ptrWriter->Key("globalShapenet");
+    m_ptrWriter->Bool(globalShapenet);
+
+    m_ptrWriter->Key("globalModelnet");
+    m_ptrWriter->Bool(globalModelnet);
   }
   m_ptrWriter->EndObject();
 
