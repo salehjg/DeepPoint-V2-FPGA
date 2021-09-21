@@ -66,10 +66,12 @@ class CTensorBase {
 
   /**
    * Replaces the shape of the tensor if they are both of the same length.
-   * Please note that Reshape() does not affect the data layout in anyways.
+   * Please note that Reshape() does not affect the data layout in anyways and that is why it should be pure virtual.
+   * For example reshaping a 2x9 to 2x3x3 will cause issues since on the device memory (XIL) 2x9 translates to a buffer of
+   * len 2x16, but 2x3x3 to 2x3x16.
    * @param newShape
    */
-  void Reshape(const std::vector<unsigned>& newShape);
+  virtual void Reshape(const std::vector<unsigned>& newShape) = 0;
 
   /**
    * Returns the total number of items stored in the tensor.

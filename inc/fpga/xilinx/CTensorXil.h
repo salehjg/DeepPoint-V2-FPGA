@@ -43,6 +43,7 @@ class CTensorXil: public CTensorBase, public std::enable_shared_from_this<CTenso
   std::vector<unsigned> GetShapePadded() const;
   cl::Event* GetEventPtr();
   std::shared_ptr<CTensor<T>> TransferToHost();
+  void Reshape(const std::vector<unsigned> &newShape) override;
 
  private:
   static void EventCallback(cl_event event, cl_int execStatus, void *userData);
@@ -632,7 +633,28 @@ void CTensorXil<T>::SetTypeInfo() {
   m_bTypeIsUint = std::is_integral<T>::value && std::is_unsigned<T>::value;
   m_bTypeIsInt = std::is_integral<T>::value && !std::is_unsigned<T>::value;
 }
+template<typename T>
+void CTensorXil<T>::Reshape(const std::vector<unsigned> &newShape) {
+  if (newShape.empty()) {
+    throw std::runtime_error(CStringFormatter() << "The new shape is empty.");
+  }
+  const unsigned long newLen = std::accumulate(begin(newShape), end(newShape), 1, std::multiplies<unsigned>());
+  if (newLen != GetLen())
+    throw std::runtime_error(CStringFormatter() << __func__ << ": The lengths for the two shapes do not match.");
 
+  const auto oldShapePadded = PadShape(newShape, m_iAxiWidth);
+  const auto newShapePadded = PadShape(newShape, m_iAxiWidth);
 
+  const unsigned long oldLenPadded = std::accumulate(begin(oldShapePadded), end(oldShapePadded), 1, std::multiplies<unsigned>());
+  const unsigned long newLenPadded = std::accumulate(begin(newShapePadded), end(newShapePadded), 1, std::multiplies<unsigned>());
 
+  // for example 2x9 cannot be reshaped to 2x3x3 since padded versions (2x16 and 2x3x16 do not have the same lengths)
+  if(oldLenPadded != newLenPadded) {
+    throw std::runtime_error(CStringFormatter() << __func__
+                                           << ": The padded lengths for the two shapes do not match, this will cause "
+                                           <<"issues since XIL tensors are bound to the padded last dim policy."
+    );
+  }
 
+  SetShape(newShape);
+}

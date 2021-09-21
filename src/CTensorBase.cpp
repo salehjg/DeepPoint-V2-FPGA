@@ -49,16 +49,6 @@ void CTensorBase::ExpandDimZero() {
   ExpandDims(0);
 }
 
-void CTensorBase::Reshape(const vector<unsigned> &newShape) {
-  if (newShape.empty()) {
-    throw runtime_error(CStringFormatter() << "The new shape is empty.");
-  }
-  const unsigned long newLen = std::accumulate(begin(newShape), end(newShape), 1, multiplies<unsigned>());
-  if (newLen != GetLen())
-    throw runtime_error(CStringFormatter() << __func__ << ": The lengths for the two shapes do not match.");
-  m_vShape = newShape;
-}
-
 unsigned long CTensorBase::GetLen() const{
   if (IsEmpty()) {
     return 0;

@@ -16,7 +16,7 @@ CClassifierMultiPlatform::CClassifierMultiPlatform(
 
   m_bUseShapeNet = useShapeNetInstead;
   m_ptrClassifierModel = new CModel1(
-      PLATFORMS::XIL,
+      PLATFORMS::CPU,
       0,
       globalBatchsize,
       1024,
@@ -27,8 +27,8 @@ CClassifierMultiPlatform::CClassifierMultiPlatform(
       enableCpuUtilization,
       enableTensorDumps);
   if(!m_bUseShapeNet){
-    string pclPath = globalArgDataPath; pclPath.append("/modelnet40/dataset/dataset_B2048_pcl.npy");
-    string labelPath = globalArgDataPath; labelPath.append("/modelnet40/dataset/dataset_B2048_labels_int32.npy");
+    string pclPath = globalArgDataPath; pclPath.append("/modelnet40/dataset/dataset_B5_pcl.npy");
+    string labelPath = globalArgDataPath; labelPath.append("/modelnet40/dataset/dataset_B5_labels_int32.npy");
     SPDLOG_LOGGER_INFO(logger,"PCL NPY PATH: {}", pclPath);
     SPDLOG_LOGGER_INFO(logger,"LBL NPY PATH: {}", labelPath);
 

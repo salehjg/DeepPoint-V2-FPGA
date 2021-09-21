@@ -404,11 +404,12 @@ CTensorBasePtr CModel1::TransformNet(CTensorBasePtr edgeFeaturesTn) {
     auto transformTn = m_ptrPlatSelection->MatMul(GetTargetPlatform(),net,weights);
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"A18_transform_batch.npy",transformTn);
 
-    auto transformFinalTn = m_ptrPlatSelection->BasicOps(GetTargetPlatform(),transformTn,biases, BASIC_OPS::ADD);
+
+    auto transformFinalTn = m_ptrPlatSelection->BasicOps(GetTargetPlatform(), transformTn, biases, BASIC_OPS::ADD);
     m_ptrPlatSelection->DumpToNumpyFile(PLATFORMS::CPU,"A19_transform_batch_bias.npy",transformFinalTn);
 
-    //return m_ptrPlatSelection->CrossThePlatformIfNeeded(PLATFORMS::CPU, transformFinalTn); // Force CPU
-    return transformFinalTn;
+    // Forcibly use the CPU tensor. This will allow us to use reshape without worrying about the padded last dim policy.
+    return m_ptrPlatSelection->CrossThePlatformIfNeeded(PLATFORMS::CPU, transformFinalTn); // Force CPU
   }
 }
 

@@ -2,7 +2,7 @@
 
 #include "CWeightLoader.h"
 CWeightLoader::CWeightLoader(CXilinxInfo *xilInfo, PLATFORMS targetPlatform) {
-  m_bLoadCpu = targetPlatform == PLATFORMS::CPU;
+  m_bLoadCpu = true; //always load weights on cpu //targetPlatform == PLATFORMS::CPU;
   m_bLoadXil = targetPlatform == PLATFORMS::XIL;
   m_ptrXilInfo = xilInfo;
   m_uWeightCount = 0;

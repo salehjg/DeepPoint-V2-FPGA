@@ -16,12 +16,13 @@ class CTensor: public CTensorBase {
   CTensor(const CTensor<T>& other);
   CTensor(const std::vector<unsigned> &shape);
   CTensor(const std::vector<unsigned> &shape, T* srcBuffToBeCopied);
-  virtual CTensor& operator=(const CTensor<T>& other);
+  CTensor& operator=(const CTensor<T>& other);
   unsigned long GetSizeBytes() const override;
-  virtual const std::type_info& GetType() const;
-  virtual T& operator[](std::size_t flattenedRowMajorIndex);
-  virtual T* Get();
-  virtual const T* GetConst() const;
+  const std::type_info& GetType() const;
+  T& operator[](std::size_t flattenedRowMajorIndex);
+  T* Get();
+  const T* GetConst() const;
+  void Reshape(const std::vector<unsigned> &newShape) override;
 
  protected:
   unsigned long CheckShape(const std::vector<unsigned> &shape);
@@ -145,4 +146,14 @@ void CTensor<T>::SetTypeInfo() {
   m_bTypeIsFloat = std::is_floating_point<T>::value;
   m_bTypeIsUint = std::is_integral<T>::value && std::is_unsigned<T>::value;
   m_bTypeIsInt = std::is_integral<T>::value && !std::is_unsigned<T>::value;
+}
+template<typename T>
+void CTensor<T>::Reshape(const std::vector<unsigned> &newShape) {
+  if (newShape.empty()) {
+    throw std::runtime_error(CStringFormatter() << "The new shape is empty.");
+  }
+  const unsigned long newLen = std::accumulate(begin(newShape), end(newShape), 1, std::multiplies<unsigned>());
+  if (newLen != GetLen())
+    throw std::runtime_error(CStringFormatter() << __func__ << ": The lengths for the two shapes do not match.");
+  SetShape(newShape);
 }
