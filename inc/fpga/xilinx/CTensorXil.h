@@ -117,7 +117,7 @@ void CTensorXil<T>::EventCallback(cl_event event, cl_int execStatus, void *userD
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(deviceTimeStart), &deviceTimeStart, nullptr));
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(deviceTimeEnd), &deviceTimeEnd, nullptr));
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
-    std::cout<<"DATAMOVER: ns:"<<durationNanoSeconds<<std::endl;
+    //std::cout<<"DATAMOVER: ns:"<<durationNanoSeconds<<std::endl;
     auto *classPtr = static_cast<CXilinxInfo*>(((CallbackData *)userData)->classPtr);
     classPtr->AddProfiledDataMoverLaunchDetails("task_datamover", ((CallbackData *) userData)->parentLayerId, ((CallbackData *) userData)->optionalValue, durationNanoSeconds);
   }

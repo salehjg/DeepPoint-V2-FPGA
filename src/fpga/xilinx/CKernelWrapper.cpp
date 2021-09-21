@@ -58,7 +58,7 @@ void CKernelWrapper::EventCallback(cl_event event, cl_int execStatus, void *user
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(deviceTimeStart), &deviceTimeStart, nullptr));
     OclCheck(stat, stat=clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(deviceTimeEnd), &deviceTimeEnd, nullptr));
     cl_ulong durationNanoSeconds = deviceTimeEnd - deviceTimeStart;
-    std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
+    //std::cout<<"KERNEL: ns:"<<durationNanoSeconds<<std::endl;
     auto *classPtr = static_cast<CKernelWrapper*>(((CallbackData *)userData)->classPtr);
     classPtr->AddProfiledKernelLaunchDetails(classPtr->m_strTaskName, ((CallbackData *) userData)->parentLayerId, durationNanoSeconds);
 
