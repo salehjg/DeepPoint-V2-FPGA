@@ -100,8 +100,6 @@ void SetupModules(int argc, const char* argv[]){
       .description("Disable CPU usage sampling on the kernel launches. (no value is needed for this argument)")
       .required(false);
 
-
-
   parser.enable_help();
   auto err = parser.parse(argc, argv);
   if(err){

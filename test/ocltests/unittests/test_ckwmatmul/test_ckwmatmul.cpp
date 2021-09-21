@@ -31,6 +31,7 @@ TEST(test_ckwmatmul, rank3) {
       MatmulTestRank3<float>(1,3,5,64),
       MatmulTestRank3<float>(1,4,16,16),
       MatmulTestRank3<float>(1,3,5,4),
+      MatmulTestRank3<float>(5,16,3,3),
       //MatmulTestType1<float>(1,17,15,31)
   };
 

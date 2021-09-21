@@ -422,10 +422,13 @@ CTensorXil<T>::CTensorXil(CXilinxInfo *xilInfo,
 }
 template<typename T>
 std::shared_ptr<CTensor<T>> CTensorXil<T>::TransferToHost() {
-  SPDLOG_LOGGER_TRACE(logger, "CTensorXil::TransferToHost().");
   T *paddedHostBuff = new T[GetLenPadded()];
   std::vector<cl::Event> dependencies;
   dependencies.push_back(m_oEvent);
+
+  m_ptrXilInfo->GetQueue()->finish();
+
+  SPDLOG_LOGGER_TRACE(logger, "CTensorXil::TransferToHost(offset=0, len={}, bytes={}).", GetLenPadded(), GetSizeBytesPadded());
   OclCheck(m_iOclStatus,
            m_iOclStatus = m_ptrXilInfo->GetQueue()->enqueueReadBuffer(
                m_oDeviceBuffer,
@@ -436,6 +439,9 @@ std::shared_ptr<CTensor<T>> CTensorXil<T>::TransferToHost() {
                &dependencies,
                NULL)
   );
+
+  m_ptrXilInfo->GetQueue()->finish();
+
   ///TODO enforce queue to be flushed and wait for it to happen?
   ///     OR
   ///     wait on the event to happen?!
@@ -466,7 +472,7 @@ T *CTensorXil<T>::PadHostBuffer(const std::vector<unsigned> &actualShape, const 
 
 template<typename T>
 std::vector<unsigned> CTensorXil<T>::PadShape(const std::vector<unsigned> &shape, int axiWidth) const {
-  auto paddedShape = shape;
+  std::vector<unsigned> paddedShape = shape;
   // always pad the last dimension.
   unsigned lastDim = paddedShape[paddedShape.size()-1];
   paddedShape[paddedShape.size()-1] = MakeDivisible<unsigned>(lastDim, axiWidth);
