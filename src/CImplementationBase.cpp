@@ -2,7 +2,7 @@
 
 #include "CImplementationBase.h"
 unsigned CImplementationBase::GenerateLayerId() {
-  m_uAtomicCounter++;
+  return m_uAtomicCounter++;
 }
 PLATFORMS CImplementationBase::GetPlatform() const{
   return m_ePlatform;
