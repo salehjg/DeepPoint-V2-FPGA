@@ -16,21 +16,21 @@ include_directories(
 #message("TEST_SOURCES: ")
 #message("${TEST_SOURCES}")
 set(TEST_SOURCES
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensor/test_ctensor.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensorxil/test_ctensorxil.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconcat/test_ckwconcat.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwmatmul/test_ckwmatmul.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwrelusqrtsquare/test_ckwrelusqrtsquare.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwbasicops/test_ckwbasicops.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtile/test_ckwtile.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtranspose/test_ckwtranspose.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwgather/test_ckwgather.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwreduce/test_ckwreduce.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layermean/test_layermean.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layervariance/test_layervariance.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwpadunpad/test_ckwpadunpad.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtopk/test_ckwtopk.cpp
-        #${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconv/test_ckwconv.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensor/test_ctensor.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ctensorxil/test_ctensorxil.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconcat/test_ckwconcat.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwmatmul/test_ckwmatmul.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwrelusqrtsquare/test_ckwrelusqrtsquare.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwbasicops/test_ckwbasicops.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtile/test_ckwtile.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtranspose/test_ckwtranspose.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwgather/test_ckwgather.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwreduce/test_ckwreduce.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layermean/test_layermean.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_layervariance/test_layervariance.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwpadunpad/test_ckwpadunpad.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwtopk/test_ckwtopk.cpp
+        ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_ckwconv/test_ckwconv.cpp
         ${CMAKE_SOURCE_DIR}/test/ocltests/unittests/test_multiplatform1/test_multiplatform1.cpp
         )
 
