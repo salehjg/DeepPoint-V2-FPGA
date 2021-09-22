@@ -3,6 +3,7 @@ import copy
 import os
 import sys
 from datetime import datetime
+import numpy as np
 
 
 class CProfiler:
@@ -66,7 +67,7 @@ class CProfiler:
     def recursive_per_top_parent_layer_device_time(self, tree):
         # forced, plat = xil
         if tree['type'] == 'kernel':
-            return 0
+            return 0, []
         if len(tree['nested']) == 0:
             if tree['type'] == 'layer' and tree['platform'] == 'xil':
                 matched_kernels = self.find_kernel(tree['id'])
@@ -74,13 +75,14 @@ class CProfiler:
                     tmp = 0
                     for match in matched_kernels:
                         tmp += match['duration']
-                    return tmp
+                    return tmp, [tree['cpu.usage']]
                 else:
-                    return 0
+                    return 0, []
             else:
-                return 0
+                return 0, []
         else:
             duration_total = 0
+            cpu_usage_list = []
             if tree['type'] == 'layer' and tree['platform'] == 'xil':
                 matched_kernels = self.find_kernel(tree['id'])
                 if len(matched_kernels) != 0:
@@ -88,15 +90,31 @@ class CProfiler:
                     for match in matched_kernels:
                         tmp += match['duration']
                     duration_total += tmp
+            cpu_usage_list.append(tree['cpu.usage'])
             for child in tree['nested']:
-                duration_total += self.recursive_per_top_parent_layer_device_time(child)
-            return duration_total
+                r_duration, r_cpu = self.recursive_per_top_parent_layer_device_time(child)
+                duration_total += r_duration
+                for e in r_cpu:
+                    cpu_usage_list.append(e)
+            return duration_total, cpu_usage_list
 
     def report_per_layer_total_device_time(self):
         dict_total = {}
         for top_parent in self.src_json['trace']:
-            total_device_time = self.recursive_per_top_parent_layer_device_time(top_parent)
-            dict_total[top_parent['name']] = total_device_time
+            total_device_time, all_cpu_usage_samples = self.recursive_per_top_parent_layer_device_time(top_parent)
+            if top_parent['name'] in dict_total.keys():
+                dict_total[top_parent['name']]['total.device.time'] += total_device_time
+                for e in all_cpu_usage_samples:
+                    dict_total[top_parent['name']]['cpu.usage.list'].append(e)
+            else:
+                dict_total[top_parent['name']] = {'total.device.time': total_device_time, 'cpu.usage.mean': 0, 'cpu.usage.min': 0, 'cpu.usage.max': 0, 'cpu.usage.list': all_cpu_usage_samples}
+
+        for key in dict_total.keys():
+            if len(dict_total[key]['cpu.usage.list'])!=0:
+                dict_total[key]['cpu.usage.mean'] = np.mean(dict_total[key]['cpu.usage.list'])
+                dict_total[key]['cpu.usage.min'] = np.min(dict_total[key]['cpu.usage.list'])
+                dict_total[key]['cpu.usage.max'] = np.max(dict_total[key]['cpu.usage.list'])
+            del dict_total[key]['cpu.usage.list']
         return dict_total
 
     def dict_add_integer_to_key_try(self, _dict, key, val):
@@ -176,9 +194,10 @@ class CProfiler:
             if element['type'] == 'kernel' and element['platform'] == 'xil':
                 # parent_layer = self.find_layer_by_id(element['id'])
                 if element['name'] in dict_report.keys():
-                    dict_report[element['name']] += element['duration']
+                    dict_report[element['name']]['time'] += element['duration']
+                    dict_report[element['name']]['launches'] += 1
                 else:
-                    dict_report[element['name']] = element['duration']
+                    dict_report[element['name']] = {'time':element['duration'], 'launches':1}
         return dict_report
 
     def report_per_kernel_args(self):
@@ -213,28 +232,28 @@ class CReporter:
         os.mkdir(self.new_dump_dir)
 
         self.report.append(self.obj.report_info())
-        self.print_report(self.report[-1], self.new_dump_dir + "/0Info.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/0Info.json")
 
         self.report.append(self.obj.report_per_layer_args(platform='xil'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/1PerLayerArgsXil.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/1PerLayerArgsXil.json")
 
         self.report.append(self.obj.report_per_layer_args(platform='cpu'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/1PerLayerArgsCpu.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/1PerLayerArgsCpu.json")
 
         self.report.append(self.obj.report_per_layer_total_device_time())
-        self.print_report(self.report[-1], self.new_dump_dir + "/2PerLayerTotalDeviceTime.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/2PerLayerTotalDeviceTime.json")
 
         self.report.append(self.obj.report_per_layer_total_host_time(platform='cpu'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/3PerLayerTotalHostTimeCpu.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/3PerLayerTotalHostTimeCpu.json")
 
         self.report.append(self.obj.report_per_layer_total_host_time(platform='xil'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/3PerLayerTotalHostTimeXil.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/3PerLayerTotalHostTimeXil.json")
 
         self.report.append(self.obj.report_per_kernel_total_device_time())
-        self.print_report(self.report[-1], self.new_dump_dir + "/4PerKernelTotalDeviceTime.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/4PerKernelTotalDeviceTime.json")
 
         self.report.append(self.obj.report_per_kernel_args())
-        self.print_report(self.report[-1], self.new_dump_dir + "/5PerKernelArgs.txt")
+        self.print_report(self.report[-1], self.new_dump_dir + "/5PerKernelArgs.json")
 
     def print_report(self, report, dump_fname):
         print(
