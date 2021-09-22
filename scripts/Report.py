@@ -1,9 +1,12 @@
 import json
 import copy
-import os
+import glob, os
 import sys
 from datetime import datetime
 import numpy as np
+from pathlib import Path
+import zipfile
+import colorama
 
 
 class CProfiler:
@@ -107,10 +110,12 @@ class CProfiler:
                 for e in all_cpu_usage_samples:
                     dict_total[top_parent['name']]['cpu.usage.list'].append(e)
             else:
-                dict_total[top_parent['name']] = {'total.device.time': total_device_time, 'cpu.usage.mean': 0, 'cpu.usage.min': 0, 'cpu.usage.max': 0, 'cpu.usage.list': all_cpu_usage_samples}
+                dict_total[top_parent['name']] = {'total.device.time': total_device_time, 'cpu.usage.mean': 0,
+                                                  'cpu.usage.min': 0, 'cpu.usage.max': 0,
+                                                  'cpu.usage.list': all_cpu_usage_samples}
 
         for key in dict_total.keys():
-            if len(dict_total[key]['cpu.usage.list'])!=0:
+            if len(dict_total[key]['cpu.usage.list']) != 0:
                 dict_total[key]['cpu.usage.mean'] = np.mean(dict_total[key]['cpu.usage.list'])
                 dict_total[key]['cpu.usage.min'] = np.min(dict_total[key]['cpu.usage.list'])
                 dict_total[key]['cpu.usage.max'] = np.max(dict_total[key]['cpu.usage.list'])
@@ -197,7 +202,7 @@ class CProfiler:
                     dict_report[element['name']]['time'] += element['duration']
                     dict_report[element['name']]['launches'] += 1
                 else:
-                    dict_report[element['name']] = {'time':element['duration'], 'launches':1}
+                    dict_report[element['name']] = {'time': element['duration'], 'launches': 1}
         return dict_report
 
     def report_per_kernel_args(self):
@@ -228,7 +233,8 @@ class CReporter:
         self.report = []
         self.today = datetime.now()
 
-        self.new_dump_dir = self.today.strftime('%Y%m%d%H%M%S')
+        path_only = path_json[0:path_json.rindex('/')]
+        self.new_dump_dir = os.path.join(path_only, self.today.strftime('%Y%m%d%H%M%S'))
         os.mkdir(self.new_dump_dir)
 
         self.report.append(self.obj.report_info())
@@ -262,18 +268,65 @@ class CReporter:
         )
 
 
-if __name__ == "__main__":
-    assert len(sys.argv) == 2 or len(sys.argv) == 1
-    if len(sys.argv) == 2:
-        if not os.path.isfile(sys.argv[1]):
-            print("File does not exist: ", sys.argv[1])
-            sys.exit(status=1)
-    if len(sys.argv) == 1:
-        print("No args, looking for profiler.json at the current directory...")
-        if not os.path.isfile("profiler.json"):
-            print("File does not exist: ", sys.argv[1])
-            sys.exit(status=1)
+def single_mode(path_json):
+    if not os.path.isfile(path_json):
+        print("File does not exist: ", sys.argv[1])
+        sys.exit(status=1)
+
     print("Analyzing the JSON file...")
-    obj = CReporter(sys.argv[1] if len(sys.argv) == 2 else "profiler.json")
+    obj = CReporter(path_json)
     print("Done. Closing.")
 
+
+def batch_mode(path_dir):
+    def get_fname_without_ext(fname_with_extension=''):
+        fname_only = Path(fname_with_extension).stem
+        return fname_only
+
+    def get_fname_with_ext(fname_with_extension=''):
+        fname_only = Path(fname_with_extension).name
+        return fname_only
+
+    for file in glob.glob(os.path.join(path_dir, '*.zip')):
+        print('----------------------')
+        folder_path = os.path.join('.', path_dir, get_fname_without_ext(file))
+        # os.makedirs(folder_path)
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+        file_moved_path = os.path.join(folder_path, get_fname_with_ext(file))
+        os.rename(file, file_moved_path)
+        print("Unzipping ", file_moved_path)
+        with zipfile.ZipFile(file_moved_path, "r") as zip_ref:
+            unzipped_folder = os.path.join(folder_path, "unzipped")
+            zip_ref.extractall(unzipped_folder)
+            json_file_path = os.path.join(unzipped_folder, 'profiler.json')
+            print("Analyzing ", json_file_path)
+            try:
+                obj = CReporter(json_file_path)
+            except:
+                print(f"{colorama.Fore.RED}Error analyzing {json_file_path} of size (bytes) {os.path.getsize(json_file_path)} {colorama.Style.RESET_ALL}")
+
+
+def print_help():
+    print("DeepPoint-V2-FPGA Report Script")
+    print("Usage:")
+    print("\tpython3 Report.py <mode: single, batch> args")
+    print("\t\t <mode>=single:")
+    print("\t\t\t python3 Report.py single <path to profiler.json>")
+    print("\t\t <mode>=batch:")
+    print("\t\t\t python3 Report.py batch <path to dir with multiple fpga_run zip files>")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print_help()
+        exit(1)
+    else:
+        arg_mode = sys.argv[1]
+        if arg_mode == 'single':
+            single_mode(sys.argv[2])
+        else:
+            if arg_mode == 'batch':
+                batch_mode(sys.argv[2])
+            else:
+                print('Wrong mode.')
+                exit(1)
