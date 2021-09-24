@@ -536,7 +536,7 @@ CTensorBasePtr CImplementationCpu::Gather(CTensorBasePtr inputTn, CTensorBasePtr
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}, {"shape.indices",indicesTn->GetShape()}}),
       nullptr,
       nullptr);
 

@@ -515,7 +515,7 @@ CTensorBasePtr CImplementationXilinx::Gather(CTensorBasePtr inputTn, CTensorBase
       GetPlatform(),
       GenerateLayerId(),
       __func__,
-      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}}),
+      new CProfiler::DictShapePtr({{"shape",inputTn->GetShape()}, {"shape.indices",indicesTn->GetShape()}}),
       new CProfiler::DictIntPtr({{"indicesOfAxis",indicesOfAxis}}),
       nullptr);
 
@@ -767,7 +767,7 @@ CTensorBasePtr CImplementationXilinx::Conv2D(CTensorBasePtr inputTn, CTensorBase
   //-----------------------------------------------------------------
   auto outputPaddedTn =
   m_ptrKernelConv->EnqueueKernelLaunch(
-      GetTheLastLayerId(),
+      GetTheLastLayerId(),  /// TODO: This will cause two kernel launches (padunpad above and conv on this line) to have same id's.
       inputTn,
       _weightPadded,
       biasTn,

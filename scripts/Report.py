@@ -21,6 +21,11 @@ class CProfiler:
         self.file_json.close()
 
     def find_kernel(self, parent_layer_id):
+        """
+        returns a list of kernels with the requested id's
+        :param parent_layer_id:
+        :return:
+        """
         matched = []
         for item in self.src_json['trace']:
             if item['type'] != "kernel":
@@ -30,44 +35,117 @@ class CProfiler:
                     matched.append(item)
         return matched
 
-    def recursive_find_layers_by(self, out_dict_results, tree, platform='xil'):
-        if tree['type'] == 'kernel':
-            return
+    def recursive_find_layers_by_name(self, tree, layer_name, platform):
+        if tree['type'] != 'layer':
+            return []
         if len(tree['nested']) == 0:
-            if tree['type'] == 'layer' and tree['platform'] == platform:
-                if not (tree['name'] in out_dict_results.keys()):
-                    out_dict_results[tree['name']] = []
-                out_dict_results[tree['name']].append(tree)
+            if tree['type'] == 'layer' and tree['name'] == layer_name and tree['platform'] == platform:
+                dict_matched = copy.deepcopy(tree)
+                del dict_matched['nested']
+                return [dict_matched]
+            else:
+                return []
         else:
-            for child in tree['nested']:
-                self.recursive_find_layers_by(out_dict_results, child, platform)
-            if tree['type'] == 'layer' and tree['platform'] == platform:
-                if not (tree['name'] in out_dict_results.keys()):
-                    out_dict_results[tree['name']] = []
-                out_dict_results[tree['name']].append(tree)
+            list_matched_layers = []
+            if tree['type'] == 'layer' and tree['name'] == layer_name and tree['platform'] == platform:
+                dict_matched = copy.deepcopy(tree)
+                del dict_matched['nested']
+                list_matched_layers.append(dict_matched)
+            if len(tree['nested']) != 0:
+                for child in tree['nested']:
+                    list_tmp = self.recursive_find_layers_by_name(child, layer_name, platform)
+                    if len(list_tmp) != 0:
+                        for e in list_tmp:
+                            list_matched_layers.append(e)
+            return list_matched_layers
 
-    def report_per_layer_args(self, platform):
-        # 1) finds recursively all the layers with unique 'name'
-        # 2) gathers recursively all of the layers within the list assigned to their related dict.keys()
-        # 3) returns the dict
+    def find_layers_by_name_perkernel(self, layer_name, platform):
+        assert platform == 'xil'
+        list_results = []
+        for parent in self.src_json['trace']:
+            if parent['type'] == 'kernel':
+                continue
+            list_matched = self.recursive_find_layers_by_name(parent, layer_name, platform)
+            if len(list_matched) != 0:
+                for e in list_matched:
+                    list_results.append(e)
+        return list_results
 
-        dict_layers_src = {}
-        for base_element in self.src_json['trace']:
-            self.recursive_find_layers_by(dict_layers_src, base_element, platform)
-        dict_layers = copy.deepcopy(dict_layers_src)
-        for layer_name in dict_layers.keys():
-            # for base_element in self.src_json['trace']:
-            #    self.recursive_gather_layers_by(dict_layers, base_element, layer_name, platform)
-            for element in dict_layers[layer_name]:
-                del element['time.stop']
-                del element['time.start']
-                del element['name']
-                del element['type']
-                del element['platform']
-                del element['nested']
-        return dict_layers
+    def report_info(self):
+        return self.src_json['info']
 
-    def recursive_per_top_parent_layer_device_time(self, tree):
+    def is_layer_reducesum(self, tree):
+        result = False
+        if tree['type'] == 'layer':
+            if tree['name'] == 'Reduce':
+                if tree['args']['reduction_op'] == 0:  # sum
+                    result = True
+        return result
+
+    def is_layer_reducemax(self, tree):
+        result = False
+        if tree['type'] == 'layer':
+            if tree['name'] == 'Reduce':
+                if tree['args']['reduction_op'] == 1:  # max
+                    result = True
+        return result
+
+    def report_hosttimes_pertoplayer(self, platform):
+        """
+        Reports accumulated host time strictly for every unique the top layer names available.
+        :param platform:
+        :return:
+        """
+        dict_report = {}
+        for parent in self.src_json['trace']:
+            if parent['type'] != 'layer':
+                continue
+            if parent['platform'] == platform:
+                reported_layer_name = ''
+                if self.is_layer_reducesum(parent):
+                    reported_layer_name = 'Reduce.Sum'
+                else:
+                    if self.is_layer_reducemax(parent):
+                        reported_layer_name = 'Reduce.Max'
+                    else:
+                        reported_layer_name = parent['name']
+
+                host_ns = (parent['time.stop'] - parent['time.start']) * 1000.0
+                if not (reported_layer_name in dict_report.keys()):
+                    dict_report[reported_layer_name] = {'pertoplayer.total.host': 0}
+                dict_report[reported_layer_name]['pertoplayer.total.host'] += host_ns
+        return dict_report
+
+    def report_numcalls_pertoplayer(self, platform):
+        """
+        Reports accumulated number of calls strictly for every unique the top layer names available.
+        :param platform:
+        :return:
+        """
+        dict_report = {}
+        for parent in self.src_json['trace']:
+            if parent['type'] != 'layer':
+                continue
+            if parent['platform'] == platform:
+                reported_layer_name = ''
+                if self.is_layer_reducesum(parent):
+                    reported_layer_name = 'Reduce.Sum'
+                else:
+                    if self.is_layer_reducemax(parent):
+                        reported_layer_name = 'Reduce.Max'
+                    else:
+                        reported_layer_name = parent['name']
+                if not (reported_layer_name in dict_report.keys()):
+                    dict_report[reported_layer_name] = {'pertoplayer.total.calls': 0}
+                dict_report[reported_layer_name]['pertoplayer.total.calls'] += 1
+        return dict_report
+
+    def recursive_xiltimes_cpuusage_for_a_tree(self, tree):
+        """
+        returns a tuple of the total device time and the list of cpu usages for the GIVEN top layer (parent).
+        :param tree:
+        :return:
+        """
         # forced, plat = xil
         if tree['type'] == 'kernel':
             return 0, []
@@ -95,137 +173,637 @@ class CProfiler:
                     duration_total += tmp
             cpu_usage_list.append(tree['cpu.usage'])
             for child in tree['nested']:
-                r_duration, r_cpu = self.recursive_per_top_parent_layer_device_time(child)
+                r_duration, r_cpu = self.recursive_xiltimes_cpuusage_for_a_tree(child)
                 duration_total += r_duration
                 for e in r_cpu:
                     cpu_usage_list.append(e)
             return duration_total, cpu_usage_list
 
-    def report_per_layer_total_device_time(self):
-        dict_total = {}
-        for top_parent in self.src_json['trace']:
-            total_device_time, all_cpu_usage_samples = self.recursive_per_top_parent_layer_device_time(top_parent)
-            if top_parent['name'] in dict_total.keys():
-                dict_total[top_parent['name']]['total.device.time'] += total_device_time
-                for e in all_cpu_usage_samples:
-                    dict_total[top_parent['name']]['cpu.usage.list'].append(e)
-            else:
-                dict_total[top_parent['name']] = {'total.device.time': total_device_time, 'cpu.usage.mean': 0,
-                                                  'cpu.usage.min': 0, 'cpu.usage.max': 0,
-                                                  'cpu.usage.list': all_cpu_usage_samples}
-
-        for key in dict_total.keys():
-            if len(dict_total[key]['cpu.usage.list']) != 0:
-                dict_total[key]['cpu.usage.mean'] = np.mean(dict_total[key]['cpu.usage.list'])
-                dict_total[key]['cpu.usage.min'] = np.min(dict_total[key]['cpu.usage.list'])
-                dict_total[key]['cpu.usage.max'] = np.max(dict_total[key]['cpu.usage.list'])
-            del dict_total[key]['cpu.usage.list']
-        return dict_total
-
-    def dict_add_integer_to_key_try(self, _dict, key, val):
-        if key in _dict.keys():
-            _dict[key] += val
-        else:
-            _dict[key] = val
-
-    def recursive_per_layer_host_time(self, out_dict, tree, platform):
-        if tree['type'] == 'kernel':
-            return
-        if len(tree['nested']) == 0:
-            duration = tree['time.stop'] - tree['time.start']
-            if tree['platform'] == 'cpu':
-                duration = duration * 1000  # convert it to nano seconds
-            if tree['platform'] == platform:
-                self.dict_add_integer_to_key_try(out_dict, tree['name'], duration)
-                # out_dict[tree['name']] = duration
-            return tree['name'], duration, tree['platform']
-        else:
-            duration_raw = tree['time.stop'] - tree['time.start']
-            if tree['platform'] == 'cpu':
-                duration_raw = duration_raw * 1000  # convert it to nano seconds
-            duration = duration_raw
-            for child in tree['nested']:
-                child_name, child_duration, child_platform = self.recursive_per_layer_host_time(out_dict, child,
-                                                                                                platform=platform)
-                if child_platform == platform:
-                    if tree['name'] != child_name:
-                        duration -= child_duration
-                    else:
-                        duration -= 0
-            if tree['platform'] == platform:
-                self.dict_add_integer_to_key_try(out_dict, tree['name'], duration)
-                # out_dict[tree['name']] = duration
-            return tree['name'], duration_raw, tree['platform']
-
-    def report_per_layer_total_host_time(self, platform):
+    def report_xiltimes_cpuusages_pertoplayer(self):
+        """
+        Reports accumulated xilinx device times and sampled cpu usages strictly for every unique the top layer names available.
+        :return:
+        """
         dict_report = {}
-        for element in self.src_json['trace']:
-            self.recursive_per_layer_host_time(dict_report, element, platform)
-        return dict_report
 
-    def recursive_find_layer_by_id(self, tree, layer_id):
-        if tree['type'] == 'kernel':
-            return []
-        if len(tree['nested']) == 0:
-            if tree['id'] == layer_id:
-                return [tree]
+        for parent in self.src_json['trace']:
+            if parent['type'] != 'layer' or parent['platform'] != 'xil':
+                continue
+            reported_layer_name = ''
+            if self.is_layer_reducesum(parent):
+                reported_layer_name = 'Reduce.Sum'
             else:
-                return []
-        else:
-            matched = []
-            for child in tree['nested']:
-                k_list = self.recursive_find_layer_by_id(child, layer_id)
-                for k in k_list:
-                    matched.append(k)
-            if tree['id'] == layer_id:
-                matched.append(tree)
-            return matched
-
-    def find_layer_by_id(self, layer_id):
-        rslt_list = []
-        for element in self.src_json['trace']:
-            k_list = self.recursive_find_layer_by_id(element, layer_id)
-            for k in k_list:
-                rslt_list.append(k)
-        if len(rslt_list) > 1:
-            print("find_layer_by_id: Warning, more than one layer is found for an specific layer id.")
-            assert False
-
-        return rslt_list
-
-    def report_per_kernel_total_device_time(self):
-        dict_report = {}
-        for element in self.src_json['trace']:
-            if element['type'] == 'kernel' and element['platform'] == 'xil':
-                # parent_layer = self.find_layer_by_id(element['id'])
-                if element['name'] in dict_report.keys():
-                    dict_report[element['name']]['time'] += element['duration']
-                    dict_report[element['name']]['launches'] += 1
+                if self.is_layer_reducemax(parent):
+                    reported_layer_name = 'Reduce.Max'
                 else:
-                    dict_report[element['name']] = {'time': element['duration'], 'launches': 1}
+                    reported_layer_name = parent['name']
+            if not (reported_layer_name in dict_report.keys()):
+                dict_report[reported_layer_name] = {
+                    'pertoplayer.total.xiltime': 0,
+                    'pertoplayer.cpuusage.min': 0,
+                    'pertoplayer.cpuusage.max': 0,
+                    'pertoplayer.cpuusage.mean': 0,
+                    'pertoplayer.cpuusage.list': []
+                }
+
+            total_device, list_cpuusages = self.recursive_xiltimes_cpuusage_for_a_tree(parent)
+            for e in list_cpuusages:
+                dict_report[reported_layer_name]['pertoplayer.cpuusage.list'].append(e)
+
+            dict_report[reported_layer_name]['pertoplayer.total.xiltime'] += total_device
+
+        for n in dict_report.keys():
+            dict_report[n]['pertoplayer.cpuusage.min'] = np.min(dict_report[n]['pertoplayer.cpuusage.list'])
+            dict_report[n]['pertoplayer.cpuusage.max'] = np.max(dict_report[n]['pertoplayer.cpuusage.list'])
+            dict_report[n]['pertoplayer.cpuusage.mean'] = np.mean(dict_report[n]['pertoplayer.cpuusage.list'])
+            del dict_report[n]['pertoplayer.cpuusage.list']
+
         return dict_report
 
-    def report_per_kernel_args(self):
-        dict_report = {}
-        for element in self.src_json['trace']:
-            if element['type'] == 'kernel' and element['platform'] == 'xil':
-                parent_layer = self.find_layer_by_id(element['id'])
-                if len(parent_layer) == 0:
-                    if element['name'] != 'task_datamover':
-                        print(
-                            "report_per_kernel_args: Warning, failed to find the parent layer of a kernel that is not a datamover.")
+    def report_detailed_relu_sqrt_square_perkernel(self):
+        """
+        returns detailed per kernel stats for the different modes of relusqrtsquare kernel.
+        :return:
+        """
+        layers_xil_relu = self.find_layers_by_name_perkernel('ReLU', 'xil')
+        layers_xil_sqrt = self.find_layers_by_name_perkernel('Sqrt', 'xil')
+        layers_xil_square = self.find_layers_by_name_perkernel('Square', 'xil')
+
+        # ----------------------------------------------------------
+        dict_detailed = {}
+
+        # ----------------------------------------------------------
+        dict_detailed['relu.xil'] = {}
+        dict_detailed['sqrt.xil'] = {}
+        dict_detailed['square.xil'] = {}
+
+        # ==========================================================
+        dict_detailed['relu.xil']['total.time.host'] = 0
+        dict_detailed['relu.xil']['cpu.usage.mean'] = 0
+        dict_detailed['relu.xil']['total.time.xil'] = 0
+        dict_detailed['relu.xil']['throughput.list'] = []
+        dict_detailed['relu.xil']['throughput.max'] = 0
+        for e in layers_xil_relu:
+            dict_detailed['relu.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['relu.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_relu))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['relu.xil']['total.time.xil'] += k['duration']
+                dict_detailed['relu.xil']['throughput.list'].append(
+                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+
+        dict_detailed['relu.xil']['matches'] = layers_xil_relu
+        if len(dict_detailed['relu.xil']['throughput.list']) != 0:
+            dict_detailed['relu.xil']['throughput.max'] = np.max(dict_detailed['relu.xil']['throughput.list'])
+        else:
+            dict_detailed['relu.xil']['throughput.max'] = 0
+
+        # ----------------------------------------------------------
+        dict_detailed['sqrt.xil']['total.time.host'] = 0
+        dict_detailed['sqrt.xil']['cpu.usage.mean'] = 0
+        dict_detailed['sqrt.xil']['total.time.xil'] = 0
+        dict_detailed['sqrt.xil']['throughput.list'] = []
+        dict_detailed['sqrt.xil']['throughput.max'] = 0
+        for e in layers_xil_sqrt:
+            dict_detailed['sqrt.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['sqrt.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_sqrt))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['sqrt.xil']['total.time.xil'] += k['duration']
+                dict_detailed['sqrt.xil']['throughput.list'].append(
+                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+
+        dict_detailed['sqrt.xil']['matches'] = layers_xil_sqrt
+        if len(dict_detailed['sqrt.xil']['throughput.list']) != 0:
+            dict_detailed['sqrt.xil']['throughput.max'] = np.max(dict_detailed['sqrt.xil']['throughput.list'])
+        else:
+            dict_detailed['sqrt.xil']['throughput.max'] = 0
+
+        # ----------------------------------------------------------
+        dict_detailed['square.xil']['total.time.host'] = 0
+        dict_detailed['square.xil']['cpu.usage.mean'] = 0
+        dict_detailed['square.xil']['total.time.xil'] = 0
+        dict_detailed['square.xil']['throughput.list'] = []
+        dict_detailed['square.xil']['throughput.max'] = 0
+        for e in layers_xil_square:
+            dict_detailed['square.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['square.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_square))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['square.xil']['total.time.xil'] += k['duration']
+                dict_detailed['square.xil']['throughput.list'].append(
+                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+
+        dict_detailed['square.xil']['matches'] = layers_xil_square
+        if len(dict_detailed['square.xil']['throughput.list']) != 0:
+            dict_detailed['square.xil']['throughput.max'] = np.max(dict_detailed['square.xil']['throughput.list'])
+        else:
+            dict_detailed['square.xil']['throughput.max'] = 0
+
+        # ----------------------------------------------------------
+        return dict_detailed
+
+    def report_detailed_reduce_sum_max_perkernel(self):
+        """
+        returns detailed per kernel stats for the different modes of reduce kernel.
+        :return:
+        """
+        dict_detailed = {}
+
+        dict_detailed['reduce.sum.r3a2.xil'] = {}
+        dict_detailed['reduce.sum.r4a012.xil'] = {}
+        dict_detailed['reduce.max.xil'] = {}
+
+        layers_xil_sum_and_max = self.find_layers_by_name_perkernel('Reduce', 'xil')
+
+        layers_xil_sum_r3a2 = []
+        layers_xil_sum_r4a012 = []
+        layers_xil_max = []  # reduce max has only 1 kernel, no need to separate profiled layers
+
+        for e in layers_xil_sum_and_max:
+            if e['args']['reduction_op'] == 0:  # sum
+                if e['args']['rank'] == 4 and e['args']['combination'] == [1, 1, 1, 0]:
+                    layers_xil_sum_r4a012.append(e)
+                else:
+                    if e['args']['rank'] == 3 and e['args']['combination'] == [0, 0, 1]:
+                        layers_xil_sum_r3a2.append(e)
+                    else:
                         assert False
-                if not (element['name'] in dict_report.keys()):
-                    dict_report[element['name']] = []
+            else:
+                if e['args']['reduction_op'] == 1:  # max
+                    layers_xil_max.append(e)
+                else:
+                    assert False
 
-                dict_report[element['name']].append(copy.deepcopy(element))
-                if element['name'] != 'task_datamover' and len(parent_layer) != 0:
-                    dict_report[element['name']][-1]['args'] = parent_layer[0]['args']
-        return dict_report
+        # ==============================================================================================================
+        dict_detailed['reduce.max.xil']['total.time.host'] = 0
+        dict_detailed['reduce.max.xil']['cpu.usage.mean'] = 0
+        dict_detailed['reduce.max.xil']['total.time.xil'] = 0
+        dict_detailed['reduce.max.xil']['throughput.list'] = []
+        dict_detailed['reduce.max.xil']['throughput.max'] = 0
+        for e in layers_xil_max:
+            dict_detailed['reduce.max.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['reduce.max.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_max))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['reduce.max.xil']['total.time.xil'] += k['duration']
+                dict_detailed['reduce.max.xil']['throughput.list'].append(
+                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
 
-    def report_info(self):
-        return self.src_json['info']
+        dict_detailed['reduce.max.xil']['matches'] = layers_xil_max
+        if len(dict_detailed['reduce.max.xil']['throughput.list']) != 0:
+            dict_detailed['reduce.max.xil']['throughput.max'] = np.max(
+                dict_detailed['reduce.max.xil']['throughput.list'])
+        else:
+            dict_detailed['reduce.max.xil']['throughput.max'] = 0
 
+        # --------------------------------------------------------------------------------------------------------------
+        # 2. detailed report for ReduceSum kernels (sum_r3a2 and sum_r4a012)
+
+        dict_detailed['reduce.sum.r3a2.xil']['total.time.host'] = 0
+        dict_detailed['reduce.sum.r3a2.xil']['cpu.usage.mean'] = 0
+        dict_detailed['reduce.sum.r3a2.xil']['total.time.xil'] = 0
+        dict_detailed['reduce.sum.r3a2.xil']['throughput.list'] = []
+        dict_detailed['reduce.sum.r3a2.xil']['throughput.max'] = 0
+        for e in layers_xil_sum_r3a2:
+            dict_detailed['reduce.sum.r3a2.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['reduce.sum.r3a2.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_sum_r3a2))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['reduce.sum.r3a2.xil']['total.time.xil'] += k['duration']
+                dict_detailed['reduce.sum.r3a2.xil']['throughput.list'].append(
+                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+
+        dict_detailed['reduce.sum.r3a2.xil']['matches'] = layers_xil_sum_r3a2
+        if len(dict_detailed['reduce.sum.r3a2.xil']['throughput.list']) != 0:
+            dict_detailed['reduce.sum.r3a2.xil']['throughput.max'] = np.max(
+                dict_detailed['reduce.sum.r3a2.xil']['throughput.list'])
+        else:
+            dict_detailed['reduce.sum.r3a2.xil']['throughput.max'] = 0
+
+        # -------------------
+        dict_detailed['reduce.sum.r4a012.xil']['total.time.host'] = 0
+        dict_detailed['reduce.sum.r4a012.xil']['cpu.usage.mean'] = 0
+        dict_detailed['reduce.sum.r4a012.xil']['total.time.xil'] = 0
+        dict_detailed['reduce.sum.r4a012.xil']['throughput.list'] = []
+        dict_detailed['reduce.sum.r4a012.xil']['throughput.max'] = 0
+        for e in layers_xil_sum_r4a012:
+            dict_detailed['reduce.sum.r4a012.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['reduce.sum.r4a012.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(
+                len(layers_xil_sum_r4a012))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['reduce.sum.r4a012.xil']['total.time.xil'] += k['duration']
+                dict_detailed['reduce.sum.r4a012.xil']['throughput.list'].append(
+                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+
+        dict_detailed['reduce.sum.r4a012.xil']['matches'] = layers_xil_sum_r4a012
+        if len(dict_detailed['reduce.sum.r4a012.xil']['throughput.list']) != 0:
+            dict_detailed['reduce.sum.r4a012.xil']['throughput.max'] = np.max(
+                dict_detailed['reduce.sum.r4a012.xil']['throughput.list'])
+        else:
+            dict_detailed['reduce.sum.r4a012.xil']['throughput.max'] = 0
+
+        # -------------------
+        return dict_detailed
+
+    def report_detailed_pad_unpad_perkernel(self):
+        """
+        returns detailed per kernel stats for the different modes of padunpad kernel.
+        :return:
+        """
+        dict_detailed = {}
+
+        dict_detailed['padunpad.pad.xil'] = {}
+        dict_detailed['padunpad.unpad.xil'] = {}
+
+        layers_xil_pad = self.find_layers_by_name_perkernel('PadLastDim', 'xil')
+        layers_xil_unpad = self.find_layers_by_name_perkernel('UnpadLastDim', 'xil')
+
+        # -----------------------
+        dict_detailed['padunpad.pad.xil']['total.time.host'] = 0
+        dict_detailed['padunpad.pad.xil']['cpu.usage.mean'] = 0
+        dict_detailed['padunpad.pad.xil']['total.time.xil'] = 0
+        dict_detailed['padunpad.pad.xil']['throughput.list'] = []
+        dict_detailed['padunpad.pad.xil']['throughput.max'] = 0
+        for e in layers_xil_pad:
+            dict_detailed['padunpad.pad.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['padunpad.pad.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(
+                len(layers_xil_pad))
+            matched_kernels = self.find_kernel(e['id'])
+            # assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                if k['name'] == 'task_pad_unpad':
+                    dict_detailed['padunpad.pad.xil']['total.time.xil'] += k['duration']
+                    shape_out = copy.deepcopy(e['args']['shape'])
+                    shape_out[-1] = e['args']['lastDimPadded']
+                    dict_detailed['padunpad.pad.xil']['throughput.list'].append(
+                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+                else:
+                    # This is to make sure that only conv2 is allowed to have the same id as pad unpad
+                    if k['name'] != 'task_conv2_1x1_direct':
+                        assert False
+
+        dict_detailed['padunpad.pad.xil']['matches'] = layers_xil_pad
+        if len(dict_detailed['padunpad.pad.xil']['throughput.list']) != 0:
+            dict_detailed['padunpad.pad.xil']['throughput.max'] = np.max(
+                dict_detailed['padunpad.pad.xil']['throughput.list'])
+        else:
+            dict_detailed['padunpad.pad.xil']['throughput.max'] = 0
+
+        # -----------------------
+        dict_detailed['padunpad.unpad.xil']['total.time.host'] = 0
+        dict_detailed['padunpad.unpad.xil']['cpu.usage.mean'] = 0
+        dict_detailed['padunpad.unpad.xil']['total.time.xil'] = 0
+        dict_detailed['padunpad.unpad.xil']['throughput.list'] = []
+        dict_detailed['padunpad.unpad.xil']['throughput.max'] = 0
+        for e in layers_xil_unpad:
+            dict_detailed['padunpad.unpad.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+            dict_detailed['padunpad.unpad.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(
+                len(layers_xil_unpad))
+            matched_kernels = self.find_kernel(e['id'])
+            assert len(matched_kernels) == 1
+            for k in matched_kernels:
+                dict_detailed['padunpad.unpad.xil']['total.time.xil'] += k['duration']
+                shape_out = copy.deepcopy(e['args']['shape'])
+                shape_out[-1] = e['args']['lastDimUnpadded']
+                dict_detailed['padunpad.unpad.xil']['throughput.list'].append(
+                    np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+
+        dict_detailed['padunpad.unpad.xil']['matches'] = layers_xil_unpad
+        if len(dict_detailed['padunpad.unpad.xil']['throughput.list']) != 0:
+            dict_detailed['padunpad.unpad.xil']['throughput.max'] = np.max(
+                dict_detailed['padunpad.unpad.xil']['throughput.list'])
+        else:
+            dict_detailed['padunpad.unpad.xil']['throughput.max'] = 0
+
+        # ----------------
+        return dict_detailed
+
+    def report_detailed_transpose_topk_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'Transpose',
+            'TopK',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['throughput.list'] = []
+            dict_detailed[target_name]['throughput.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+                    dict_detailed[target_name]['throughput.list'].append(
+                        np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['throughput.list']) != 0:
+                dict_detailed[target_name]['throughput.max'] = np.max(
+                    dict_detailed[target_name]['throughput.list'])
+            else:
+                dict_detailed[target_name]['throughput.max'] = 0
+        return dict_detailed
+
+    def report_detailed_basicops_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'BasicOps',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['throughput.list'] = []
+            dict_detailed[target_name]['throughput.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+                    dict_detailed[target_name]['throughput.list'].append(
+                        np.prod(e['args']['shape1']) * 4.0 / k['duration'] * 953.674316406)
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['throughput.list']) != 0:
+                dict_detailed[target_name]['throughput.max'] = np.max(
+                    dict_detailed[target_name]['throughput.list'])
+            else:
+                dict_detailed[target_name]['throughput.max'] = 0
+        return dict_detailed
+
+    def report_detailed_tile_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'Tile',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['throughput.list'] = []
+            dict_detailed[target_name]['throughput.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+                    shape_out = copy.deepcopy(e['args']['shape'])
+                    shape_out.insert(e['args']['tileAxis'], e['args']['tileCount'])
+                    print('shape out : ', shape_out)
+                    dict_detailed[target_name]['throughput.list'].append(
+                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['throughput.list']) != 0:
+                dict_detailed[target_name]['throughput.max'] = np.max(
+                    dict_detailed[target_name]['throughput.list'])
+            else:
+                dict_detailed[target_name]['throughput.max'] = 0
+        return dict_detailed
+
+    def report_detailed_gather_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'Gather',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['throughput.list'] = []
+            dict_detailed[target_name]['throughput.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+                    shape_out = copy.deepcopy(e['args']['shape'])
+                    assert e['args']['indicesOfAxis'] == 1
+                    if 'shape.indices' in e['args'].keys():
+                        shape_out.insert(2, e['args']['shape.indices'][-1])
+                    else:
+                        # if the profiler.json belongs to a commit at which the second shape is not recorded:
+                        shape_out.insert(2, 20)
+                    print('shape out : ', shape_out)
+                    dict_detailed[target_name]['throughput.list'].append(
+                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['throughput.list']) != 0:
+                dict_detailed[target_name]['throughput.max'] = np.max(
+                    dict_detailed[target_name]['throughput.list'])
+            else:
+                dict_detailed[target_name]['throughput.max'] = 0
+        return dict_detailed
+
+    def report_detailed_concat2_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'Concat2',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['throughput.list'] = []
+            dict_detailed[target_name]['throughput.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+                    shape_out = copy.deepcopy(e['args']['shape1'])
+                    shape_out[e['args']['concatAxis']] += e['args']['shape2'][e['args']['concatAxis']]
+                    print('shape out : ', shape_out)
+                    dict_detailed[target_name]['throughput.list'].append(
+                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['throughput.list']) != 0:
+                dict_detailed[target_name]['throughput.max'] = np.max(
+                    dict_detailed[target_name]['throughput.list'])
+            else:
+                dict_detailed[target_name]['throughput.max'] = 0
+        return dict_detailed
+
+    def report_detailed_matmul_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'MatMul',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['GFlopPerSecond.list'] = []
+            dict_detailed[target_name]['GFlopPerSecond.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+                    rank = len(e['args']['shape1'])
+                    if rank == 2:
+                        _B = 1
+                        _N = e['args']['shape1'][0]
+                        _K = e['args']['shape1'][1]
+                        assert e['args']['shape2'][0] == _K
+                        _M = e['args']['shape2'][1]
+                    else:
+                        if rank == 3:
+                            _B = e['args']['shape1'][0]
+                            _N = e['args']['shape1'][1]
+                            _K = e['args']['shape1'][2]
+                            assert e['args']['shape2'][0] == _B
+                            assert e['args']['shape2'][1] == _K
+                            _M = e['args']['shape2'][2]
+                        else:
+                            assert False
+                    n_ops = 2 * _N * _K * _M * _B
+                    print('nOps : ', n_ops)
+                    dict_detailed[target_name]['GFlopPerSecond.list'].append(
+                        float(n_ops) / float(k['duration']))
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['GFlopPerSecond.list']) != 0:
+                dict_detailed[target_name]['GFlopPerSecond.max'] = np.max(
+                    dict_detailed[target_name]['GFlopPerSecond.list'])
+            else:
+                dict_detailed[target_name]['GFlopPerSecond.max'] = 0
+        return dict_detailed
+
+    def report_detailed_sharedmlp_perkernel(self):
+        """
+        returns detailed per kernel stats for all the kernels with only one operational mode.
+        :return:
+        """
+        dict_detailed = {}
+        list_target_layers = [
+            'Conv2D',
+        ]
+
+        for target_name in list_target_layers:
+            if not (target_name in dict_detailed.keys()):
+                dict_detailed[target_name] = {}
+            layers = self.find_layers_by_name_perkernel(target_name, 'xil')
+            dict_detailed[target_name]['total.time.host'] = 0
+            dict_detailed[target_name]['cpu.usage.mean'] = 0
+            dict_detailed[target_name]['total.time.xil'] = 0
+            dict_detailed[target_name]['GFlopPerSecond.list'] = []
+            dict_detailed[target_name]['GFlopPerSecond.max'] = 0
+            for e in layers:
+                dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
+                dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
+                matched_kernels = self.find_kernel(e['id'])
+                # assert len(matched_kernels) == 1
+                for k in matched_kernels:
+                    dict_detailed[target_name]['total.time.xil'] += k['duration']
+
+                    assert len(e['args']['shape.i']) == 4
+                    assert len(e['args']['shape.w']) == 4
+                    assert e['args']['shape.w'][0] == 1
+                    assert e['args']['shape.w'][1] == 1
+                    assert len(e['args']['shape.b']) == 1
+
+                    _B = e['args']['shape.i'][0]
+                    _N = e['args']['shape.i'][1]
+                    _K = e['args']['shape.i'][2]
+                    _C1 = e['args']['shape.i'][3]
+                    assert _C1 == e['args']['shape.w'][2]
+                    _C2 = e['args']['shape.w'][3]
+                    assert _C2 == e['args']['shape.b'][0]
+                    n_ops = _C2 * (1 + 2 * _B * _N * _K * _C1)
+                    print('nOps : ', n_ops)
+                    dict_detailed[target_name]['GFlopPerSecond.list'].append(
+                        float(n_ops) / float(k['duration']))
+            dict_detailed[target_name]['matches'] = layers
+            if len(dict_detailed[target_name]['GFlopPerSecond.list']) != 0:
+                dict_detailed[target_name]['GFlopPerSecond.max'] = np.max(
+                    dict_detailed[target_name]['GFlopPerSecond.list'])
+            else:
+                dict_detailed[target_name]['GFlopPerSecond.max'] = 0
+        return dict_detailed
+
+    def report_detailed_datamover_perkernel(self):
+        dict_detailed = {'DataMover': {'throughput.list': [], 'total.time.xil': 0}}
+        for record in self.src_json['trace']:
+            if record['type'] != 'kernel' or record['platform'] != 'xil':
+                continue
+            if record['name'] == 'task_datamover':
+                datasize_bytes = record['bytes']
+                duration_ns = record['duration']
+                dict_detailed['DataMover']['throughput.list'].append(datasize_bytes / duration_ns * 953.674316406)
+                dict_detailed['DataMover']['total.time.xil'] += duration_ns
+
+        if len(dict_detailed['DataMover']['throughput.list']) != 0:
+            dict_detailed['DataMover']['throughput.min'] = np.min(dict_detailed['DataMover']['throughput.list'])
+            dict_detailed['DataMover']['throughput.max'] = np.max(dict_detailed['DataMover']['throughput.list'])
+            dict_detailed['DataMover']['throughput.mean'] = np.mean(dict_detailed['DataMover']['throughput.list'])
+        return dict_detailed
 
 class CReporter:
     def __init__(self, path_json):
@@ -238,28 +816,55 @@ class CReporter:
         os.mkdir(self.new_dump_dir)
 
         self.report.append(self.obj.report_info())
-        self.print_report(self.report[-1], self.new_dump_dir + "/0Info.json")
+        self.print_report(self.report[-1], self.new_dump_dir + "/00Info.json")
 
-        self.report.append(self.obj.report_per_layer_args(platform='xil'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/1PerLayerArgsXil.json")
+        self.report.append(self.obj.report_hosttimes_pertoplayer(platform='cpu'))
+        self.print_report(self.report[-1], self.new_dump_dir + "/01PerTopLayerHostTimeCPU.json")
 
-        self.report.append(self.obj.report_per_layer_args(platform='cpu'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/1PerLayerArgsCpu.json")
+        self.report.append(self.obj.report_hosttimes_pertoplayer(platform='xil'))
+        self.print_report(self.report[-1], self.new_dump_dir + "/02PerTopLayerHostTimeXIL.json")
 
-        self.report.append(self.obj.report_per_layer_total_device_time())
-        self.print_report(self.report[-1], self.new_dump_dir + "/2PerLayerTotalDeviceTime.json")
+        self.report.append(self.obj.report_xiltimes_cpuusages_pertoplayer())
+        self.print_report(self.report[-1], self.new_dump_dir + "/03PerTopLayerDeviceTimeAndCpuUsagesXIL.json")
 
-        self.report.append(self.obj.report_per_layer_total_host_time(platform='cpu'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/3PerLayerTotalHostTimeCpu.json")
+        self.report.append(self.obj.report_numcalls_pertoplayer('cpu'))
+        self.print_report(self.report[-1], self.new_dump_dir + "/04PerTopLayerNumberOfCallsCPU.json")
 
-        self.report.append(self.obj.report_per_layer_total_host_time(platform='xil'))
-        self.print_report(self.report[-1], self.new_dump_dir + "/3PerLayerTotalHostTimeXil.json")
+        self.report.append(self.obj.report_numcalls_pertoplayer('xil'))
+        self.print_report(self.report[-1], self.new_dump_dir + "/05PerTopLayerNumberOfCallsXIL.json")
 
-        self.report.append(self.obj.report_per_kernel_total_device_time())
-        self.print_report(self.report[-1], self.new_dump_dir + "/4PerKernelTotalDeviceTime.json")
+        self.report.append(self.obj.report_detailed_relu_sqrt_square_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/06PerKernelDetailedReluSqrtSquare.json")
 
-        self.report.append(self.obj.report_per_kernel_args())
-        self.print_report(self.report[-1], self.new_dump_dir + "/5PerKernelArgs.json")
+        self.report.append(self.obj.report_detailed_reduce_sum_max_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/07PerKernelDetailedReduceSumMax.json")
+
+        self.report.append(self.obj.report_detailed_pad_unpad_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/08PerKernelDetailedPadUnpad.json")
+
+        self.report.append(self.obj.report_detailed_datamover_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/09PerKernelDetailedDataMover.json")
+
+        self.report.append(self.obj.report_detailed_transpose_topk_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/10PerKernelDetailedTransposeAndTopK.json")
+
+        self.report.append(self.obj.report_detailed_basicops_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/11PerKernelDetailedBasicOps.json")
+
+        self.report.append(self.obj.report_detailed_tile_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/12PerKernelDetailedTile.json")
+
+        self.report.append(self.obj.report_detailed_gather_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/13PerKernelDetailedGather.json")
+
+        self.report.append(self.obj.report_detailed_concat2_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/14PerKernelDetailedConcat.json")
+
+        self.report.append(self.obj.report_detailed_matmul_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/15PerKernelDetailedMatMul.json")
+
+        self.report.append(self.obj.report_detailed_sharedmlp_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/16PerKernelDetailedSharedMLP.json")
 
     def print_report(self, report, dump_fname):
         print(
@@ -268,65 +873,66 @@ class CReporter:
         )
 
 
-def single_mode(path_json):
-    if not os.path.isfile(path_json):
-        print("File does not exist: ", sys.argv[1])
-        sys.exit(status=1)
+    def single_mode(path_json):
+        if not os.path.isfile(path_json):
+            print("File does not exist: ", sys.argv[1])
+            sys.exit(status=1)
 
-    print("Analyzing the JSON file...")
-    obj = CReporter(path_json)
-    print("Done. Closing.")
-
-
-def batch_mode(path_dir):
-    def get_fname_without_ext(fname_with_extension=''):
-        fname_only = Path(fname_with_extension).stem
-        return fname_only
-
-    def get_fname_with_ext(fname_with_extension=''):
-        fname_only = Path(fname_with_extension).name
-        return fname_only
-
-    for file in glob.glob(os.path.join(path_dir, '*.zip')):
-        print('----------------------')
-        folder_path = os.path.join('.', path_dir, get_fname_without_ext(file))
-        # os.makedirs(folder_path)
-        Path(folder_path).mkdir(parents=True, exist_ok=True)
-        file_moved_path = os.path.join(folder_path, get_fname_with_ext(file))
-        os.rename(file, file_moved_path)
-        print("Unzipping ", file_moved_path)
-        with zipfile.ZipFile(file_moved_path, "r") as zip_ref:
-            unzipped_folder = os.path.join(folder_path, "unzipped")
-            zip_ref.extractall(unzipped_folder)
-            json_file_path = os.path.join(unzipped_folder, 'profiler.json')
-            print("Analyzing ", json_file_path)
-            try:
-                obj = CReporter(json_file_path)
-            except:
-                print(f"{colorama.Fore.RED}Error analyzing {json_file_path} of size (bytes) {os.path.getsize(json_file_path)} {colorama.Style.RESET_ALL}")
+        print("Analyzing the JSON file...")
+        obj = CReporter(path_json)
+        print("Done. Closing.")
 
 
-def print_help():
-    print("DeepPoint-V2-FPGA Report Script")
-    print("Usage:")
-    print("\tpython3 Report.py <mode: single, batch> args")
-    print("\t\t <mode>=single:")
-    print("\t\t\t python3 Report.py single <path to profiler.json>")
-    print("\t\t <mode>=batch:")
-    print("\t\t\t python3 Report.py batch <path to dir with multiple fpga_run zip files>")
+    def batch_mode(path_dir):
+        def get_fname_without_ext(fname_with_extension=''):
+            fname_only = Path(fname_with_extension).stem
+            return fname_only
+
+        def get_fname_with_ext(fname_with_extension=''):
+            fname_only = Path(fname_with_extension).name
+            return fname_only
+
+        for file in glob.glob(os.path.join(path_dir, '*.zip')):
+            print('----------------------')
+            folder_path = os.path.join('.', path_dir, get_fname_without_ext(file))
+            # os.makedirs(folder_path)
+            Path(folder_path).mkdir(parents=True, exist_ok=True)
+            file_moved_path = os.path.join(folder_path, get_fname_with_ext(file))
+            os.rename(file, file_moved_path)
+            print("Unzipping ", file_moved_path)
+            with zipfile.ZipFile(file_moved_path, "r") as zip_ref:
+                unzipped_folder = os.path.join(folder_path, "unzipped")
+                zip_ref.extractall(unzipped_folder)
+                json_file_path = os.path.join(unzipped_folder, 'profiler.json')
+                print("Analyzing ", json_file_path)
+                try:
+                    obj = CReporter(json_file_path)
+                except:
+                    print(
+                        f"{colorama.Fore.RED}Error analyzing {json_file_path} of size (bytes) {os.path.getsize(json_file_path)} {colorama.Style.RESET_ALL}")
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print_help()
-        exit(1)
-    else:
-        arg_mode = sys.argv[1]
-        if arg_mode == 'single':
-            single_mode(sys.argv[2])
+    def print_help():
+        print("DeepPoint-V2-FPGA Report Script")
+        print("Usage:")
+        print("\tpython3 Report.py <mode: single, batch> args")
+        print("\t\t <mode>=single:")
+        print("\t\t\t python3 Report.py single <path to profiler.json>")
+        print("\t\t <mode>=batch:")
+        print("\t\t\t python3 Report.py batch <path to dir with multiple fpga_run zip files>")
+
+
+    if __name__ == "__main__":
+        if len(sys.argv) != 3:
+            print_help()
+            exit(1)
         else:
-            if arg_mode == 'batch':
-                batch_mode(sys.argv[2])
+            arg_mode = sys.argv[1]
+            if arg_mode == 'single':
+                single_mode(sys.argv[2])
             else:
-                print('Wrong mode.')
-                exit(1)
+                if arg_mode == 'batch':
+                    batch_mode(sys.argv[2])
+                else:
+                    print('Wrong mode.')
+                    exit(1)
