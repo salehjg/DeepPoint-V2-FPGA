@@ -213,9 +213,10 @@ class CProfiler:
             dict_report[reported_layer_name]['pertoplayer.total.xiltime'] += total_device
 
         for n in dict_report.keys():
-            dict_report[n]['pertoplayer.cpuusage.min'] = np.min(dict_report[n]['pertoplayer.cpuusage.list'])
-            dict_report[n]['pertoplayer.cpuusage.max'] = np.max(dict_report[n]['pertoplayer.cpuusage.list'])
-            dict_report[n]['pertoplayer.cpuusage.mean'] = np.mean(dict_report[n]['pertoplayer.cpuusage.list'])
+            if len(dict_report[n]['pertoplayer.cpuusage.list']) != 0:
+                dict_report[n]['pertoplayer.cpuusage.min'] = np.min(dict_report[n]['pertoplayer.cpuusage.list'])
+                dict_report[n]['pertoplayer.cpuusage.max'] = np.max(dict_report[n]['pertoplayer.cpuusage.list'])
+                dict_report[n]['pertoplayer.cpuusage.mean'] = np.mean(dict_report[n]['pertoplayer.cpuusage.list'])
             del dict_report[n]['pertoplayer.cpuusage.list']
 
         return dict_report
@@ -247,7 +248,7 @@ class CProfiler:
             dict_detailed['relu.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
             dict_detailed['relu.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_relu))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['relu.xil']['total.time.xil'] += k['duration']
                 dict_detailed['relu.xil']['throughput.list'].append(
@@ -269,7 +270,7 @@ class CProfiler:
             dict_detailed['sqrt.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
             dict_detailed['sqrt.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_sqrt))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['sqrt.xil']['total.time.xil'] += k['duration']
                 dict_detailed['sqrt.xil']['throughput.list'].append(
@@ -291,7 +292,7 @@ class CProfiler:
             dict_detailed['square.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
             dict_detailed['square.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_square))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['square.xil']['total.time.xil'] += k['duration']
                 dict_detailed['square.xil']['throughput.list'].append(
@@ -348,7 +349,7 @@ class CProfiler:
             dict_detailed['reduce.max.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
             dict_detailed['reduce.max.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_max))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['reduce.max.xil']['total.time.xil'] += k['duration']
                 dict_detailed['reduce.max.xil']['throughput.list'].append(
@@ -373,7 +374,7 @@ class CProfiler:
             dict_detailed['reduce.sum.r3a2.xil']['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
             dict_detailed['reduce.sum.r3a2.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers_xil_sum_r3a2))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['reduce.sum.r3a2.xil']['total.time.xil'] += k['duration']
                 dict_detailed['reduce.sum.r3a2.xil']['throughput.list'].append(
@@ -397,7 +398,7 @@ class CProfiler:
             dict_detailed['reduce.sum.r4a012.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(
                 len(layers_xil_sum_r4a012))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['reduce.sum.r4a012.xil']['total.time.xil'] += k['duration']
                 dict_detailed['reduce.sum.r4a012.xil']['throughput.list'].append(
@@ -468,7 +469,7 @@ class CProfiler:
             dict_detailed['padunpad.unpad.xil']['cpu.usage.mean'] += e['cpu.usage'] / float(
                 len(layers_xil_unpad))
             matched_kernels = self.find_kernel(e['id'])
-            assert len(matched_kernels) == 1
+            assert len(matched_kernels) <= 1
             for k in matched_kernels:
                 dict_detailed['padunpad.unpad.xil']['total.time.xil'] += k['duration']
                 shape_out = copy.deepcopy(e['args']['shape'])
@@ -510,7 +511,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     dict_detailed[target_name]['throughput.list'].append(
@@ -546,7 +547,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     dict_detailed[target_name]['throughput.list'].append(
@@ -582,7 +583,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     shape_out = copy.deepcopy(e['args']['shape'])
@@ -621,7 +622,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     shape_out = copy.deepcopy(e['args']['shape'])
@@ -665,7 +666,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     shape_out = copy.deepcopy(e['args']['shape1'])
@@ -704,7 +705,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     rank = len(e['args']['shape1'])
@@ -759,7 +760,7 @@ class CProfiler:
                 dict_detailed[target_name]['total.time.host'] += (e['time.stop'] - e['time.start']) * 1000.0
                 dict_detailed[target_name]['cpu.usage.mean'] += e['cpu.usage'] / float(len(layers))
                 matched_kernels = self.find_kernel(e['id'])
-                # assert len(matched_kernels) == 1
+                # assert len(matched_kernels) <= 1
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
 
@@ -804,6 +805,18 @@ class CProfiler:
             dict_detailed['DataMover']['throughput.max'] = np.max(dict_detailed['DataMover']['throughput.list'])
             dict_detailed['DataMover']['throughput.mean'] = np.mean(dict_detailed['DataMover']['throughput.list'])
         return dict_detailed
+
+    def report_summary_perkernel(self):
+        dict_detailed = {}
+        for record in self.src_json['trace']:
+            if record['type'] != 'kernel' or record['platform'] != 'xil':
+                continue
+            if not (record['name'] in dict_detailed.keys()):
+                dict_detailed[record['name']] = {'num.calls': 0, 'total.xil': 0}
+            dict_detailed[record['name']]['num.calls'] += 1
+            dict_detailed[record['name']]['total.xil'] += record['duration']
+        return dict_detailed
+
 
 class CReporter:
     def __init__(self, path_json):
@@ -865,6 +878,9 @@ class CReporter:
 
         self.report.append(self.obj.report_detailed_sharedmlp_perkernel())
         self.print_report(self.report[-1], self.new_dump_dir + "/16PerKernelDetailedSharedMLP.json")
+
+        self.report.append(self.obj.report_summary_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/17PerKernelSummary.json")
 
     def print_report(self, report, dump_fname):
         print(
