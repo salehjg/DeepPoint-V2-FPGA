@@ -14,11 +14,12 @@ class CProfiler:
     duration: all reports (nano seconds) (cpu or xil) (layer or kernel)
     """
 
-    def __init__(self, path_json):
+    def __init__(self, path_json, datatype_size_bytes=4):
         self.path_json = path_json
         self.file_json = open(path_json)
         self.src_json = json.load(self.file_json)  # dict
         self.file_json.close()
+        self.datatype_size_bytes = datatype_size_bytes
 
     def find_kernel(self, parent_layer_id):
         """
@@ -70,6 +71,36 @@ class CProfiler:
                 for e in list_matched:
                     list_results.append(e)
         return list_results
+
+    def recursive_find_layer_by_id(self, tree, layer_id):
+        if tree['type'] == 'kernel':
+            return []
+        if len(tree['nested']) == 0:
+            if tree['id'] == layer_id:
+                return [tree]
+            else:
+                return []
+        else:
+            matched = []
+            for child in tree['nested']:
+                k_list = self.recursive_find_layer_by_id(child, layer_id)
+                for k in k_list:
+                    matched.append(k)
+            if tree['id'] == layer_id:
+                matched.append(tree)
+            return matched
+
+    def find_layer_by_id(self, layer_id):
+        rslt_list = []
+        for element in self.src_json['trace']:
+            k_list = self.recursive_find_layer_by_id(element, layer_id)
+            for k in k_list:
+                rslt_list.append(k)
+        if len(rslt_list) > 1:
+            print("find_layer_by_id: Warning, more than one layer is found for an specific layer id.")
+            assert False
+
+        return rslt_list
 
     def report_info(self):
         return self.src_json['info']
@@ -252,7 +283,7 @@ class CProfiler:
             for k in matched_kernels:
                 dict_detailed['relu.xil']['total.time.xil'] += k['duration']
                 dict_detailed['relu.xil']['throughput.list'].append(
-                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['relu.xil']['matches'] = layers_xil_relu
         if len(dict_detailed['relu.xil']['throughput.list']) != 0:
@@ -274,7 +305,7 @@ class CProfiler:
             for k in matched_kernels:
                 dict_detailed['sqrt.xil']['total.time.xil'] += k['duration']
                 dict_detailed['sqrt.xil']['throughput.list'].append(
-                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['sqrt.xil']['matches'] = layers_xil_sqrt
         if len(dict_detailed['sqrt.xil']['throughput.list']) != 0:
@@ -296,7 +327,7 @@ class CProfiler:
             for k in matched_kernels:
                 dict_detailed['square.xil']['total.time.xil'] += k['duration']
                 dict_detailed['square.xil']['throughput.list'].append(
-                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['square.xil']['matches'] = layers_xil_square
         if len(dict_detailed['square.xil']['throughput.list']) != 0:
@@ -353,7 +384,7 @@ class CProfiler:
             for k in matched_kernels:
                 dict_detailed['reduce.max.xil']['total.time.xil'] += k['duration']
                 dict_detailed['reduce.max.xil']['throughput.list'].append(
-                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['reduce.max.xil']['matches'] = layers_xil_max
         if len(dict_detailed['reduce.max.xil']['throughput.list']) != 0:
@@ -378,7 +409,7 @@ class CProfiler:
             for k in matched_kernels:
                 dict_detailed['reduce.sum.r3a2.xil']['total.time.xil'] += k['duration']
                 dict_detailed['reduce.sum.r3a2.xil']['throughput.list'].append(
-                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['reduce.sum.r3a2.xil']['matches'] = layers_xil_sum_r3a2
         if len(dict_detailed['reduce.sum.r3a2.xil']['throughput.list']) != 0:
@@ -402,7 +433,7 @@ class CProfiler:
             for k in matched_kernels:
                 dict_detailed['reduce.sum.r4a012.xil']['total.time.xil'] += k['duration']
                 dict_detailed['reduce.sum.r4a012.xil']['throughput.list'].append(
-                    np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['reduce.sum.r4a012.xil']['matches'] = layers_xil_sum_r4a012
         if len(dict_detailed['reduce.sum.r4a012.xil']['throughput.list']) != 0:
@@ -440,16 +471,13 @@ class CProfiler:
             matched_kernels = self.find_kernel(e['id'])
             # assert len(matched_kernels) == 1
             for k in matched_kernels:
-                if k['name'] == 'task_pad_unpad':
+                if k['name'] == 'task_pad_unpad' or k['name'] == 'task_conv2_1x1_direct':
+                    # This is to make sure that only conv2 is allowed to have the same id as pad unpad
                     dict_detailed['padunpad.pad.xil']['total.time.xil'] += k['duration']
                     shape_out = copy.deepcopy(e['args']['shape'])
                     shape_out[-1] = e['args']['lastDimPadded']
                     dict_detailed['padunpad.pad.xil']['throughput.list'].append(
-                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
-                else:
-                    # This is to make sure that only conv2 is allowed to have the same id as pad unpad
-                    if k['name'] != 'task_conv2_1x1_direct':
-                        assert False
+                        np.prod(shape_out) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['padunpad.pad.xil']['matches'] = layers_xil_pad
         if len(dict_detailed['padunpad.pad.xil']['throughput.list']) != 0:
@@ -475,7 +503,7 @@ class CProfiler:
                 shape_out = copy.deepcopy(e['args']['shape'])
                 shape_out[-1] = e['args']['lastDimUnpadded']
                 dict_detailed['padunpad.unpad.xil']['throughput.list'].append(
-                    np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+                    np.prod(shape_out) * self.datatype_size_bytes / k['duration'] * 953.674316406)
 
         dict_detailed['padunpad.unpad.xil']['matches'] = layers_xil_unpad
         if len(dict_detailed['padunpad.unpad.xil']['throughput.list']) != 0:
@@ -515,7 +543,7 @@ class CProfiler:
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     dict_detailed[target_name]['throughput.list'].append(
-                        np.prod(e['args']['shape']) * 4.0 / k['duration'] * 953.674316406)
+                        np.prod(e['args']['shape']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
             dict_detailed[target_name]['matches'] = layers
             if len(dict_detailed[target_name]['throughput.list']) != 0:
                 dict_detailed[target_name]['throughput.max'] = np.max(
@@ -551,7 +579,7 @@ class CProfiler:
                 for k in matched_kernels:
                     dict_detailed[target_name]['total.time.xil'] += k['duration']
                     dict_detailed[target_name]['throughput.list'].append(
-                        np.prod(e['args']['shape1']) * 4.0 / k['duration'] * 953.674316406)
+                        np.prod(e['args']['shape1']) * self.datatype_size_bytes / k['duration'] * 953.674316406)
             dict_detailed[target_name]['matches'] = layers
             if len(dict_detailed[target_name]['throughput.list']) != 0:
                 dict_detailed[target_name]['throughput.max'] = np.max(
@@ -590,7 +618,7 @@ class CProfiler:
                     shape_out.insert(e['args']['tileAxis'], e['args']['tileCount'])
                     print('shape out : ', shape_out)
                     dict_detailed[target_name]['throughput.list'].append(
-                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+                        np.prod(shape_out) * self.datatype_size_bytes / k['duration'] * 953.674316406)
             dict_detailed[target_name]['matches'] = layers
             if len(dict_detailed[target_name]['throughput.list']) != 0:
                 dict_detailed[target_name]['throughput.max'] = np.max(
@@ -634,7 +662,7 @@ class CProfiler:
                         shape_out.insert(2, 20)
                     print('shape out : ', shape_out)
                     dict_detailed[target_name]['throughput.list'].append(
-                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+                        np.prod(shape_out) * self.datatype_size_bytes / k['duration'] * 953.674316406)
             dict_detailed[target_name]['matches'] = layers
             if len(dict_detailed[target_name]['throughput.list']) != 0:
                 dict_detailed[target_name]['throughput.max'] = np.max(
@@ -673,7 +701,7 @@ class CProfiler:
                     shape_out[e['args']['concatAxis']] += e['args']['shape2'][e['args']['concatAxis']]
                     print('shape out : ', shape_out)
                     dict_detailed[target_name]['throughput.list'].append(
-                        np.prod(shape_out) * 4.0 / k['duration'] * 953.674316406)
+                        np.prod(shape_out) * self.datatype_size_bytes / k['duration'] * 953.674316406)
             dict_detailed[target_name]['matches'] = layers
             if len(dict_detailed[target_name]['throughput.list']) != 0:
                 dict_detailed[target_name]['throughput.max'] = np.max(
@@ -817,6 +845,181 @@ class CProfiler:
             dict_detailed[record['name']]['total.xil'] += record['duration']
         return dict_detailed
 
+    def report_args_perkernel(self):
+        dict_report = {}
+        for element in self.src_json['trace']:
+            if element['type'] == 'kernel' and element['platform'] == 'xil':
+                parent_layer = self.find_layer_by_id(element['id'])
+                if len(parent_layer) == 0:
+                    if element['name'] != 'task_datamover':
+                        print(
+                            "report_per_kernel_args: Warning, failed to find the parent layer of a kernel that is not a datamover.")
+                        assert False
+                if not (element['name'] in dict_report.keys()):
+                    dict_report[element['name']] = []
+
+                dict_report[element['name']].append(copy.deepcopy(element))
+                if element['name'] != 'task_datamover' and len(parent_layer) != 0:
+                    dict_report[element['name']][-1]['args'] = parent_layer[0]['args']
+                    dict_report[element['name']][-1]['name.parent'] = parent_layer[0]['name']
+        return dict_report
+
+    def get_the_output_tensor_sizes(self, list_kernel_args):
+        """
+        Takes a list of kernel args (only for 1 kernel) and sorts out and calculates the output tensor sizes in bytes.
+        Note that pad/unpad kernel is:
+            - used independently
+            - used inside conv2d
+        , meaning that to get results for pad/unpad, the user should run this method twice for args of padunpad and conv2d,
+        and join the two resulted lists.
+
+        :param list_kernel_args: one element of type list of output of report_args_perkernel()
+        :return:
+        """
+        def get_bytes_of_shape(shape):
+            return int(np.prod(shape) * self.datatype_size_bytes)
+        dict_shapes_out = {}
+        for item in list_kernel_args:
+            task_name = item['name']
+            if not (task_name in dict_shapes_out.keys()):
+                dict_shapes_out[task_name] = {}
+                dict_shapes_out[task_name]['all'] = []
+
+            if task_name == 'task_transpose':
+                dict_shapes_out['task_transpose']['all'].append(get_bytes_of_shape(item['args']['shape']))
+            if task_name == 'task_matmul':
+                rank = len(item['args']['shape1'])
+                if rank == 2:
+                    output_shape = [item['args']['shape1'][0], item['args']['shape2'][1]]
+                else:
+                    if rank == 3:
+                        output_shape = [item['args']['shape1'][0], item['args']['shape1'][1], item['args']['shape2'][2]]
+                    else:
+                        assert False
+                dict_shapes_out['task_matmul']['all'].append(get_bytes_of_shape(output_shape))
+            if task_name == 'task_basicops':
+                dict_shapes_out['task_basicops']['all'].append(get_bytes_of_shape(item['args']['shape1']))
+            if task_name == 'task_tile':
+                dict_shapes_out['task_tile']['all'].append(get_bytes_of_shape(item['args']['shape']) * item['args']['tileCount'])
+            if task_name == 'task_topk':
+                dict_shapes_out['task_topk']['all'].append(get_bytes_of_shape(item['args']['shape'][0:2]) * item['args']['k'])
+            if task_name == 'task_gather':
+                _k = 0
+                # if the profiler.json belongs to a commit that the indicesTn's shape does not get recorded
+                if 'shape.indices' in item['args'].keys():
+                    _k = item['args']['shape.indices'][-1]
+                else:
+                    _k = 20
+                dict_shapes_out['task_gather']['all'].append(get_bytes_of_shape(item['args']['shape']) * _k)
+            if task_name == 'task_concat':
+                output_shape = item['args']['shape1']
+                output_shape[item['args']['concatAxis']] += item['args']['shape2'][item['args']['concatAxis']]
+                dict_shapes_out['task_concat']['all'].append(get_bytes_of_shape(output_shape))
+            if task_name == 'task_conv2_1x1_direct' and len(item['args']) == 3:
+                # make sure that it's conv2d and not padunpad
+                output_shape = item['args']['shape.i']
+                output_shape[-1] = item['args']['shape.w'][-1]
+                dict_shapes_out['task_conv2_1x1_direct']['all'].append(get_bytes_of_shape(output_shape))
+            if task_name == 'task_relu_sqrt_square':
+                if item['name.parent'] == 'ReLU':
+                    if not('relu' in dict_shapes_out['task_relu_sqrt_square'].keys()):
+                        dict_shapes_out['task_relu_sqrt_square']['relu'] = []
+                    dict_shapes_out['task_relu_sqrt_square']['relu'].append(get_bytes_of_shape(item['args']['shape']))
+                if item['name.parent'] == 'Sqrt':
+                    if not('sqrt' in dict_shapes_out['task_relu_sqrt_square'].keys()):
+                        dict_shapes_out['task_relu_sqrt_square']['sqrt'] = []
+                    dict_shapes_out['task_relu_sqrt_square']['sqrt'].append(get_bytes_of_shape(item['args']['shape']))
+                if item['name.parent'] == 'Square':
+                    if not('square' in dict_shapes_out['task_relu_sqrt_square'].keys()):
+                        dict_shapes_out['task_relu_sqrt_square']['square'] = []
+                    dict_shapes_out['task_relu_sqrt_square']['square'].append(get_bytes_of_shape(item['args']['shape']))
+            if task_name == 'task_reduce':
+                if item['args']['reduction_op'] == 1:
+                    # the only reduce max sub kernel
+                    if not('max' in dict_shapes_out['task_reduce'].keys()):
+                        dict_shapes_out['task_reduce']['max'] = []
+                    dict_shapes_out['task_reduce']['max'].append(get_bytes_of_shape(item['args']['shape']))
+                if item['args']['reduction_op'] == 0:
+                    if item['args']['rank'] == 4 and item['args']['combination'] == [1, 1, 1, 0]:
+                        # sum_r4a012
+                        if not ('sum.r4a012' in dict_shapes_out['task_reduce'].keys()):
+                            dict_shapes_out['task_reduce']['sum.r4a012'] = []
+                        dict_shapes_out['task_reduce']['sum.r4a012'].append(get_bytes_of_shape(item['args']['shape']))
+                    else:
+                        if item['args']['rank'] == 3 and item['args']['combination'] == [0, 0, 1]:
+                            # sum_r3a2
+                            if not ('sum.r3a2' in dict_shapes_out['task_reduce'].keys()):
+                                dict_shapes_out['task_reduce']['sum.r3a2'] = []
+                            dict_shapes_out['task_reduce']['sum.r3a2'].append(get_bytes_of_shape(item['args']['shape']))
+                        else:
+                            assert False
+            # ----------------------------------------------------------------------------------------------------------
+            # pad unpad   or   pad/unpad of conv2ds
+            if task_name == 'task_pad_unpad' or (task_name == 'task_conv2_1x1_direct' and len(item['args']) == 2):
+                if not ('task_pad_unpad' in dict_shapes_out.keys()):
+                    dict_shapes_out['task_pad_unpad'] = {}
+                    dict_shapes_out['task_pad_unpad']['all'] = []
+                if 'lastDimPadded' in item['args'].keys():
+                    # pad
+                    if not ('pad' in dict_shapes_out['task_pad_unpad'].keys()):
+                        dict_shapes_out['task_pad_unpad']['pad'] = []
+                    output_shape = item['args']['shape']
+                    output_shape[-1] = item['args']['lastDimPadded']
+                    dict_shapes_out['task_pad_unpad']['pad'].append(get_bytes_of_shape(output_shape))
+                if 'lastDimUnpadded' in item['args'].keys():
+                    # unpad
+                    if not ('unpad' in dict_shapes_out['task_pad_unpad'].keys()):
+                        dict_shapes_out['task_pad_unpad']['unpad'] = []
+                    output_shape = item['args']['shape']
+                    output_shape[-1] = item['args']['lastDimUnpadded']
+                    dict_shapes_out['task_pad_unpad']['unpad'].append(get_bytes_of_shape(output_shape))
+            # ----------------------------------------------------------------------------------------------------------
+            if task_name == 'task_datamover':
+                dict_shapes_out['task_datamover']['all'].append(item['bytes'])
+
+        return dict_shapes_out
+
+    def report_outputsizes_perkernel(self):
+        """
+        reports the output tensor sizes for each kernel.
+        the report contains detailed sub-kernel stats for [relusqrtsuqare, reduce, and padunpad]
+        :return: a dict of format: {<task_name>:{'all':[<for the kernels with no sub kernels>], '<subkernel>':[], ...}, ...}
+        """
+        dict_report = {}
+        dict_allkernels_args = self.report_args_perkernel()
+        for kernel_name in dict_allkernels_args.keys():
+            results = self.get_the_output_tensor_sizes(dict_allkernels_args[kernel_name])
+            for k in results.keys():
+                if not(k in dict_report.keys()):
+                    dict_report[k] = {}
+                for q in results[k].keys():
+                    if not (q in dict_report[k].keys()):
+                        dict_report[k][q] = []
+                    for i in results[k][q]:
+                        dict_report[k][q].append(int(i))
+
+        return dict_report
+
+    def report_outputsizesboxplots_perkernel(self):
+        def get_box_plot_five_nums(data):
+            if len(data) == 0:
+                return {}
+            # sorted_ascend = np.sort(data, axis=0)
+            r_median = np.median(data)
+            r_q1 = np.quantile(data, 0.25)
+            r_q2 = np.quantile(data, 0.75)
+            r_min = np.min(data)
+            r_max = np.max(data)
+            return {'median': int(r_median), 'q1': int(r_q1), 'q3': int(r_q2), 'min': int(r_min), 'max': int(r_max)}
+        dict_report = {}
+        dict_outputsizes = self.report_outputsizes_perkernel()
+        for kernel_name in dict_outputsizes.keys():
+            if not(kernel_name in dict_report.keys()):
+                dict_report[kernel_name] = {}
+            for q in dict_outputsizes[kernel_name]:
+                dict_report[kernel_name][q] = get_box_plot_five_nums(dict_outputsizes[kernel_name][q])
+        return dict_report
+
 
 class CReporter:
     def __init__(self, path_json):
@@ -882,6 +1085,15 @@ class CReporter:
         self.report.append(self.obj.report_summary_perkernel())
         self.print_report(self.report[-1], self.new_dump_dir + "/17PerKernelSummary.json")
 
+        self.report.append(self.obj.report_args_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/18PerKernelArgs.json")
+
+        self.report.append(self.obj.report_outputsizes_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/19PerKernelOutputSizes.json")
+
+        self.report.append(self.obj.report_outputsizesboxplots_perkernel())
+        self.print_report(self.report[-1], self.new_dump_dir + "/20PerKernelOutputSizeBoxPlots.json")
+
     def print_report(self, report, dump_fname):
         print(
             json.dumps(report, sort_keys=True, indent=4),
@@ -889,66 +1101,66 @@ class CReporter:
         )
 
 
-    def single_mode(path_json):
-        if not os.path.isfile(path_json):
-            print("File does not exist: ", sys.argv[1])
-            sys.exit(status=1)
+def single_mode(path_json):
+    if not os.path.isfile(path_json):
+        print("File does not exist: ", sys.argv[1])
+        sys.exit(status=1)
 
-        print("Analyzing the JSON file...")
-        obj = CReporter(path_json)
-        print("Done. Closing.")
-
-
-    def batch_mode(path_dir):
-        def get_fname_without_ext(fname_with_extension=''):
-            fname_only = Path(fname_with_extension).stem
-            return fname_only
-
-        def get_fname_with_ext(fname_with_extension=''):
-            fname_only = Path(fname_with_extension).name
-            return fname_only
-
-        for file in glob.glob(os.path.join(path_dir, '*.zip')):
-            print('----------------------')
-            folder_path = os.path.join('.', path_dir, get_fname_without_ext(file))
-            # os.makedirs(folder_path)
-            Path(folder_path).mkdir(parents=True, exist_ok=True)
-            file_moved_path = os.path.join(folder_path, get_fname_with_ext(file))
-            os.rename(file, file_moved_path)
-            print("Unzipping ", file_moved_path)
-            with zipfile.ZipFile(file_moved_path, "r") as zip_ref:
-                unzipped_folder = os.path.join(folder_path, "unzipped")
-                zip_ref.extractall(unzipped_folder)
-                json_file_path = os.path.join(unzipped_folder, 'profiler.json')
-                print("Analyzing ", json_file_path)
-                try:
-                    obj = CReporter(json_file_path)
-                except:
-                    print(
-                        f"{colorama.Fore.RED}Error analyzing {json_file_path} of size (bytes) {os.path.getsize(json_file_path)} {colorama.Style.RESET_ALL}")
+    print("Analyzing the JSON file...")
+    obj = CReporter(path_json)
+    print("Done. Closing.")
 
 
-    def print_help():
-        print("DeepPoint-V2-FPGA Report Script")
-        print("Usage:")
-        print("\tpython3 Report.py <mode: single, batch> args")
-        print("\t\t <mode>=single:")
-        print("\t\t\t python3 Report.py single <path to profiler.json>")
-        print("\t\t <mode>=batch:")
-        print("\t\t\t python3 Report.py batch <path to dir with multiple fpga_run zip files>")
+def batch_mode(path_dir):
+    def get_fname_without_ext(fname_with_extension=''):
+        fname_only = Path(fname_with_extension).stem
+        return fname_only
+
+    def get_fname_with_ext(fname_with_extension=''):
+        fname_only = Path(fname_with_extension).name
+        return fname_only
+
+    for file in glob.glob(os.path.join(path_dir, '*.zip')):
+        print('----------------------')
+        folder_path = os.path.join('.', path_dir, get_fname_without_ext(file))
+        # os.makedirs(folder_path)
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+        file_moved_path = os.path.join(folder_path, get_fname_with_ext(file))
+        os.rename(file, file_moved_path)
+        print("Unzipping ", file_moved_path)
+        with zipfile.ZipFile(file_moved_path, "r") as zip_ref:
+            unzipped_folder = os.path.join(folder_path, "unzipped")
+            zip_ref.extractall(unzipped_folder)
+            json_file_path = os.path.join(unzipped_folder, 'profiler.json')
+            print("Analyzing ", json_file_path)
+            try:
+                obj = CReporter(json_file_path)
+            except:
+                print(
+                    f"{colorama.Fore.RED}Error analyzing {json_file_path} of size (bytes) {os.path.getsize(json_file_path)} {colorama.Style.RESET_ALL}")
 
 
-    if __name__ == "__main__":
-        if len(sys.argv) != 3:
-            print_help()
-            exit(1)
+def print_help():
+    print("DeepPoint-V2-FPGA Report Script")
+    print("Usage:")
+    print("\tpython3 Report.py <mode: single, batch> args")
+    print("\t\t <mode>=single:")
+    print("\t\t\t python3 Report.py single <path to profiler.json>")
+    print("\t\t <mode>=batch:")
+    print("\t\t\t python3 Report.py batch <path to dir with multiple fpga_run zip files>")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print_help()
+        exit(1)
+    else:
+        arg_mode = sys.argv[1]
+        if arg_mode == 'single':
+            single_mode(sys.argv[2])
         else:
-            arg_mode = sys.argv[1]
-            if arg_mode == 'single':
-                single_mode(sys.argv[2])
+            if arg_mode == 'batch':
+                batch_mode(sys.argv[2])
             else:
-                if arg_mode == 'batch':
-                    batch_mode(sys.argv[2])
-                else:
-                    print('Wrong mode.')
-                    exit(1)
+                print('Wrong mode.')
+                exit(1)
