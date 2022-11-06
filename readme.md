@@ -101,7 +101,7 @@ Branch | AXI Width | DType | Tool | Notes
 ---  |  --- |  --- |  --- |  ---
 master | 512-bits | float32 | SDx2019.1 | -
 
-# Publication
+# Citation
 Please use the following BibTeX entry:
 ```
 @article{jamali2022dgcnn,
