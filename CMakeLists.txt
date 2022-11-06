@@ -56,7 +56,7 @@ add_definitions(-DBIN_DIR=\"${CMAKE_BINARY_DIR}\")
 
 if(BuildRelease)
     set(CMAKE_BUILD_TYPE Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -O0")
 else()
     set(CMAKE_BUILD_TYPE Debug)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -O0")

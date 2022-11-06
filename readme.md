@@ -102,7 +102,17 @@ Branch | AXI Width | DType | Tool | Notes
 master | 512-bits | float32 | SDx2019.1 | -
 
 # Publication
-TBD.
+Please use the following BibTeX entry:
+```
+@article{jamali2022dgcnn,
+  title={DGCNN on FPGA: Acceleration of the Point Cloud Classifier Using FPGAs},
+  author={Jamali Golzar, Saleh and Karimian, Ghader and Shoaran, Maryam and Fattahi Sani, Mohammad},
+  journal={Circuits, Systems, and Signal Processing},
+  pages={1--32},
+  year={2022},
+  publisher={Springer}
+}
+```
 
 # References
 These repositories are used in this project:
