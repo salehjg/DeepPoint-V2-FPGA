@@ -2,6 +2,7 @@
 
 # DeepPoint-V2 Project
 This repository contains the second version of the code base for Xilinx SDAccel FPGA implementation of [Dynamic Graph CNN](https://github.com/WangYueFt/dgcnn).
+The host program in this repository implements the out-of-order kernel queue. The version with in-order queue is available [here](https://github.com/salehjg/DGCNN-on-FPGA).
 
 # Quick Refs
 **Basics:**
